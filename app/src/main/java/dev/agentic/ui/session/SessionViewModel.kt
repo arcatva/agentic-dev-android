@@ -444,6 +444,29 @@ class SessionViewModel(
 
     // ── Events ──────────────────────────────────────────────────────────────────
 
+    /** Sessions offered by the composer's @-mention dropdown: every session EXCEPT this one,
+     *  most-recently-active first. Refreshed on demand by [refreshMentionCandidates]; the last
+     *  fetched list stays available so the dropdown opens instantly while a refresh is in flight. */
+    private val _mentionCandidates = MutableStateFlow<List<Session>>(emptyList())
+    val mentionCandidates: StateFlow<List<Session>> = _mentionCandidates.asStateFlow()
+
+    /** Single-flight guard for [refreshMentionCandidates] — typing inside an active mention fires
+     *  the effect repeatedly; one GET at a time is plenty for a dropdown. */
+    private var mentionFetch: Job? = null
+
+    /** Fetch the sessions list for the @-mention dropdown. Best-effort: on failure the previous
+     *  (possibly empty) list is kept — the dropdown just shows what it has. */
+    fun refreshMentionCandidates() {
+        if (mentionFetch?.isActive == true) return
+        mentionFetch = viewModelScope.launch {
+            runCatching { sessionsRepo.sessions() }.onSuccess { all ->
+                _mentionCandidates.value = all
+                    .filter { it.id != id }
+                    .sortedByDescending { maxOf(it.lastUserMessageAt, it.createdAt) }
+            }
+        }
+    }
+
     fun onInput(s: String) {
         sessionsRepo.setDraft(id, s)   // persist (memory + disk) so leaving/backgrounding + returning restores it
         local.update { it.copy(input = s) }
