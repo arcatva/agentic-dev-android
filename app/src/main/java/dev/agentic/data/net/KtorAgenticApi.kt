@@ -22,6 +22,7 @@ import io.ktor.client.request.post
 import io.ktor.client.request.patch
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.readBytes
+import io.ktor.client.plugins.ResponseException
 import io.ktor.http.ContentType
 import io.ktor.http.Headers
 import io.ktor.http.HttpHeaders
@@ -727,6 +728,16 @@ class KtorAgenticApi(
             val r: List<Adoptable> = client.get("$baseUrl/api/adoptable") { auth() }.body()
             AppLog.d("API", "GET adoptable -> OK (${r.size})")
             r
+        } catch (e: ResponseException) {
+            // A server that predates the adopt feature 404s this route. Degrade to "nothing to
+            // adopt" rather than surfacing an error banner on older backends.
+            if (e.response.status == HttpStatusCode.NotFound) {
+                AppLog.d("API", "GET adoptable -> 404 (server predates feature); returning empty")
+                emptyList()
+            } else {
+                AppLog.w("API", "GET adoptable -> FAILED: ${e.message}")
+                throw e
+            }
         } catch (e: Exception) {
             AppLog.w("API", "GET adoptable -> FAILED: ${e.message}")
             throw e
