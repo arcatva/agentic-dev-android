@@ -104,3 +104,30 @@ Total: 551 tests, 0 failures, 0 errors.
 - `AppTextField` does not expose a `label: String` overload in all call sites; used the `placeholder` parameter instead for the Add MCP form fields (same pattern as the rest of the form). This means the field has no floating label — consistent with the existing form style.
 - No emulator/visual QA available (headless CI gate). The composables are built to existing patterns; a human visual pass is advisable post-merge before shipping an APK.
 - The `applyTemplate` updated behavior: templates with non-empty `skills` now set ForceOff for unlisted skills, which is a behavior change from "select only the listed skills" to "force-off unlisted, follow global for listed." This matches the S5b spec's intent — Inherit means "follow global."
+
+## Test-hardening wave
+
+Commit: `79cdf7b` — test(s5b): harden NewRequestViewModelTest — kill tautological elvis, exhaustive six-list assertions, and MCP invalid-add coverage
+
+### F1 — Tautological elvis killed
+`applyTemplate` test assertion `assertEquals(Override.Inherit, s.skillOverrides["kubectl"] ?: Override.Inherit)` replaced with `assertEquals(Override.Inherit, s.skillOverrides["kubectl"])` (no elvis). The map key is now required to be actually present and equal to `Override.Inherit`; an absent key evaluates to `null` which fails the assertion.
+
+### F2 — Exhaustive six-list derivation
+`submit derives six override lists from Inherit ForceOn ForceOff selections` already asserted all six lists (forcedOnSkills, hiddenSkills, hiddenPlugins, forcedOnPlugins, forcedOnMcpServers, hiddenMcpServers). Added six explicit `assertFalse` checks confirming the Inherit ids (sk3, pl2, mcp-a) appear in NEITHER their corresponding hidden nor forced-on list, so a swapped or dropped filter predicate would be caught.
+
+### F3 — MCP invalid-add coverage
+Added three new tests:
+- `addMcpServer rejects whitespace-only name` — `name = "   "` must be rejected and not added.
+- `addMcpServer rejects no transport (blank transport string)` — `transport = ""` must be rejected; revealed a genuine bug (see below).
+- `addMcpServer rejects both transports set (command and url, no transport discriminant)` — `transport = ""` with both `command` and `url` set must be rejected.
+
+All existing rejection tests now also assert `extraMcpServers.isEmpty()` (not just that an error string is set).
+
+### Bug found and fixed — blank transport accepted as valid
+
+**GENUINE BUG:** `McpDraft.validationError` only checked `transport == "stdio"` and `transport == "http"` branches; a blank or invalid `transport` string fell through to `else -> null` (valid). A server built with `transport = ""` would have been accepted and sent to the backend with neither `command` nor `url` populated, resulting in a malformed `McpServerDef`.
+
+**Fix:** Added `transport !in setOf("stdio", "http") -> "Transport must be stdio or http"` guard in `NewRequestViewModel.kt` (the `McpDraft.validationError` computed property), placed between the name checks and the transport-specific field checks.
+
+### Test result
+43 tests in `NewRequestViewModelTest`, 0 failures, 0 errors. Full suite: BUILD SUCCESSFUL.
