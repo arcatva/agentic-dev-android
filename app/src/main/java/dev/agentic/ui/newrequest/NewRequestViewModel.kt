@@ -59,6 +59,7 @@ data class McpDraft(
     val validationError: String? get() = when {
         name.isBlank() -> "Name is required"
         name.trim() == "agentic" -> "Name must not be \"agentic\""
+        transport !in setOf("stdio", "http") -> "Transport must be stdio or http"
         transport == "stdio" && command.isBlank() -> "Command is required for stdio transport"
         transport == "http" && url.isBlank() -> "URL is required for HTTP/SSE transport"
         else -> null
