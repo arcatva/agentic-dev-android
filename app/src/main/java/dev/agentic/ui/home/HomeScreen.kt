@@ -49,6 +49,7 @@ import androidx.compose.material.icons.rounded.FolderOff
 import androidx.compose.material.icons.automirrored.rounded.CallSplit
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.RadioButtonUnchecked
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.AlertDialog
@@ -138,6 +139,7 @@ fun HomeScreen(
     onOpenDiagnostics: () -> Unit = {},
     onOpenProviders: () -> Unit = {},
     onOpenAdoptPicker: () -> Unit = {},
+    onOpenGlobalSettings: () -> Unit = {},
     vm: HomeViewModel? = null,
 ) {
     val container = appContainer()
@@ -178,6 +180,7 @@ fun HomeScreen(
                 onOpenDiagnostics = onOpenDiagnostics,
                 onOpenProviders = onOpenProviders,
                 onOpenAdoptPicker = onOpenAdoptPicker,
+                onOpenGlobalSettings = onOpenGlobalSettings,
             )
         },
         floatingActionButton = {
@@ -268,6 +271,7 @@ internal fun HomeTopBar(
     onOpenDiagnostics: () -> Unit = {},
     onOpenProviders: () -> Unit = {},
     onOpenAdoptPicker: () -> Unit = {},
+    onOpenGlobalSettings: () -> Unit = {},
 ) {
     // While selecting, system/gesture back exits selection mode instead of leaving the screen.
     BackHandler(enabled = selectionMode, onBack = onCloseSelection)
@@ -403,6 +407,11 @@ internal fun HomeTopBar(
                     Spacer(Modifier.width(4.dp))
                     DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                         DropdownMenuItem(
+                            text = { Text("Global Settings") },
+                            leadingIcon = { Icon(Icons.Rounded.Settings, contentDescription = null) },
+                            onClick = { menuOpen = false; onOpenGlobalSettings() },
+                        )
+                        DropdownMenuItem(
                             text = { Text("Models") },
                             leadingIcon = { Icon(Icons.Rounded.Tune, contentDescription = null) },
                             onClick = { menuOpen = false; onOpenProviders() },
@@ -424,6 +433,10 @@ internal fun HomeTopBar(
                         )
                     }
                 } else {
+                    FilledTonalIconButton(onClick = onOpenGlobalSettings) {
+                        Icon(Icons.Rounded.Settings, contentDescription = "Global Settings")
+                    }
+                    Spacer(Modifier.width(8.dp))
                     FilledTonalIconButton(onClick = onOpenProviders) {
                         Icon(Icons.Rounded.Tune, contentDescription = "Models")
                     }

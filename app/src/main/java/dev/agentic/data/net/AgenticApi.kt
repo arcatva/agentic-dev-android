@@ -76,6 +76,14 @@ interface AgenticApi {
     suspend fun providers(): List<Provider> = emptyList()
     suspend fun addProvider(req: NewProviderReq) {}
     suspend fun deleteProvider(name: String) {}
+    // ── Feature: Global Settings (S5a) ────────────────────────────────────────
+    /** Fetch all globally-configured components (skills, plugins, MCP) with their on/off state.
+     *  Default impl returns empty list — test fakes override. */
+    suspend fun getGlobalSettings(): List<ComponentInfo> = emptyList()
+    /** Toggle a component's global enabled state. Returns the refreshed full list.
+     *  Default impl returns empty list — test fakes override. */
+    suspend fun toggleGlobalComponent(kind: String, id: String, enabled: Boolean): List<ComponentInfo> = emptyList()
+
     /** Recent commit history per repo for session [id] (GET …/commits). */
     suspend fun commits(id: String): List<RepoCommits>
     /** Changed files for [sha] in [repo] of session [id] (GET …/commits/<sha>/files?repo=<repo>). */

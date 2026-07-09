@@ -666,6 +666,31 @@ class KtorAgenticApi(
         }
     }
 
+    // ── Feature: Global Settings (S5a) ────────────────────────────────────────
+    override suspend fun getGlobalSettings(): List<ComponentInfo> {
+        return try {
+            val r: List<ComponentInfo> = client.get("$baseUrl/api/global-settings") { auth() }.body()
+            AppLog.d("API", "GET global-settings -> OK (${r.size})")
+            r
+        } catch (e: Exception) {
+            AppLog.w("API", "GET global-settings -> FAILED: ${e.message}")
+            throw e
+        }
+    }
+
+    override suspend fun toggleGlobalComponent(kind: String, id: String, enabled: Boolean): List<ComponentInfo> {
+        return try {
+            val r: List<ComponentInfo> = client.post("$baseUrl/api/global-settings/toggle") {
+                auth(); contentType(ContentType.Application.Json); setBody(ToggleComponentReq(kind, id, enabled))
+            }.body()
+            AppLog.d("API", "POST global-settings/toggle kind=$kind id=$id enabled=$enabled -> OK")
+            r
+        } catch (e: Exception) {
+            AppLog.w("API", "POST global-settings/toggle -> FAILED: ${e.message}")
+            throw e
+        }
+    }
+
     // ── Feature: Commit-graph view ─────────────────────────────────────────────
     override suspend fun commits(id: String): List<RepoCommits> {
         return try {

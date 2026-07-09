@@ -4,6 +4,7 @@ import dev.agentic.data.net.AgenticApi
 import dev.agentic.data.net.AdoptSessionReq
 import dev.agentic.data.net.Adoptable
 import dev.agentic.data.net.CommitFile
+import dev.agentic.data.net.ComponentInfo
 import dev.agentic.data.net.CreateGroupReq
 import dev.agentic.data.net.DetachResp
 import dev.agentic.data.net.FileDiff
@@ -483,5 +484,29 @@ override suspend fun fork(id: String): String {
         detachCalls.add(id)
         detachException?.let { throw it }
         return detachResult
+    }
+
+    // ── Scriptable surface for GlobalSettingsViewModel tests (S5a) ────────────
+    /** Returned by getGlobalSettings(); if [getGlobalSettingsException] is set, throws instead. */
+    var globalSettingsResult: List<ComponentInfo> = emptyList()
+    var getGlobalSettingsException: Exception? = null
+    var getGlobalSettingsCallCount = 0
+
+    override suspend fun getGlobalSettings(): List<ComponentInfo> {
+        getGlobalSettingsCallCount++
+        getGlobalSettingsException?.let { throw it }
+        return globalSettingsResult
+    }
+
+    /** Returned by toggleGlobalComponent(); if [toggleGlobalComponentException] is set, throws instead. */
+    var toggleGlobalComponentResult: List<ComponentInfo> = emptyList()
+    var toggleGlobalComponentException: Exception? = null
+    /** Records each toggleGlobalComponent() call as Triple(kind, id, enabled). */
+    val toggleGlobalComponentCalls: MutableList<Triple<String, String, Boolean>> = mutableListOf()
+
+    override suspend fun toggleGlobalComponent(kind: String, id: String, enabled: Boolean): List<ComponentInfo> {
+        toggleGlobalComponentCalls.add(Triple(kind, id, enabled))
+        toggleGlobalComponentException?.let { throw it }
+        return toggleGlobalComponentResult
     }
 }

@@ -474,6 +474,28 @@ data class ModelsResponse(val models: List<ModelEntry> = emptyList())
 
 // ── Provider registry (BYOK cheap models for delegate fan-out) ────────────────
 
+// ── Feature: Global Settings (S5a) ───────────────────────────────────────────
+
+/** One component (skill, plugin, or MCP server) as returned by GET /api/global-settings.
+ *  [kind] is one of "skill" | "plugin" | "mcp". [globalEnabled] is the current on/off state. */
+@Serializable
+data class ComponentInfo(
+    val kind: String,
+    val id: String,
+    val name: String,
+    val description: String = "",
+    val source: String = "",
+    val globalEnabled: Boolean,
+)
+
+/** Body for POST /api/global-settings/toggle. */
+@Serializable
+data class ToggleComponentReq(
+    val kind: String,
+    val id: String,
+    val enabled: Boolean,
+)
+
 @Serializable
 data class NewProviderReq(
     val name: String,
