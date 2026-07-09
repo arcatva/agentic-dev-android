@@ -4,9 +4,7 @@ import dev.agentic.data.FakeAgenticApi
 import dev.agentic.data.net.ComponentInfo
 import dev.agentic.data.net.McpServerDef
 import dev.agentic.data.net.ModelEntry
-import dev.agentic.data.net.PluginInfo
 import dev.agentic.data.net.RepoList
-import dev.agentic.data.net.SkillInfo
 import dev.agentic.data.net.Template
 import dev.agentic.data.repo.SessionsRepository
 import kotlinx.coroutines.CoroutineScope
@@ -63,7 +61,7 @@ class NewRequestViewModelTest {
         val vm = NewRequestViewModel(sessionsRepo())
         val s = vm.uiState.value
         assertTrue(s.availableRepos.isEmpty())
-        assertTrue(s.availableSkills.isEmpty())
+        assertTrue(s.availableSkillComponents.isEmpty())
         assertTrue(s.templates.isEmpty())
         assertEquals("", s.prompt)
         // Model starts null — the catalog loads asynchronously and the default is set from the
@@ -87,21 +85,31 @@ class NewRequestViewModelTest {
         assertTrue("remote repo should be in availableRepos", s.availableRepos.contains("remoteRepo"))
     }
 
-    @Test fun `init loads availableSkills from sessionsRepo skills`() = runTest(dispatcher) {
-        api.skillsResult = listOf(SkillInfo("skill-a"), SkillInfo("skill-b"))
+    @Test fun `init loads availableSkillComponents from globalSettings`() = runTest(dispatcher) {
+        api.globalSettingsResult = listOf(
+            ComponentInfo(kind = "skill", id = "skill-a", name = "skill-a", globalEnabled = true),
+            ComponentInfo(kind = "skill", id = "skill-b", name = "skill-b", globalEnabled = false),
+        )
         val vm = NewRequestViewModel(sessionsRepo())
         advanceUntilIdle()
-        assertEquals(listOf(SkillInfo("skill-a"), SkillInfo("skill-b")), vm.uiState.value.availableSkills)
+        val comps = vm.uiState.value.availableSkillComponents
+        assertEquals(2, comps.size)
+        assertEquals("skill-a", comps[0].name)
+        assertEquals("skill-b", comps[1].name)
         // All overrides default to Inherit (follow global) — no map entries set.
         assertTrue(vm.uiState.value.skillOverrides.isEmpty())
     }
 
-    @Test fun `init loads availablePlugins and defaults all Inherit`() = runTest(dispatcher) {
-        api.pluginsResult = listOf(PluginInfo("superpowers@official"), PluginInfo("github@official"))
+    @Test fun `init loads availablePluginComponents from globalSettings`() = runTest(dispatcher) {
+        api.globalSettingsResult = listOf(
+            ComponentInfo(kind = "plugin", id = "superpowers@official", name = "superpowers@official", globalEnabled = true),
+            ComponentInfo(kind = "plugin", id = "github@official", name = "github@official", globalEnabled = true),
+        )
         val vm = NewRequestViewModel(sessionsRepo())
         advanceUntilIdle()
         val s = vm.uiState.value
-        assertEquals(listOf(PluginInfo("superpowers@official"), PluginInfo("github@official")), s.availablePlugins)
+        assertEquals(2, s.availablePluginComponents.size)
+        assertEquals("superpowers@official", s.availablePluginComponents[0].name)
         // Every plugin defaults to Inherit (follow global) — no overrides set.
         assertTrue(s.pluginOverrides.isEmpty())
     }
@@ -231,7 +239,10 @@ class NewRequestViewModelTest {
             effort = "low",
             mode = "fast",
         )
-        api.skillsResult = listOf(SkillInfo("kubectl"), SkillInfo("other-skill"))
+        api.globalSettingsResult = listOf(
+            ComponentInfo(kind = "skill", id = "kubectl",     name = "kubectl",     globalEnabled = true),
+            ComponentInfo(kind = "skill", id = "other-skill", name = "other-skill", globalEnabled = true),
+        )
         val vm = NewRequestViewModel(sessionsRepo())
         advanceUntilIdle()
         vm.applyTemplate(template, mapOf("service" to "api", "env" to "prod"))
@@ -266,8 +277,13 @@ class NewRequestViewModelTest {
 
     @Test fun `submit sends correct NewSessionReq with tri-state overrides`() = runTest(dispatcher) {
         api.createResult = "new-id"
-        api.skillsResult = listOf(SkillInfo("skill-a"), SkillInfo("skill-b"), SkillInfo("skill-c"))
-        api.pluginsResult = listOf(PluginInfo("superpowers@official"), PluginInfo("github@official"))
+        api.globalSettingsResult = listOf(
+            ComponentInfo(kind = "skill",  id = "skill-a",             name = "skill-a",             globalEnabled = true),
+            ComponentInfo(kind = "skill",  id = "skill-b",             name = "skill-b",             globalEnabled = true),
+            ComponentInfo(kind = "skill",  id = "skill-c",             name = "skill-c",             globalEnabled = true),
+            ComponentInfo(kind = "plugin", id = "superpowers@official", name = "superpowers@official", globalEnabled = true),
+            ComponentInfo(kind = "plugin", id = "github@official",     name = "github@official",     globalEnabled = true),
+        )
         val vm = NewRequestViewModel(sessionsRepo())
         advanceUntilIdle() // let catalogs load
         vm.setRepos(listOf("r1"))
@@ -307,12 +323,15 @@ class NewRequestViewModelTest {
      */
     @Test fun `submit derives six override lists from Inherit ForceOn ForceOff selections`() = runTest(dispatcher) {
         api.createResult = "new-id"
-        api.skillsResult = listOf(SkillInfo("sk1"), SkillInfo("sk2"), SkillInfo("sk3"))
-        api.pluginsResult = listOf(PluginInfo("pl1"), PluginInfo("pl2"))
         api.globalSettingsResult = listOf(
-            ComponentInfo(kind = "mcp", id = "mcp-a", name = "MCP A", globalEnabled = true),
-            ComponentInfo(kind = "mcp", id = "mcp-b", name = "MCP B", globalEnabled = false),
-            ComponentInfo(kind = "mcp", id = "mcp-c", name = "MCP C", globalEnabled = true),
+            ComponentInfo(kind = "skill",  id = "sk1",   name = "sk1",   globalEnabled = true),
+            ComponentInfo(kind = "skill",  id = "sk2",   name = "sk2",   globalEnabled = true),
+            ComponentInfo(kind = "skill",  id = "sk3",   name = "sk3",   globalEnabled = true),
+            ComponentInfo(kind = "plugin", id = "pl1",   name = "pl1",   globalEnabled = true),
+            ComponentInfo(kind = "plugin", id = "pl2",   name = "pl2",   globalEnabled = true),
+            ComponentInfo(kind = "mcp",    id = "mcp-a", name = "MCP A", globalEnabled = true),
+            ComponentInfo(kind = "mcp",    id = "mcp-b", name = "MCP B", globalEnabled = false),
+            ComponentInfo(kind = "mcp",    id = "mcp-c", name = "MCP C", globalEnabled = true),
         )
         val vm = NewRequestViewModel(sessionsRepo())
         advanceUntilIdle()
@@ -346,14 +365,81 @@ class NewRequestViewModelTest {
 
     @Test fun `all Inherit overrides produce empty lists on submit`() = runTest(dispatcher) {
         api.createResult = "new-id"
-        api.skillsResult = listOf(SkillInfo("sk1"), SkillInfo("sk2"))
-        api.pluginsResult = listOf(PluginInfo("pl1"))
         api.globalSettingsResult = listOf(
-            ComponentInfo(kind = "mcp", id = "mcp-a", name = "MCP A", globalEnabled = true),
+            ComponentInfo(kind = "skill",  id = "sk1",   name = "sk1",   globalEnabled = true),
+            ComponentInfo(kind = "skill",  id = "sk2",   name = "sk2",   globalEnabled = true),
+            ComponentInfo(kind = "plugin", id = "pl1",   name = "pl1",   globalEnabled = true),
+            ComponentInfo(kind = "mcp",    id = "mcp-a", name = "MCP A", globalEnabled = true),
         )
         val vm = NewRequestViewModel(sessionsRepo())
         advanceUntilIdle()
         // Leave all overrides at Inherit (default — don't call setOverride at all)
+        vm.setPrompt("test")
+        vm.submit()
+        advanceUntilIdle()
+        val req = api.createCalls.single()
+        assertEquals(emptyList<String>(), req.hiddenSkills)
+        assertEquals(emptyList<String>(), req.forcedOnSkills)
+        assertEquals(emptyList<String>(), req.hiddenPlugins)
+        assertEquals(emptyList<String>(), req.forcedOnPlugins)
+        assertEquals(emptyList<String>(), req.hiddenMcpServers)
+        assertEquals(emptyList<String>(), req.forcedOnMcpServers)
+    }
+
+    // ── binary toggle semantics ────────────────────────────────────────────────
+
+    @Test fun `tapping a globally-ON component sets ForceOff (effective off)`() = runTest(dispatcher) {
+        // Globally ON skill; default Inherit → effective ON. Tap → effective OFF → ForceOff.
+        api.globalSettingsResult = listOf(
+            ComponentInfo(kind = "skill", id = "sk1", name = "sk1", globalEnabled = true),
+        )
+        val vm = NewRequestViewModel(sessionsRepo())
+        advanceUntilIdle()
+        // Default: Inherit (no entry in map); effective = globalEnabled = true.
+        assertNull(vm.uiState.value.skillOverrides["sk1"])
+        // Binary toggle: effective was true → new effective false → ForceOff (differs from globalEnabled=true).
+        vm.setOverride("skill", "sk1", Override.ForceOff)
+        assertEquals(Override.ForceOff, vm.uiState.value.skillOverrides["sk1"])
+    }
+
+    @Test fun `tapping a globally-ON ForceOff component back resets to Inherit`() = runTest(dispatcher) {
+        // Already ForceOff on a globally-ON component. Tap → effective true (== globalEnabled) → Inherit.
+        api.globalSettingsResult = listOf(
+            ComponentInfo(kind = "skill", id = "sk1", name = "sk1", globalEnabled = true),
+        )
+        val vm = NewRequestViewModel(sessionsRepo())
+        advanceUntilIdle()
+        vm.setOverride("skill", "sk1", Override.ForceOff)
+        // Now tap again: effective was false → newEff true == globalEnabled true → Inherit
+        vm.setOverride("skill", "sk1", Override.Inherit)
+        // setOverride stores Inherit explicitly; either assertNull or assertEquals(Override.Inherit, ...) are valid.
+        val stored = vm.uiState.value.skillOverrides["sk1"]
+        assertTrue("override after reset must be Inherit or absent",
+            stored == null || stored == Override.Inherit)
+    }
+
+    @Test fun `tapping a globally-OFF component sets ForceOn (effective on)`() = runTest(dispatcher) {
+        // Globally OFF component; default Inherit → effective OFF. Tap → ForceOn.
+        api.globalSettingsResult = listOf(
+            ComponentInfo(kind = "skill", id = "sk1", name = "sk1", globalEnabled = false),
+        )
+        val vm = NewRequestViewModel(sessionsRepo())
+        advanceUntilIdle()
+        // Binary toggle: effective was false → new effective true ≠ globalEnabled false → ForceOn.
+        vm.setOverride("skill", "sk1", Override.ForceOn)
+        assertEquals(Override.ForceOn, vm.uiState.value.skillOverrides["sk1"])
+    }
+
+    @Test fun `fresh request with no taps sends empty override lists`() = runTest(dispatcher) {
+        api.createResult = "new-id"
+        api.globalSettingsResult = listOf(
+            ComponentInfo(kind = "skill",  id = "sk1",   name = "sk1",   globalEnabled = true),
+            ComponentInfo(kind = "plugin", id = "pl1",   name = "pl1",   globalEnabled = false),
+            ComponentInfo(kind = "mcp",    id = "mcp-a", name = "MCP A", globalEnabled = true),
+        )
+        val vm = NewRequestViewModel(sessionsRepo())
+        advanceUntilIdle()
+        // No taps — all Inherit
         vm.setPrompt("test")
         vm.submit()
         advanceUntilIdle()

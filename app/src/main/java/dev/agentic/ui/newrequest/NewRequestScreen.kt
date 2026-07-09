@@ -13,6 +13,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,8 +25,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AttachFile
-import androidx.compose.material.icons.rounded.Block
-import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
@@ -56,30 +55,28 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import dev.agentic.data.net.ComponentInfo
 import dev.agentic.data.net.Template
 import dev.agentic.di.appContainer
 import dev.agentic.domain.UploadState
-import dev.agentic.ui.AccentCyanContainer
 import dev.agentic.ui.AccentVioletContainer
 import dev.agentic.ui.EFFORT_OPTIONS
 import dev.agentic.ui.SESSION_START_MODEL_OPTIONS
-import dev.agentic.ui.OnAccentCyanContainer
 import dev.agentic.ui.OnAccentVioletContainer
 import dev.agentic.ui.drawUltracodeRipple
 import dev.agentic.ui.rememberUltracodeRipplePhase
 import dev.agentic.ui.components.AppTextField
 import dev.agentic.ui.components.AttachmentChip
+import dev.agentic.ui.components.ComponentChip
 import dev.agentic.ui.components.SectionCard
 import dev.agentic.ui.components.SliderField
 import dev.agentic.ui.components.cardFieldColors
@@ -103,13 +100,6 @@ private val PERMISSION_MODES = listOf(
     "acceptEdits" to "Accept edits",
     "bypassPermissions" to "Dangerous",
 )
-
-/** Cycle the [Override] on tap: Inherit → ForceOn → ForceOff → Inherit. */
-private fun Override.cycle(): Override = when (this) {
-    Override.Inherit  -> Override.ForceOn
-    Override.ForceOn  -> Override.ForceOff
-    Override.ForceOff -> Override.Inherit
-}
 
 /**
  * New-request screen. Stateless: all state lives in [NewRequestViewModel]; this composable
@@ -268,30 +258,48 @@ fun NewRequestScreen(
                         realVm.setRepos(updated)
                     },
                 )
-                // Skills — tri-state: tap cycles Inherit → ForceOn → ForceOff → Inherit
-                // Inherit = follow global; ForceOn = force enabled; ForceOff = force disabled.
-                if (s.availableSkills.isNotEmpty()) {
-                    TriStateChipPicker(
+                // Skills — binary effective-state chips: ON = globalEnabled resolved through override.
+                // Tap toggles effective and sets the minimal override (Inherit when equal to global).
+                if (s.availableSkillComponents.isNotEmpty()) {
+                    ComponentChipPicker(
                         label = "Skills",
-                        options = s.availableSkills.map { it.name },
+                        components = s.availableSkillComponents,
                         overrides = s.skillOverrides,
-                        onCycle = { id ->
-                            val cur = s.skillOverrides[id] ?: Override.Inherit
-                            realVm.setOverride("skill", id, cur.cycle())
+                        onToggle = { comp ->
+                            val cur = s.skillOverrides[comp.id] ?: Override.Inherit
+                            val eff = when (cur) {
+                                Override.Inherit  -> comp.globalEnabled
+                                Override.ForceOn  -> true
+                                Override.ForceOff -> false
+                            }
+                            val newEff = !eff
+                            val newOverride = if (newEff == comp.globalEnabled) Override.Inherit
+                                              else if (newEff) Override.ForceOn
+                                              else Override.ForceOff
+                            realVm.setOverride("skill", comp.id, newOverride)
                         },
                     )
                 }
-                // Plugins — tri-state, same visual language as skills.
-                if (s.availablePlugins.isNotEmpty()) {
-                    TriStateChipPicker(
+                // Plugins — same binary effective-state logic.
+                if (s.availablePluginComponents.isNotEmpty()) {
+                    ComponentChipPicker(
                         label = "Plugins",
-                        options = s.availablePlugins.map { it.name },
+                        components = s.availablePluginComponents,
                         overrides = s.pluginOverrides,
-                        onCycle = { id ->
-                            val cur = s.pluginOverrides[id] ?: Override.Inherit
-                            realVm.setOverride("plugin", id, cur.cycle())
+                        displayLabel = { it.name.substringBefore('@') },
+                        onToggle = { comp ->
+                            val cur = s.pluginOverrides[comp.id] ?: Override.Inherit
+                            val eff = when (cur) {
+                                Override.Inherit  -> comp.globalEnabled
+                                Override.ForceOn  -> true
+                                Override.ForceOff -> false
+                            }
+                            val newEff = !eff
+                            val newOverride = if (newEff == comp.globalEnabled) Override.Inherit
+                                              else if (newEff) Override.ForceOn
+                                              else Override.ForceOff
+                            realVm.setOverride("plugin", comp.id, newOverride)
                         },
-                        displayLabel = { it.substringBefore('@') },
                     )
                 }
                 // MCP — tri-state chips for globally configured MCP servers + inline add form.
@@ -301,29 +309,41 @@ fun NewRequestScreen(
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
                     )
-                    // Globally configured MCP servers as tri-state chips.
+                    // Globally configured MCP servers as binary effective-state chips (FlowRow).
                     if (s.mcpComponents.isNotEmpty()) {
-                        Row(
-                            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                        FlowRow(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth(),
                         ) {
                             s.mcpComponents.forEach { comp ->
-                                TriStateChip(
+                                val cur = s.mcpOverrides[comp.id] ?: Override.Inherit
+                                val eff = when (cur) {
+                                    Override.Inherit  -> comp.globalEnabled
+                                    Override.ForceOn  -> true
+                                    Override.ForceOff -> false
+                                }
+                                ComponentChip(
                                     label = comp.name,
-                                    override = s.mcpOverrides[comp.id] ?: Override.Inherit,
-                                    onCycle = {
-                                        val cur = s.mcpOverrides[comp.id] ?: Override.Inherit
-                                        realVm.setOverride("mcp", comp.id, cur.cycle())
+                                    kind = "mcp",
+                                    effective = eff,
+                                    onClick = {
+                                        val newEff = !eff
+                                        val newOverride = if (newEff == comp.globalEnabled) Override.Inherit
+                                                          else if (newEff) Override.ForceOn
+                                                          else Override.ForceOff
+                                        realVm.setOverride("mcp", comp.id, newOverride)
                                     },
                                 )
                             }
                         }
                     }
-                    // Extra (ad-hoc) added servers — shown as removable chips.
+                    // Extra (ad-hoc) added servers — shown as removable chips (FlowRow).
                     if (s.extraMcpServers.isNotEmpty()) {
-                        Row(
-                            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                        FlowRow(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth(),
                         ) {
                             s.extraMcpServers.forEach { srv ->
                                 InputChip(
@@ -403,11 +423,10 @@ fun NewRequestScreen(
                     }
                 }
                 if (s.attachments.isNotEmpty()) {
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState()),
+                    FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.fillMaxWidth(),
                     ) {
                         s.attachments.forEach { att ->
                             AttachmentChip(att = att, onRemove = { realVm.removePending(att.id) })
@@ -553,79 +572,24 @@ fun NewRequestScreen(
 // ── Private helpers ───────────────────────────────────────────────────────────
 
 /**
- * A single chip with three visual states corresponding to [Override]:
- * - [Override.Inherit]: outlined (FilterChip selected=false, default look) — "follow global"
- * - [Override.ForceOn]: filled with check icon (FilterChip selected=true, cyan accent) — "force on"
- * - [Override.ForceOff]: outlined + dimmed + strikethrough label — "force off"
- *
- * Tap cycles Inherit → ForceOn → ForceOff → Inherit.
+ * Chip-group section with an inline filter field for a list of [ComponentInfo] components.
+ * Each chip shows its EFFECTIVE state (globalEnabled resolved through override) via [ComponentChip].
+ * Tap toggles effective state; [onToggle] is called with the clicked component so the caller can
+ * compute the minimal override and call setOverride.
+ * [displayLabel] extracts the chip label from a [ComponentInfo] (default = name).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TriStateChip(
+private fun ComponentChipPicker(
     label: String,
-    override: Override,
-    onCycle: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val isForceOn  = override == Override.ForceOn
-    val isForceOff = override == Override.ForceOff
-
-    val contentDesc = when (override) {
-        Override.Inherit  -> "$label: follow global setting (tap to force on)"
-        Override.ForceOn  -> "$label: forced ON for this session (tap to force off)"
-        Override.ForceOff -> "$label: forced OFF for this session (tap to reset)"
-    }
-
-    // Color: force-on uses cyan accent; inherit/off use default chip colors.
-    val chipColors = if (isForceOn) {
-        FilterChipDefaults.filterChipColors(
-            selectedContainerColor = AccentCyanContainer,
-            selectedLabelColor = OnAccentCyanContainer,
-            selectedLeadingIconColor = OnAccentCyanContainer,
-        )
-    } else {
-        FilterChipDefaults.filterChipColors()
-    }
-
-    // Dim the entire chip when force-off to signal "this will be disabled".
-    val alphaValue = if (isForceOff) 0.45f else 1f
-
-    FilterChip(
-        selected = isForceOn,
-        onClick = onCycle,
-        label = {
-            Text(
-                text = label,
-                textDecoration = if (isForceOff) TextDecoration.LineThrough else TextDecoration.None,
-            )
-        },
-        leadingIcon = when {
-            isForceOn  -> { { Icon(Icons.Rounded.Check, contentDescription = null) } }
-            isForceOff -> { { Icon(Icons.Rounded.Block, contentDescription = null) } }
-            else       -> null
-        },
-        colors = chipColors,
-        modifier = modifier.alpha(alphaValue),
-    )
-}
-
-/**
- * A chip-group section with an inline filter field. Each chip cycles through tri-state
- * [Override] on tap. Empty filter shows all; type to narrow. Chips keep source order.
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun TriStateChipPicker(
-    label: String,
-    options: List<String>,             // option ids/names
-    overrides: Map<String, Override>,  // current override per id
-    onCycle: (String) -> Unit,         // called with the id to cycle
-    displayLabel: (String) -> String = { it },
+    components: List<ComponentInfo>,
+    overrides: Map<String, Override>,
+    onToggle: (ComponentInfo) -> Unit,
+    displayLabel: (ComponentInfo) -> String = { it.name },
 ) {
     var q by remember { mutableStateOf("") }
-    val shown = options.filter {
-        q.isBlank() || it.contains(q, ignoreCase = true) || displayLabel(it).contains(q, ignoreCase = true)
+    val shown = components.filter { c ->
+        q.isBlank() || c.name.contains(q, ignoreCase = true) || displayLabel(c).contains(q, ignoreCase = true)
     }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         AppTextField(
@@ -655,15 +619,23 @@ private fun TriStateChipPicker(
             colors = cardFieldColors(),
             modifier = Modifier.fillMaxWidth(),
         )
-        Row(
-            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+        FlowRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth(),
         ) {
-            shown.forEach { id ->
-                TriStateChip(
-                    label = displayLabel(id),
-                    override = overrides[id] ?: Override.Inherit,
-                    onCycle = { onCycle(id) },
+            shown.forEach { comp ->
+                val cur = overrides[comp.id] ?: Override.Inherit
+                val effective = when (cur) {
+                    Override.Inherit  -> comp.globalEnabled
+                    Override.ForceOn  -> true
+                    Override.ForceOff -> false
+                }
+                ComponentChip(
+                    label = displayLabel(comp),
+                    kind = comp.kind,
+                    effective = effective,
+                    onClick = { onToggle(comp) },
                 )
             }
         }

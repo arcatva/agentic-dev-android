@@ -10,8 +10,6 @@ import dev.agentic.data.net.McpServerDef
 import dev.agentic.data.net.NewSessionReq
 import dev.agentic.data.net.Outcome
 import dev.agentic.data.log.AppLog
-import dev.agentic.data.net.PluginInfo
-import dev.agentic.data.net.SkillInfo
 import dev.agentic.data.net.StagedUpload
 import dev.agentic.data.net.Template
 import dev.agentic.data.net.userMessage
@@ -104,14 +102,15 @@ private const val MAX_ATTACHMENT_BYTES: Long = 25L * 1024 * 1024
 
 data class NewRequestUiState(
     val availableRepos: List<String> = emptyList(),
-    val availableSkills: List<SkillInfo> = emptyList(),
+    // ── Component catalogs (fetched from GET /api/global-settings so each chip knows globalEnabled) ──
+    val availableSkillComponents: List<ComponentInfo> = emptyList(),
     val templates: List<Template> = emptyList(),
     val selectedRepos: List<String> = emptyList(),
     // ── Tri-state override maps (replaces binary selectedSkills/selectedPlugins) ──
     // Default is Inherit for all, meaning "follow global setting".
     // On submit: ForceOff → hiddenX, ForceOn → forcedOnX, Inherit → neither.
     val skillOverrides: Map<String, Override> = emptyMap(),
-    val availablePlugins: List<PluginInfo> = emptyList(),
+    val availablePluginComponents: List<ComponentInfo> = emptyList(),
     val pluginOverrides: Map<String, Override> = emptyMap(),
     // ── MCP components (fetched from GET /api/global-settings, kind=="mcp") ──
     val mcpComponents: List<ComponentInfo> = emptyList(),
@@ -168,24 +167,17 @@ class NewRequestViewModel(
         }
         viewModelScope.launch {
             try {
-                val skills = sessionsRepo.skills()
-                // Default every skill to Inherit (follow global) — no pre-selection.
-                _uiState.update { it.copy(availableSkills = skills) }
-            } catch (e: Exception) { AppLog.d("VM", "catalog skills load failed: ${e.message}") }
-        }
-        viewModelScope.launch {
-            try {
-                val plugins = sessionsRepo.plugins()
-                // Default every plugin to Inherit (follow global).
-                _uiState.update { it.copy(availablePlugins = plugins) }
-            } catch (e: Exception) { AppLog.d("VM", "catalog plugins load failed: ${e.message}") }
-        }
-        viewModelScope.launch {
-            try {
-                // Fetch MCP components from global settings (kind == "mcp").
-                val mcpList = sessionsRepo.globalSettings().filter { it.kind == "mcp" }
-                _uiState.update { it.copy(mcpComponents = mcpList) }
-            } catch (e: Exception) { AppLog.d("VM", "catalog mcp load failed: ${e.message}") }
+                // Fetch ALL component kinds from global settings so each chip knows its globalEnabled.
+                // Replaces the separate skills() + plugins() calls — one round-trip for all three kinds.
+                val allComponents = sessionsRepo.globalSettings()
+                _uiState.update {
+                    it.copy(
+                        availableSkillComponents  = allComponents.filter { c -> c.kind == "skill" },
+                        availablePluginComponents = allComponents.filter { c -> c.kind == "plugin" },
+                        mcpComponents             = allComponents.filter { c -> c.kind == "mcp" },
+                    )
+                }
+            } catch (e: Exception) { AppLog.d("VM", "catalog components load failed: ${e.message}") }
         }
         viewModelScope.launch {
             try {
@@ -236,7 +228,7 @@ class NewRequestViewModel(
      * An empty [skillNames] means "all active" → leaves all at Inherit (don't accidentally hide everything).
      * Internal — used only by [applyTemplate].
      */
-    internal fun setSkillsFromTemplate(skillNames: List<String>, available: List<SkillInfo>) {
+    internal fun setSkillsFromTemplate(skillNames: List<String>, available: List<ComponentInfo>) {
         val overrides = if (skillNames.isEmpty()) {
             emptyMap()
         } else {
@@ -325,7 +317,7 @@ class NewRequestViewModel(
             )
         }
         // Map template skill list to overrides: unlisted skills → ForceOff; listed/all → Inherit.
-        setSkillsFromTemplate(t.skills, s.availableSkills)
+        setSkillsFromTemplate(t.skills, s.availableSkillComponents)
     }
 
     // ── Attachments (pre-session staging) ───────────────────────────────────────
@@ -473,10 +465,10 @@ class NewRequestViewModel(
                 // The whitelist is dead post-cutover; gating is sent as override lists.
                 skills = emptyList(),
                 // ForceOff → hidden; ForceOn → forcedOn; Inherit → neither list
-                hiddenSkills     = s.availableSkills.map { it.name }.filter { s.skillOverrides[it] == Override.ForceOff },
-                forcedOnSkills   = s.availableSkills.map { it.name }.filter { s.skillOverrides[it] == Override.ForceOn },
-                hiddenPlugins    = s.availablePlugins.map { it.name }.filter { s.pluginOverrides[it] == Override.ForceOff },
-                forcedOnPlugins  = s.availablePlugins.map { it.name }.filter { s.pluginOverrides[it] == Override.ForceOn },
+                hiddenSkills     = s.availableSkillComponents.map { it.name }.filter { s.skillOverrides[it] == Override.ForceOff },
+                forcedOnSkills   = s.availableSkillComponents.map { it.name }.filter { s.skillOverrides[it] == Override.ForceOn },
+                hiddenPlugins    = s.availablePluginComponents.map { it.name }.filter { s.pluginOverrides[it] == Override.ForceOff },
+                forcedOnPlugins  = s.availablePluginComponents.map { it.name }.filter { s.pluginOverrides[it] == Override.ForceOn },
                 hiddenMcpServers   = s.mcpComponents.map { it.id }.filter { s.mcpOverrides[it] == Override.ForceOff },
                 forcedOnMcpServers = s.mcpComponents.map { it.id }.filter { s.mcpOverrides[it] == Override.ForceOn },
                 extraMcpServers  = s.extraMcpServers,

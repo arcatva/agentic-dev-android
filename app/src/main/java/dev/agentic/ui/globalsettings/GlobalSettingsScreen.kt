@@ -1,21 +1,18 @@
 package dev.agentic.ui.globalsettings
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LoadingIndicator
@@ -23,7 +20,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -32,10 +28,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.role
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -44,18 +36,20 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import dev.agentic.data.net.ComponentInfo
 import dev.agentic.di.appContainer
+import dev.agentic.ui.components.ComponentChip
 
 /**
- * Global Settings screen — lists all skills, plugins, and MCP components with on/off switches.
+ * Global Settings screen — lists all skills, plugins, and MCP components as colored chips in
+ * FlowRow groups (same visual language as the New Request screen).
  *
- * Components are grouped by kind in display order: Skills → Plugins → MCP. Each row shows the
- * component name + description alongside a [Switch] bound to its [ComponentInfo.globalEnabled]
- * state. Flipping a switch calls [GlobalSettingsViewModel.toggle], which optimistically updates
- * the row, then sends `POST /api/global-settings/toggle`, applies the refreshed list on success,
- * or reverts and shows a transient snackbar error on failure.
+ * Skills and plugins are interactive: tapping a chip calls [GlobalSettingsViewModel.toggle].
+ * MCP chips are read-only (non-interactive, 0.5 alpha, "managed per-session" caption); the
+ * MCP section is always rendered — even if empty it shows a placeholder.
  *
- * VM creation follows project convention (lifecycle-scoped factory via [viewModelFactory]).
- * The fake [appContainer] allows test injection.
+ * Components are grouped: Skills → Plugins → MCP.
+ * Chip visual:
+ *   - ON (globalEnabled==true): filled with kind color (green for skills, purple for plugins/mcp)
+ *   - OFF (globalEnabled==false): outlined/unselected default FilterChip look
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -103,34 +97,10 @@ fun GlobalSettingsScreen(
                     LoadingIndicator()
                 }
             }
-            s.components.isEmpty() -> {
-                Box(
-                    Modifier
-                        .fillMaxSize()
-                        .padding(pad),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        "No components found",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
             else -> {
-                // Group by kind in display order. Unknown kinds land at the bottom.
-                val kindOrder = listOf("skill", "plugin", "mcp")
-                val grouped: Map<String, List<ComponentInfo>> = buildMap {
-                    kindOrder.forEach { kind ->
-                        val items = s.components.filter { it.kind == kind }
-                        if (items.isNotEmpty()) put(kind, items)
-                    }
-                    // Any unknown kinds.
-                    val known = kindOrder.toSet()
-                    s.components.filter { it.kind !in known }.groupBy { it.kind }.forEach { (k, v) ->
-                        put(k, v)
-                    }
-                }
+                val skills  = s.components.filter { it.kind == "skill" }
+                val plugins = s.components.filter { it.kind == "plugin" }
+                val mcps    = s.components.filter { it.kind == "mcp" }
 
                 Column(
                     Modifier
@@ -138,22 +108,48 @@ fun GlobalSettingsScreen(
                         .padding(pad)
                         .verticalScroll(rememberScrollState()),
                 ) {
-                    grouped.forEach { (kind, items) ->
-                        SectionHeader(kind)
-                        items.forEachIndexed { idx, component ->
-                            ComponentRow(
-                                component = component,
-                                toggling = "${component.kind}:${component.id}" in s.toggling,
-                                readOnly = component.kind == "mcp",
-                                onToggle = { resolvedVm.toggle(component) },
-                            )
-                            if (idx < items.lastIndex) {
-                                HorizontalDivider(
-                                    Modifier.padding(horizontal = 16.dp),
-                                    color = MaterialTheme.colorScheme.outlineVariant,
-                                )
-                            }
-                        }
+                    // ── Skills ───────────────────────────────────────────────────
+                    if (skills.isNotEmpty()) {
+                        ChipGroupSection(
+                            label = "Skills",
+                            components = skills,
+                            toggling = s.toggling,
+                            readOnly = false,
+                            onToggle = { resolvedVm.toggle(it) },
+                        )
+                        Spacer(Modifier.height(8.dp))
+                    }
+
+                    // ── Plugins ──────────────────────────────────────────────────
+                    if (plugins.isNotEmpty()) {
+                        ChipGroupSection(
+                            label = "Plugins",
+                            components = plugins,
+                            toggling = s.toggling,
+                            readOnly = false,
+                            onToggle = { resolvedVm.toggle(it) },
+                        )
+                        Spacer(Modifier.height(8.dp))
+                    }
+
+                    // ── MCP (always rendered, read-only, "managed per-session") ──
+                    SectionHeader("MCP")
+                    if (mcps.isEmpty()) {
+                        Text(
+                            "No MCP servers",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                        )
+                        Spacer(Modifier.height(8.dp))
+                    } else {
+                        ChipGroupSection(
+                            label = null,   // header already rendered above
+                            components = mcps,
+                            toggling = s.toggling,
+                            readOnly = true,
+                            onToggle = { /* read-only */ },
+                        )
                         Spacer(Modifier.height(8.dp))
                     }
                 }
@@ -164,13 +160,7 @@ fun GlobalSettingsScreen(
 
 /** Section header showing the human-readable group name (Skills / Plugins / MCP). */
 @Composable
-private fun SectionHeader(kind: String) {
-    val label = when (kind) {
-        "skill"  -> "Skills"
-        "plugin" -> "Plugins"
-        "mcp"    -> "MCP"
-        else     -> kind.replaceFirstChar { it.uppercaseChar() }
-    }
+private fun SectionHeader(label: String) {
     Text(
         label,
         style = MaterialTheme.typography.titleSmall,
@@ -181,55 +171,40 @@ private fun SectionHeader(kind: String) {
 }
 
 /**
- * One component row: name + description on the left, [Switch] on the right.
+ * A labeled group of [ComponentChip]s rendered in a [FlowRow].
  *
- * When [readOnly] is true (MCP components), the switch is non-interactive and reflects
- * [ComponentInfo.globalEnabled] without calling [onToggle]. A caption explains why.
- * The whole row is a toggleable semantic unit (Role.Switch) so accessibility tools announce it correctly.
+ * If [label] is non-null, a [SectionHeader] is rendered first. Pass null to suppress the header
+ * when it has already been rendered by the caller (e.g. the MCP section, where the header is
+ * rendered before the empty-state check so it always appears).
+ *
+ * When [readOnly] is true all chips are non-interactive (0.5 alpha, "managed per-session" caption).
  */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
-private fun ComponentRow(
-    component: ComponentInfo,
-    toggling: Boolean,
-    readOnly: Boolean = false,
-    onToggle: () -> Unit,
+private fun ChipGroupSection(
+    label: String?,
+    components: List<ComponentInfo>,
+    toggling: Set<String>,
+    readOnly: Boolean,
+    onToggle: (ComponentInfo) -> Unit,
 ) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .clip(MaterialTheme.shapes.medium)
-            .semantics { role = Role.Switch }
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    if (label != null) SectionHeader(label)
+    androidx.compose.foundation.layout.FlowRow(
+        modifier = Modifier.padding(horizontal = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Column(Modifier.weight(1f)) {
-            Text(
-                component.name.ifBlank { component.id },
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium,
+        val toggleKey = { c: ComponentInfo -> "${c.kind}:${c.id}" }
+        components.forEach { component ->
+            val isToggling = toggleKey(component) in toggling
+            ComponentChip(
+                label = component.name.ifBlank { component.id },
+                kind = component.kind,
+                effective = component.globalEnabled,
+                onClick = { if (!isToggling) onToggle(component) },
+                enabled = !readOnly && !isToggling,
+                readOnlyCaption = if (readOnly) "managed per-session" else null,
             )
-            if (component.description.isNotBlank()) {
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    component.description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            if (readOnly) {
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    "managed per-session",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
         }
-        Spacer(Modifier.width(12.dp))
-        Switch(
-            checked = component.globalEnabled,
-            onCheckedChange = { if (!toggling && !readOnly) onToggle() },
-            enabled = !toggling && !readOnly,
-        )
     }
 }
