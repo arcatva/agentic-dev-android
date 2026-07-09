@@ -91,6 +91,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
@@ -102,6 +103,7 @@ import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import dev.agentic.data.net.Session
 import dev.agentic.di.appContainer
 import dev.agentic.domain.AttachmentNode
 import dev.agentic.domain.PendingAttachment
@@ -549,6 +551,7 @@ onOpenParent: (String) -> Unit = {},
             // that owns the activity result that produced the URIs — guarantees the read grant is in
             // scope when the VM's upload coroutine opens the stream.
             val onAttachFiles: (List<Uri>) -> Unit = { uris -> realVm.attachFiles(uris, ctx.contentResolver) }
+            val mentionCandidates by realVm.mentionCandidates.collectAsStateWithLifecycle()
             InputBar(
                 input = s.input,
                 onInput = realVm::onInput,
@@ -564,6 +567,8 @@ onOpenParent: (String) -> Unit = {},
                 attachments = s.attachments,
                 onAttachFiles = onAttachFiles,
                 onRemovePending = realVm::removePending,
+                mentionCandidates = mentionCandidates,
+                onMentionActive = realVm::refreshMentionCandidates,
             )
         }
     } // key(realVm.sessionId)
@@ -603,6 +608,8 @@ private fun InputBar(
     attachments: List<PendingAttachment> = emptyList(),
     onAttachFiles: (List<Uri>) -> Unit = {},
     onRemovePending: (String) -> Unit = {},
+    mentionCandidates: List<Session> = emptyList(),
+    onMentionActive: () -> Unit = {},
 ) {
     // All dictation logic (engine choice, permission, first-run model download, live results) lives
     // in this shared controller. On arm64 it uses sherpa-onnx (bilingual zh-en, offline); otherwise
@@ -624,6 +631,41 @@ private fun InputBar(
         if (uris.isNotEmpty()) onAttachFiles(uris)
     }
 
+    // @-mention state: reading inputState.text/selection here is snapshot-aware, so this block
+    // re-evaluates as the user types or moves the caret. A mention is active while the caret sits
+    // inside an `@`-word (see activeMentionQuery); the panel shows only when something matches.
+    // Gated on !dict.listening like manual editing (readOnly above): while the recognizer streams,
+    // every partial result rewrites the whole field through the sync bridge, which would clobber a
+    // just-picked mention token — so no picking mid-dictation.
+    val mentionActive = !dict.listening && inputState.selection.collapsed &&
+        activeMentionQuery(inputState.text.toString(), inputState.selection.end) != null
+    val mentionMatches =
+        if (!mentionActive) emptyList()
+        else activeMentionQuery(inputState.text.toString(), inputState.selection.end)
+            ?.let { filterMentionCandidates(mentionCandidates, it.query) }
+            .orEmpty()
+    // Refresh the candidates list once per activation (not per keystroke) — the panel renders
+    // instantly from the VM's last list while the refresh is in flight.
+    LaunchedEffect(mentionActive) { if (mentionActive) onMentionActive() }
+
+    Column(Modifier.fillMaxWidth()) {
+    if (mentionMatches.isNotEmpty()) {
+        MentionCandidatesPanel(
+            candidates = mentionMatches,
+            onPick = { picked ->
+                // Recompute the mention from the CURRENT field state (never a stale composition
+                // capture): replace `@<query>` with the literal token and park the caret after it.
+                val caret = inputState.selection.end
+                activeMentionQuery(inputState.text.toString(), caret)?.let { m ->
+                    val token = mentionToken(picked.id)
+                    inputState.edit {
+                        replace(m.start, caret, token)
+                        selection = TextRange(m.start + token.length)
+                    }
+                }
+            },
+        )
+    }
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         shape = RoundedCornerShape(28.dp),
@@ -752,6 +794,7 @@ private fun InputBar(
             }
         }
     }
+    } // mention panel + composer column
 }
 
 /**

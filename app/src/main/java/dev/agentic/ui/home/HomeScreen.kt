@@ -938,6 +938,14 @@ internal fun SessionRow(
                     session.prompt.ifBlank { "(no prompt)" },
                     style = MaterialTheme.typography.bodyLarge,
                 )
+                // Short session id right under the title — the same 8-char/labelSmall/
+                // onSurfaceVariant pair the session page shows in its top bar, so a session can
+                // be identified (and @-mentioned) by id straight from the list.
+                FadingText(
+                    session.id.take(8),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 FadingText(
                     "$repos · ${relativeAge(session.createdAt, now)}",
                     style = MaterialTheme.typography.bodySmall,
