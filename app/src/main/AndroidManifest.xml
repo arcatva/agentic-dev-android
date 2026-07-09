@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Required to observe network availability (wake the stream reconnect loop when Wi-Fi returns) -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- Required on Android 13+ to show FCM notifications -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <application
+        android:name=".AgenticApp"
+        android:allowBackup="true"
+        android:fullBackupContent="@xml/backup_rules"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:label="agentic-dev"
+        android:icon="@mipmap/ic_launcher"
+        android:supportsRtl="true"
+        android:usesCleartextTraffic="true"
+        android:enableOnBackInvokedCallback="true"
+        android:theme="@android:style/Theme.Material.NoActionBar">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden|uiMode|density|navigation"
+            android:windowSoftInputMode="adjustResize"
+            android:launchMode="singleTop">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- Deep-link: agentic://session/<id>  — tap a finish notification to open the session -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="agentic" android:host="session" />
+            </intent-filter>
+        </activity>
+
+        <!--
+            FCM message receiver.
+            TODO: add google-services.json (from Firebase Console, package dev.agentic) to
+                  app/ before building — the plugin reads it at compile time to embed sender IDs.
+            TODO: in app/build.gradle.kts, add inside the plugins {} block:
+                      id("com.google.gms.google-services") version "4.4.2" apply true
+                  and in build.gradle.kts (root) plugins {} block:
+                      id("com.google.gms.google-services") version "4.4.2" apply false
+                  and in app/build.gradle.kts dependencies {}:
+                      implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
+                      implementation("com.google.firebase:firebase-messaging-ktx")
+        -->
+        <!-- Shares exported log zips (cacheDir/log-exports) via the system share sheet. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
+        <service
+            android:name=".AgenticMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+    </application>
+</manifest>

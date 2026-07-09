@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- In-app brand logo: theme-green code brackets < > framing the violet→blue AutoAwesome sparkle.
+     Same art as the launcher foreground but tightly cropped (64x64 viewport, no background/glow)
+     so it reads at top-bar sizes. Render with tint = Color.Unspecified to keep the gradients. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+    <group
+        android:translateX="-22"
+        android:translateY="-22.7">
+
+        <!-- Left bracket "<" (theme green, vertical gradient) -->
+        <path
+            android:pathData="M35.44,41.34 L23.63,54 L35.44,66.66"
+            android:strokeWidth="3.16"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round">
+            <aapt:attr name="android:strokeColor">
+                <gradient
+                    android:type="linear"
+                    android:startX="54" android:startY="41.34"
+                    android:endX="54" android:endY="66.66">
+                    <item android:offset="0" android:color="#FF7EEAE2" />
+                    <item android:offset="1" android:color="#FF41BFB6" />
+                </gradient>
+            </aapt:attr>
+        </path>
+
+        <!-- Right bracket ">" -->
+        <path
+            android:pathData="M72.56,41.34 L84.38,54 L72.56,66.66"
+            android:strokeWidth="3.16"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round">
+            <aapt:attr name="android:strokeColor">
+                <gradient
+                    android:type="linear"
+                    android:startX="54" android:startY="41.34"
+                    android:endX="54" android:endY="66.66">
+                    <item android:offset="0" android:color="#FF7EEAE2" />
+                    <item android:offset="1" android:color="#FF41BFB6" />
+                </gradient>
+            </aapt:attr>
+        </path>
+
+        <!-- Sparkle drop shadow -->
+        <path
+            android:pathData="M54,35.44 Q54,55.48 74.04,55.48 Q54,55.48 54,75.52 Q54,55.48 33.96,55.48 Q54,55.48 54,35.44 Z"
+            android:fillColor="#4D06090F" />
+
+        <!-- Sparkle body: light violet top-left → theme blue bottom-right -->
+        <path android:pathData="M54,33.96 Q54,54 74.04,54 Q54,54 54,74.04 Q54,54 33.96,54 Q54,54 54,33.96 Z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="linear"
+                    android:startX="41.98" android:startY="35.96"
+                    android:endX="66.02" android:endY="72.04">
+                    <item android:offset="0" android:color="#FFE4D9FF" />
+                    <item android:offset="0.2" android:color="#FFB197FC" />
+                    <item android:offset="0.55" android:color="#FFA7C8FF" />
+                    <item android:offset="1" android:color="#FF82ACFF" />
+                </gradient>
+            </aapt:attr>
+        </path>
+
+        <!-- Inner gloss star (white, centered) -->
+        <path
+            android:pathData="M54,43.45 Q54,54 64.55,54 Q54,54 54,64.55 Q54,54 43.45,54 Q54,54 54,43.45 Z"
+            android:fillColor="#33FFFFFF" />
+    </group>
+</vector>

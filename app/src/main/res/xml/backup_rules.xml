@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- API 23-30 (legacy Auto Backup). Exclude the captured diagnostics log tree (filesDir/logs)
+     so it is never uploaded to the user's cloud backup. -->
+<full-backup-content>
+    <exclude domain="file" path="logs/" />
+</full-backup-content>

@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Adaptive-icon FOREGROUND layer: theme-green code brackets < > framing the brand AutoAwesome
+     four-point sparkle (violet→blue glass gradient + inner gloss + soft drop shadow — gradients
+     only, no filters, so it renders identically as a VectorDrawable).
+     Geometry is the 512px design SVG (icon-design/7-final.svg) scaled by 108/512, then scaled a
+     further 0.75 about the canvas center: launchers only show the middle ~66-72dp of the 108dp
+     canvas, so art drawn out to the safe-zone edge fills the mask edge-to-edge (looked cramped
+     on One UI). At 0.75 the mark spans ~70% of the visible area, matching typical icons. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Ambient glow behind the mark -->
+    <path android:pathData="M29.47,54 a24.53,24.53 0 1,0 49.06,0 a24.53,24.53 0 1,0 -49.06,0 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="54"
+                android:centerY="54"
+                android:gradientRadius="24.53">
+                <item android:offset="0" android:color="#2EB197FC" />
+                <item android:offset="0.65" android:color="#0FA7C8FF" />
+                <item android:offset="1" android:color="#00A7C8FF" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Left bracket "<" (theme green, vertical gradient) -->
+    <path
+        android:pathData="M40.08,44.5 L31.22,54 L40.08,63.5"
+        android:strokeWidth="2.37"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:type="linear"
+                android:startX="54" android:startY="44.5"
+                android:endX="54" android:endY="63.5">
+                <item android:offset="0" android:color="#FF7EEAE2" />
+                <item android:offset="1" android:color="#FF41BFB6" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Right bracket ">" -->
+    <path
+        android:pathData="M67.92,44.5 L76.78,54 L67.92,63.5"
+        android:strokeWidth="2.37"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:type="linear"
+                android:startX="54" android:startY="44.5"
+                android:endX="54" android:endY="63.5">
+                <item android:offset="0" android:color="#FF7EEAE2" />
+                <item android:offset="1" android:color="#FF41BFB6" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Sparkle drop shadow (offset copy, grounds the mark) -->
+    <path
+        android:pathData="M54,40.08 Q54,55.11 69.03,55.11 Q54,55.11 54,70.14 Q54,55.11 38.97,55.11 Q54,55.11 54,40.08 Z"
+        android:fillColor="#4D06090F" />
+
+    <!-- Sparkle body: glassy diagonal gradient, light violet top-left → theme blue bottom-right -->
+    <path android:pathData="M54,38.97 Q54,54 69.03,54 Q54,54 54,69.03 Q54,54 38.97,54 Q54,54 54,38.97 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="44.98" android:startY="40.47"
+                android:endX="63.02" android:endY="67.53">
+                <item android:offset="0" android:color="#FFE4D9FF" />
+                <item android:offset="0.2" android:color="#FFB197FC" />
+                <item android:offset="0.55" android:color="#FFA7C8FF" />
+                <item android:offset="1" android:color="#FF82ACFF" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Inner gloss star (white, centered) -->
+    <path
+        android:pathData="M54,46.09 Q54,54 61.91,54 Q54,54 54,61.91 Q54,54 46.09,54 Q54,54 54,46.09 Z"
+        android:fillColor="#33FFFFFF" />
+</vector>

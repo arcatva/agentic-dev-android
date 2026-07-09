@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- API 31+. Keep the captured diagnostics log tree (filesDir/logs) off-device: it can contain
+     whatever the process emits to logcat, so it must not be copied to cloud backup or a new device. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="file" path="logs/" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="file" path="logs/" />
+    </device-transfer>
+</data-extraction-rules>

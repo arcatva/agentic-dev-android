@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Adaptive-icon BACKGROUND layer: deep-navy radial wash matching the app's dark surface
+     (#101620 family). Center is nudged up-left so the light falls behind the sparkle. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path android:pathData="M0,0 h108 v108 h-108 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="45.36"
+                android:centerY="38.88"
+                android:gradientRadius="97.2">
+                <item android:offset="0" android:color="#FF1B2A4A" />
+                <item android:offset="0.55" android:color="#FF111827" />
+                <item android:offset="1" android:color="#FF0A0F18" />
+            </gradient>
+        </aapt:attr>
+    </path>
+</vector>

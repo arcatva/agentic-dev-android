@@ -1,0 +1,93 @@
+package dev.agentic.data.net
+
+/** Contract for the agentic-dev backend client (REST + WebSocket stream). All methods mirror the
+ *  public surface of the original [dev.agentic.net.Api]; implementations can swap transport or
+ *  inject fakes for testing. */
+interface AgenticApi {
+    var baseUrl: String
+    var token: String?
+    /** Invoked by the implementation on any 401 so the app can clear the stale token and route
+     *  to the login screen. */
+    var onUnauthorized: (() -> Unit)?
+
+    suspend fun login(password: String): String
+    suspend fun sessions(): List<Session>
+    /** GET …/sessions/search?q=<text> — server-side content search across rendered transcripts. */
+    suspend fun searchSessions(q: String): SearchResponse
+    // `limit`: when set, request only the last `limit` rendered log lines (server's windowed path,
+    // returns { log, start, total }) so a huge transcript isn't shipped whole. null = legacy full log.
+    suspend fun session(id: String, limit: Int? = null): SessionDetail
+    /** Discord-style cursor-paginated structured events from GET /api/sessions/{id}/events.
+     *  `limit`: max events to return (default 100). `before`: cursor — returns events with eventId < before.
+     *  `after`: returns events with eventId > after. `around`: returns events centered on eventId.
+     *  Returns typed ClaudeEvent::to_wire() output instead of raw JSONL strings, preventing OOM on long sessions. */
+    suspend fun sessionEvents(id: String, limit: Int? = null, before: Long? = null, after: Long? = null, around: Long? = null): SessionEventsResponse
+    /** Bare session row (no log). Backed by GET /api/sessions/:id; the endpoint also returns a `log`,
+     *  but this overload's only consumer is the settings screen which doesn't render transcript. */
+    suspend fun get(id: String): Session
+    suspend fun usage(): Usage
+    suspend fun workflows(id: String): List<WorkflowRun>
+    suspend fun workflowAgent(id: String, runId: String, agentId: String): String
+    suspend fun repos(): RepoList
+    suspend fun skills(): List<SkillInfo>
+    /** Installed Claude Code plugins (`<plugin>@<marketplace>` ids) from GET /api/plugins.
+     *  Default impl returns empty list — test fakes override. */
+    suspend fun plugins(): List<PluginInfo> = emptyList()
+    suspend fun create(req: NewSessionReq): String
+/** Fork the session. Returns the new session's id; the new session sits idle
+     *  (status="pending") until the user opens it and sends a follow-up prompt. */
+    suspend fun fork(id: String): String
+    suspend fun followUp(id: String, prompt: String, setTitle: Boolean = true, model: String? = null, effort: String? = null, permissionMode: String? = null): Int
+    suspend fun patchSession(id: String, req: PatchSessionReq): Session
+    suspend fun uploadFile(id: String, bytes: ByteArray, filename: String): String
+    /** Stage a file BEFORE a session exists (New-request attachments) via POST /api/uploads. Returns
+     *  the staging token, sanitized name, and the uploads/<name> path for the prompt marker. */
+    suspend fun uploadStaging(bytes: ByteArray, filename: String): StagedUpload
+    suspend fun fileBytes(id: String, path: String, onProgress: ((Float?) -> Unit)? = null): ByteArray
+    suspend fun outbox(id: String): List<SharedFile>
+    suspend fun kill(id: String)
+    /** Interrupt the current turn but keep the session alive (idle, ready for the next message). */
+    suspend fun interrupt(id: String)
+    /** Discord-style: acknowledge the session's current unread event.
+     *  `PUT /api/sessions/{id}/ack` with `{"eventId": N}`. Sets ackedEventId on the server. */
+    suspend fun ackSession(id: String, eventId: Long)
+    /** Answer a parked permission/plan prompt for [id] (allow/deny, optional feedback). */
+    suspend fun respondPermission(id: String, decision: String, feedback: String? = null)
+    suspend fun delete(id: String)
+    /** Open the session stream; calls [onLine] for each event frame (a JSON ClaudeEvent). Returns when closed. */
+    suspend fun stream(id: String, since: Int?, onLine: suspend (String) -> Unit)
+    suspend fun registerDevice(token: String)
+    suspend fun getTemplates(): List<Template>
+    suspend fun putTemplates(templates: List<Template>)
+    /** Model catalog (native Claude tiers + registered BYOK providers). Default impl returns
+     *  empty list — test fakes override. */
+    suspend fun models(): List<ModelEntry> = emptyList()
+    /** Model catalog for main-thread/session-start pickers (GET /api/models?scope=session_start).
+     *  Only Claude/native models — BYOK providers never appear here. Default impl returns empty
+     *  list — test fakes override. */
+    suspend fun sessionStartModels(): List<ModelEntry> = emptyList()
+    /** Session groups (folders) — DB-backed CRUD replacing the old file-based groups. */
+    suspend fun listGroups(): List<Group>
+    suspend fun createGroup(req: CreateGroupReq): Group
+    suspend fun updateGroup(id: String, req: UpdateGroupReq): Group
+    suspend fun deleteGroup(id: String)
+    /** Provider registry (BYOK cheap models for delegate fan-out). Default impls keep test fakes
+     *  compiling; [KtorAgenticApi] overrides all three. */
+    suspend fun providers(): List<Provider> = emptyList()
+    suspend fun addProvider(req: NewProviderReq) {}
+    suspend fun deleteProvider(name: String) {}
+    /** Recent commit history per repo for session [id] (GET …/commits). */
+    suspend fun commits(id: String): List<RepoCommits>
+    /** Changed files for [sha] in [repo] of session [id] (GET …/commits/<sha>/files?repo=<repo>). */
+    suspend fun commitFiles(id: String, repo: String, sha: String): List<CommitFile>
+    /** Line-level diff for one [path] in [sha] of [repo] (GET …/commits/<sha>/diff?repo=&path=). */
+    suspend fun commitDiff(id: String, repo: String, sha: String, path: String): FileDiff
+    /** Restore the working tree to the snapshot before [turnIndex] (POST …/rewind). Code only. */
+    suspend fun rewind(id: String, turnIndex: Int)
+    suspend fun discard(id: String)
+    /** Drop idle pooled connections so the next request opens a fresh socket. Called on app-foreground
+     *  so a connection that went half-open while backgrounded can't be reused (and hang). Default no-op
+     *  keeps test fakes compiling; [KtorAgenticApi] evicts its OkHttp pool. */
+    fun evictConnections() {}
+    fun close()
+}
