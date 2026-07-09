@@ -83,6 +83,14 @@ val AccentBlue = Color(0xFF97BCFC)
 val OnAccentBlue = Color(0xFF162440)
 val AccentBlueContainer = Color(0xFF2C3A5E)
 val OnAccentBlueContainer = Color(0xFFC7D9FF)
+// Skill = green family; Plugin/MCP = purple family. Both designed for the dark theme
+// background (0xFF101620). Contrast ratio vs background > 4.5:1 for both hues.
+val SkillGreen            = Color(0xFF6EE7A0)   // bright mint-green, readable on dark bg
+val OnSkillGreen          = Color(0xFF003920)   // dark text drawn on SkillGreen containers
+val SkillGreenContainer   = Color(0xFF00522C)   // container (chip background when ON)
+val PluginPurple          = Color(0xFFCFB8FF)   // soft lilac-purple, readable on dark bg
+val OnPluginPurple        = Color(0xFF24005A)   // dark text on PluginPurple containers
+val PluginPurpleContainer = Color(0xFF3B1878)   // container (chip background when ON)
 
 // md3e leans on larger, varied corner radii.
 private val ExpressiveShapes = Shapes(
