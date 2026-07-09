@@ -22,7 +22,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AttachFile
+import androidx.compose.material.icons.rounded.Block
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
@@ -36,8 +39,12 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -49,10 +56,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -94,6 +103,13 @@ private val PERMISSION_MODES = listOf(
     "acceptEdits" to "Accept edits",
     "bypassPermissions" to "Dangerous",
 )
+
+/** Cycle the [Override] on tap: Inherit → ForceOn → ForceOff → Inherit. */
+private fun Override.cycle(): Override = when (this) {
+    Override.Inherit  -> Override.ForceOn
+    Override.ForceOn  -> Override.ForceOff
+    Override.ForceOff -> Override.Inherit
+}
 
 /**
  * New-request screen. Stateless: all state lives in [NewRequestViewModel]; this composable
@@ -239,8 +255,9 @@ fun NewRequestScreen(
                 )
             }
 
-            // ── Card 1 · Filters: repo + skill + plugin multi-select ────────────────
+            // ── Card 1 · Filters: repo + skill (tri-state) + plugin (tri-state) + MCP ──
             SectionCard("Filters") {
+                // Repos: keep binary toggle (in/out, not a global setting)
                 ChipPicker(
                     label = "Repos",
                     options = s.availableRepos,
@@ -251,40 +268,114 @@ fun NewRequestScreen(
                         realVm.setRepos(updated)
                     },
                 )
-                // Every skill starts selected (lit). Deselecting a chip HIDES it from this session —
-                // on submit the unselected skills become hiddenSkills (→ skillOverrides "off").
-                ChipPicker(
-                    label = "Skills",
-                    options = s.availableSkills.map { it.name },
-                    selected = s.selectedSkills.toSet(),
-                    onToggle = { skill ->
-                        val updated = if (skill in s.selectedSkills) s.selectedSkills - skill
-                                      else s.selectedSkills + skill
-                        realVm.setSkills(updated)
-                    },
-                    selectedContainer = AccentCyanContainer,
-                    selectedContent = OnAccentCyanContainer,
-                )
-                // Installed Claude Code plugins — same blacklist model as Skills: every plugin
-                // starts selected (enabled); deselecting a chip DISABLES it for this session
-                // (→ hiddenPlugins → enabledPlugins:{<id>:false}). Row is hidden when the backend
-                // reports no installed plugins. Chip labels drop the `@marketplace` suffix (the
-                // full id stays the wire value); the violet family separates them from the cyan
-                // skill chips.
+                // Skills — tri-state: tap cycles Inherit → ForceOn → ForceOff → Inherit
+                // Inherit = follow global; ForceOn = force enabled; ForceOff = force disabled.
+                if (s.availableSkills.isNotEmpty()) {
+                    TriStateChipPicker(
+                        label = "Skills",
+                        options = s.availableSkills.map { it.name },
+                        overrides = s.skillOverrides,
+                        onCycle = { id ->
+                            val cur = s.skillOverrides[id] ?: Override.Inherit
+                            realVm.setOverride("skill", id, cur.cycle())
+                        },
+                    )
+                }
+                // Plugins — tri-state, same visual language as skills.
                 if (s.availablePlugins.isNotEmpty()) {
-                    ChipPicker(
+                    TriStateChipPicker(
                         label = "Plugins",
                         options = s.availablePlugins.map { it.name },
-                        selected = s.selectedPlugins.toSet(),
-                        onToggle = { plugin ->
-                            val updated = if (plugin in s.selectedPlugins) s.selectedPlugins - plugin
-                                          else s.selectedPlugins + plugin
-                            realVm.setPlugins(updated)
+                        overrides = s.pluginOverrides,
+                        onCycle = { id ->
+                            val cur = s.pluginOverrides[id] ?: Override.Inherit
+                            realVm.setOverride("plugin", id, cur.cycle())
                         },
-                        selectedContainer = AccentVioletContainer,
-                        selectedContent = OnAccentVioletContainer,
                         displayLabel = { it.substringBefore('@') },
                     )
+                }
+                // MCP — tri-state chips for globally configured MCP servers + inline add form.
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        "MCP servers",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    // Globally configured MCP servers as tri-state chips.
+                    if (s.mcpComponents.isNotEmpty()) {
+                        Row(
+                            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            s.mcpComponents.forEach { comp ->
+                                TriStateChip(
+                                    label = comp.name,
+                                    override = s.mcpOverrides[comp.id] ?: Override.Inherit,
+                                    onCycle = {
+                                        val cur = s.mcpOverrides[comp.id] ?: Override.Inherit
+                                        realVm.setOverride("mcp", comp.id, cur.cycle())
+                                    },
+                                )
+                            }
+                        }
+                    }
+                    // Extra (ad-hoc) added servers — shown as removable chips.
+                    if (s.extraMcpServers.isNotEmpty()) {
+                        Row(
+                            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            s.extraMcpServers.forEach { srv ->
+                                InputChip(
+                                    selected = false,
+                                    onClick = {},
+                                    label = { Text(srv.name) },
+                                    trailingIcon = {
+                                        IconButton(onClick = { realVm.removeMcpServer(srv.name) }) {
+                                            Icon(Icons.Rounded.Close, contentDescription = "Remove ${srv.name}")
+                                        }
+                                    },
+                                )
+                            }
+                        }
+                    }
+                    // Collapsible "Add MCP server" form.
+                    var addMcpExpanded by remember { mutableStateOf(false) }
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(MaterialTheme.shapes.small)
+                            .clickable { addMcpExpanded = !addMcpExpanded }
+                            .padding(vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            "Add MCP server",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Icon(
+                            if (addMcpExpanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                            contentDescription = if (addMcpExpanded) "Collapse Add MCP" else "Expand Add MCP",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    AnimatedVisibility(
+                        visible = addMcpExpanded,
+                        enter = expandVertically() + fadeIn(),
+                        exit = shrinkVertically() + fadeOut(),
+                    ) {
+                        AddMcpForm(
+                            draft = s.mcpDraft,
+                            onDraftChange = realVm::updateMcpDraft,
+                            onAdd = {
+                                val err = realVm.addMcpServer()
+                                if (err == null) addMcpExpanded = false
+                                err
+                            },
+                        )
+                    }
                 }
             }
 
@@ -461,9 +552,127 @@ fun NewRequestScreen(
 
 // ── Private helpers ───────────────────────────────────────────────────────────
 
+/**
+ * A single chip with three visual states corresponding to [Override]:
+ * - [Override.Inherit]: outlined (FilterChip selected=false, default look) — "follow global"
+ * - [Override.ForceOn]: filled with check icon (FilterChip selected=true, cyan accent) — "force on"
+ * - [Override.ForceOff]: outlined + dimmed + strikethrough label — "force off"
+ *
+ * Tap cycles Inherit → ForceOn → ForceOff → Inherit.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TriStateChip(
+    label: String,
+    override: Override,
+    onCycle: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val isForceOn  = override == Override.ForceOn
+    val isForceOff = override == Override.ForceOff
+
+    val contentDesc = when (override) {
+        Override.Inherit  -> "$label: follow global setting (tap to force on)"
+        Override.ForceOn  -> "$label: forced ON for this session (tap to force off)"
+        Override.ForceOff -> "$label: forced OFF for this session (tap to reset)"
+    }
+
+    // Color: force-on uses cyan accent; inherit/off use default chip colors.
+    val chipColors = if (isForceOn) {
+        FilterChipDefaults.filterChipColors(
+            selectedContainerColor = AccentCyanContainer,
+            selectedLabelColor = OnAccentCyanContainer,
+            selectedLeadingIconColor = OnAccentCyanContainer,
+        )
+    } else {
+        FilterChipDefaults.filterChipColors()
+    }
+
+    // Dim the entire chip when force-off to signal "this will be disabled".
+    val alphaValue = if (isForceOff) 0.45f else 1f
+
+    FilterChip(
+        selected = isForceOn,
+        onClick = onCycle,
+        label = {
+            Text(
+                text = label,
+                textDecoration = if (isForceOff) TextDecoration.LineThrough else TextDecoration.None,
+            )
+        },
+        leadingIcon = when {
+            isForceOn  -> { { Icon(Icons.Rounded.Check, contentDescription = null) } }
+            isForceOff -> { { Icon(Icons.Rounded.Block, contentDescription = null) } }
+            else       -> null
+        },
+        colors = chipColors,
+        modifier = modifier.alpha(alphaValue),
+    )
+}
 
 /**
- * One-row, horizontally-scrolling chip group with an inline filter field.
+ * A chip-group section with an inline filter field. Each chip cycles through tri-state
+ * [Override] on tap. Empty filter shows all; type to narrow. Chips keep source order.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TriStateChipPicker(
+    label: String,
+    options: List<String>,             // option ids/names
+    overrides: Map<String, Override>,  // current override per id
+    onCycle: (String) -> Unit,         // called with the id to cycle
+    displayLabel: (String) -> String = { it },
+) {
+    var q by remember { mutableStateOf("") }
+    val shown = options.filter {
+        q.isBlank() || it.contains(q, ignoreCase = true) || displayLabel(it).contains(q, ignoreCase = true)
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        AppTextField(
+            value = q,
+            onValueChange = { q = it },
+            placeholder = "Filter ${label.lowercase()}",
+            singleLine = true,
+            leadingIcon = {
+                Icon(
+                    Icons.Rounded.Search,
+                    contentDescription = "Filter ${label.lowercase()}",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            },
+            trailingIcon = {
+                if (q.isNotEmpty()) {
+                    IconButton(onClick = { q = "" }) {
+                        Icon(
+                            Icons.Rounded.Close,
+                            contentDescription = "Clear filter",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            },
+            shape = MaterialTheme.shapes.small,
+            colors = cardFieldColors(),
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Row(
+            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            shown.forEach { id ->
+                TriStateChip(
+                    label = displayLabel(id),
+                    override = overrides[id] ?: Override.Inherit,
+                    onCycle = { onCycle(id) },
+                )
+            }
+        }
+    }
+}
+
+/**
+ * One-row, horizontally-scrolling chip group with an inline filter field (binary toggle).
+ * Used only for Repos (which is a plain in/out selection, not a tri-state global override).
  * Chips keep source order; toggling does not reshuffle them.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -546,6 +755,127 @@ private fun ChipPicker(
                     colors = chipColors,
                 )
             }
+        }
+    }
+}
+
+/**
+ * Inline form for adding an ad-hoc MCP server for this session.
+ * Shows a transport toggle (stdio | HTTP); stdio reveals command + args + env;
+ * HTTP/SSE reveals url + type + headers. Client-side validation mirrors backend.
+ *
+ * [onAdd] returns a nullable error string (non-null = show error, stay open; null = success).
+ */
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun AddMcpForm(
+    draft: McpDraft,
+    onDraftChange: (McpDraft) -> Unit,
+    onAdd: () -> String?,
+) {
+    var localError by remember { mutableStateOf<String?>(null) }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Transport toggle: stdio | HTTP/SSE
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+            listOf("stdio", "http").forEachIndexed { i, t ->
+                SegmentedButton(
+                    selected = draft.transport == t,
+                    onClick = { onDraftChange(draft.copy(transport = t)) },
+                    shape = SegmentedButtonDefaults.itemShape(index = i, count = 2),
+                    label = { Text(if (t == "stdio") "stdio" else "HTTP / SSE") },
+                )
+            }
+        }
+
+        // Name field (always shown)
+        AppTextField(
+            value = draft.name,
+            onValueChange = { onDraftChange(draft.copy(name = it)) },
+            placeholder = "Server name (e.g. my-mcp)",
+            singleLine = true,
+            shape = MaterialTheme.shapes.small,
+            colors = cardFieldColors(),
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        if (draft.transport == "stdio") {
+            AppTextField(
+                value = draft.command,
+                onValueChange = { onDraftChange(draft.copy(command = it)) },
+                placeholder = "Command (e.g. /usr/bin/node server.js)",
+                singleLine = true,
+                shape = MaterialTheme.shapes.small,
+                colors = cardFieldColors(),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            AppTextField(
+                value = draft.args,
+                onValueChange = { onDraftChange(draft.copy(args = it)) },
+                placeholder = "Args (optional, space-separated)",
+                singleLine = true,
+                shape = MaterialTheme.shapes.small,
+                colors = cardFieldColors(),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            AppTextField(
+                value = draft.env,
+                onValueChange = { onDraftChange(draft.copy(env = it)) },
+                placeholder = "Env vars (optional, KEY=VALUE lines)",
+                singleLine = false,
+                minLines = 2,
+                maxLines = 4,
+                shape = MaterialTheme.shapes.small,
+                colors = cardFieldColors(),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        } else {
+            // HTTP/SSE type sub-toggle
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                listOf("http", "sse").forEachIndexed { i, t ->
+                    SegmentedButton(
+                        selected = draft.httpType == t,
+                        onClick = { onDraftChange(draft.copy(httpType = t)) },
+                        shape = SegmentedButtonDefaults.itemShape(index = i, count = 2),
+                        label = { Text(t.uppercase()) },
+                    )
+                }
+            }
+            AppTextField(
+                value = draft.url,
+                onValueChange = { onDraftChange(draft.copy(url = it)) },
+                placeholder = "URL (e.g. https://example.com/mcp)",
+                singleLine = true,
+                shape = MaterialTheme.shapes.small,
+                colors = cardFieldColors(),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            AppTextField(
+                value = draft.headers,
+                onValueChange = { onDraftChange(draft.copy(headers = it)) },
+                placeholder = "Headers (optional, KEY=VALUE lines)",
+                singleLine = false,
+                minLines = 2,
+                maxLines = 4,
+                shape = MaterialTheme.shapes.small,
+                colors = cardFieldColors(),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+
+        localError?.let { err ->
+            Text(err, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+        }
+
+        Button(
+            onClick = {
+                val err = onAdd()
+                localError = err
+            },
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Icon(Icons.Rounded.Add, contentDescription = null)
+            Text("  Add MCP server")
         }
     }
 }

@@ -5,6 +5,8 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dev.agentic.data.net.ComponentInfo
+import dev.agentic.data.net.McpServerDef
 import dev.agentic.data.net.NewSessionReq
 import dev.agentic.data.net.Outcome
 import dev.agentic.data.log.AppLog
@@ -26,6 +28,43 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
+/**
+ * Per-component tri-state session override.
+ * - [Inherit]: follow global setting (component appears in neither forced-on nor hidden list).
+ * - [ForceOn]: force this component ON for this session (even if globally disabled).
+ * - [ForceOff]: force this component OFF for this session (even if globally enabled).
+ * Tap cycle: Inherit → ForceOn → ForceOff → Inherit.
+ */
+enum class Override { Inherit, ForceOn, ForceOff }
+
+/**
+ * Draft state for the "Add MCP server" inline form.
+ * [transport] is "stdio" or "http". Fields not relevant to the selected transport
+ * are retained in state but ignored on add (the form shows only the relevant ones).
+ */
+data class McpDraft(
+    val name: String = "",
+    val transport: String = "stdio",
+    // stdio fields
+    val command: String = "",
+    val args: String = "",       // space-separated, split on add
+    val env: String = "",        // KEY=VALUE lines, split on add
+    // http/sse fields
+    val url: String = "",
+    val httpType: String = "http",  // "http" or "sse"
+    val headers: String = "",       // KEY=VALUE lines, split on add
+) {
+    /** Validation error message, or null when the draft is submittable. */
+    val validationError: String? get() = when {
+        name.isBlank() -> "Name is required"
+        name.trim() == "agentic" -> "Name must not be \"agentic\""
+        transport == "stdio" && command.isBlank() -> "Command is required for stdio transport"
+        transport == "http" && url.isBlank() -> "URL is required for HTTP/SSE transport"
+        else -> null
+    }
+    val isValid: Boolean get() = validationError == null
+}
 
 /**
  * Default content pre-filled into the New-request "CLAUDE.md (optional)" field. It tells each
@@ -67,14 +106,18 @@ data class NewRequestUiState(
     val availableSkills: List<SkillInfo> = emptyList(),
     val templates: List<Template> = emptyList(),
     val selectedRepos: List<String> = emptyList(),
-    // ACTIVE skills. The single "Skills" picker starts with every skill selected (lit); deselecting
-    // one hides it. On submit, hiddenSkills = availableSkills - selectedSkills.
-    val selectedSkills: List<String> = emptyList(),
-    // Installed Claude Code plugins (`<plugin>@<marketplace>` ids). Same blacklist model as
-    // skills: every plugin starts selected (enabled); deselecting one disables it for this
-    // session. On submit, hiddenPlugins = availablePlugins - selectedPlugins.
+    // ── Tri-state override maps (replaces binary selectedSkills/selectedPlugins) ──
+    // Default is Inherit for all, meaning "follow global setting".
+    // On submit: ForceOff → hiddenX, ForceOn → forcedOnX, Inherit → neither.
+    val skillOverrides: Map<String, Override> = emptyMap(),
     val availablePlugins: List<PluginInfo> = emptyList(),
-    val selectedPlugins: List<String> = emptyList(),
+    val pluginOverrides: Map<String, Override> = emptyMap(),
+    // ── MCP components (fetched from GET /api/global-settings, kind=="mcp") ──
+    val mcpComponents: List<ComponentInfo> = emptyList(),
+    val mcpOverrides: Map<String, Override> = emptyMap(),
+    // ── Extra MCP servers (inline-add form) ──
+    val extraMcpServers: List<McpServerDef> = emptyList(),
+    val mcpDraft: McpDraft = McpDraft(),
     val prompt: String = "",
     // Session-scoped CLAUDE.md guidance, PRE-FILLED with [DEFAULT_CLAUDE_MD] (the multi-session
     // worktree / PR / conflict workflow). Sent verbatim on submit, so the agent gets it by default;
@@ -125,16 +168,23 @@ class NewRequestViewModel(
         viewModelScope.launch {
             try {
                 val skills = sessionsRepo.skills()
-                // Default every skill to ACTIVE (selected) so the picker shows all chips lit.
-                _uiState.update { it.copy(availableSkills = skills, selectedSkills = skills.map { s -> s.name }) }
+                // Default every skill to Inherit (follow global) — no pre-selection.
+                _uiState.update { it.copy(availableSkills = skills) }
             } catch (e: Exception) { AppLog.d("VM", "catalog skills load failed: ${e.message}") }
         }
         viewModelScope.launch {
             try {
                 val plugins = sessionsRepo.plugins()
-                // Default every plugin to ACTIVE (selected), mirroring the skills picker.
-                _uiState.update { it.copy(availablePlugins = plugins, selectedPlugins = plugins.map { p -> p.name }) }
+                // Default every plugin to Inherit (follow global).
+                _uiState.update { it.copy(availablePlugins = plugins) }
             } catch (e: Exception) { AppLog.d("VM", "catalog plugins load failed: ${e.message}") }
+        }
+        viewModelScope.launch {
+            try {
+                // Fetch MCP components from global settings (kind == "mcp").
+                val mcpList = sessionsRepo.globalSettings().filter { it.kind == "mcp" }
+                _uiState.update { it.copy(mcpComponents = mcpList) }
+            } catch (e: Exception) { AppLog.d("VM", "catalog mcp load failed: ${e.message}") }
         }
         viewModelScope.launch {
             try {
@@ -164,8 +214,38 @@ class NewRequestViewModel(
     }
 
     fun setRepos(repos: List<String>) { _uiState.update { it.copy(selectedRepos = repos) } }
-    fun setSkills(skills: List<String>) { _uiState.update { it.copy(selectedSkills = skills) } }
-    fun setPlugins(plugins: List<String>) { _uiState.update { it.copy(selectedPlugins = plugins) } }
+
+    /**
+     * Set the tri-state override for a component. [kind] is "skill", "plugin", or "mcp".
+     * [id] is the component's id/name. [override] is the new state.
+     */
+    fun setOverride(kind: String, id: String, override: Override) {
+        _uiState.update { s ->
+            when (kind) {
+                "skill"  -> s.copy(skillOverrides  = s.skillOverrides  + (id to override))
+                "plugin" -> s.copy(pluginOverrides  = s.pluginOverrides + (id to override))
+                "mcp"    -> s.copy(mcpOverrides     = s.mcpOverrides    + (id to override))
+                else -> s
+            }
+        }
+    }
+
+    /**
+     * Map a template's skill list to overrides: listed skills → Inherit (unaffected), unlisted skills → ForceOff.
+     * An empty [skillNames] means "all active" → leaves all at Inherit (don't accidentally hide everything).
+     * Internal — used only by [applyTemplate].
+     */
+    internal fun setSkillsFromTemplate(skillNames: List<String>, available: List<SkillInfo>) {
+        val overrides = if (skillNames.isEmpty()) {
+            emptyMap()
+        } else {
+            available.associate { s ->
+                s.name to if (s.name in skillNames) Override.Inherit else Override.ForceOff
+            }
+        }
+        _uiState.update { it.copy(skillOverrides = overrides) }
+    }
+
     fun setPrompt(prompt: String) { _uiState.update { it.copy(prompt = prompt) } }
     fun setClaudeMd(claudeMd: String) { _uiState.update { it.copy(claudeMd = claudeMd) } }
     fun setModel(model: String?) { _uiState.update { it.copy(model = model) } }
@@ -173,25 +253,78 @@ class NewRequestViewModel(
     fun setMode(mode: String?) { _uiState.update { it.copy(mode = mode) } }
     fun setPermissionMode(permissionMode: String?) { _uiState.update { it.copy(permissionMode = permissionMode) } }
 
+    /** Update the "Add MCP server" draft form state. */
+    fun updateMcpDraft(draft: McpDraft) { _uiState.update { it.copy(mcpDraft = draft) } }
+
+    /**
+     * Validate and add an MCP server from the current draft form.
+     * Returns a user-readable error string on failure, null on success (draft is reset).
+     */
+    fun addMcpServer(): String? {
+        val draft = _uiState.value.mcpDraft
+        val err = draft.validationError
+        if (err != null) return err
+        val def = buildMcpServerDef(draft)
+        _uiState.update { it.copy(extraMcpServers = it.extraMcpServers + def, mcpDraft = McpDraft()) }
+        return null
+    }
+
+    /** Remove an added MCP server by name (idempotent). */
+    fun removeMcpServer(name: String) {
+        _uiState.update { it.copy(extraMcpServers = it.extraMcpServers.filterNot { s -> s.name == name }) }
+    }
+
+    private fun buildMcpServerDef(draft: McpDraft): McpServerDef {
+        return if (draft.transport == "stdio") {
+            McpServerDef(
+                name = draft.name.trim(),
+                command = draft.command.trim(),
+                args = draft.args.trim().takeIf { it.isNotEmpty() }?.split("\\s+".toRegex()),
+                env = parseKeyValueLines(draft.env),
+            )
+        } else {
+            McpServerDef(
+                name = draft.name.trim(),
+                url = draft.url.trim(),
+                type = draft.httpType,
+                headers = parseKeyValueLines(draft.headers),
+            )
+        }
+    }
+
+    /** Parse "KEY=VALUE\nKEY2=VALUE2" into a map. Blank input → null (omitted from JSON). */
+    private fun parseKeyValueLines(text: String): Map<String, String>? {
+        if (text.isBlank()) return null
+        return text.lines()
+            .mapNotNull { line ->
+                val eq = line.indexOf('=')
+                if (eq > 0) line.substring(0, eq).trim() to line.substring(eq + 1).trim()
+                else null
+            }
+            .takeIf { it.isNotEmpty() }
+            ?.toMap()
+    }
+
     /**
      * Apply [template] to the form: expand [vars] into the prompt body using the domain
-     * [applyTemplate] pure function, then copy repos/skills/model/effort/mode from the template.
+     * [applyTemplate] pure function, then copy repos/model/effort/mode from the template.
+     * Skills from the template are mapped to overrides via [setSkillsFromTemplate].
      */
     fun applyTemplate(t: Template, vars: Map<String, String>) {
         AppLog.d("VM", "applying template: ${t.name}")
+        val s = _uiState.value
         _uiState.update {
             it.copy(
                 prompt = applyTemplate(t.promptBody, vars),
                 selectedRepos = t.repos,
-                // A template may restrict the active set; an empty list means "all active" (don't
-                // accidentally hide everything). hiddenSkills is derived from this on submit.
-                selectedSkills = t.skills.ifEmpty { it.availableSkills.map { s -> s.name } },
                 model = t.model,
                 effort = t.effort,
                 mode = t.mode,
                 permissionMode = t.permissionMode,
             )
         }
+        // Map template skill list to overrides: unlisted skills → ForceOff; listed/all → Inherit.
+        setSkillsFromTemplate(t.skills, s.availableSkills)
     }
 
     // ── Attachments (pre-session staging) ───────────────────────────────────────
@@ -336,12 +469,16 @@ class NewRequestViewModel(
             }
             val req = NewSessionReq(
                 repos = s.selectedRepos,
-                // The whitelist is dead post-cutover; the picker expresses gating as a blacklist:
-                // anything the user deselected (availableSkills - selectedSkills) is hidden.
+                // The whitelist is dead post-cutover; gating is sent as override lists.
                 skills = emptyList(),
-                hiddenSkills = s.availableSkills.map { it.name } - s.selectedSkills.toSet(),
-                // Same blacklist derivation for plugins: anything deselected is disabled.
-                hiddenPlugins = s.availablePlugins.map { it.name } - s.selectedPlugins.toSet(),
+                // ForceOff → hidden; ForceOn → forcedOn; Inherit → neither list
+                hiddenSkills     = s.availableSkills.map { it.name }.filter { s.skillOverrides[it] == Override.ForceOff },
+                forcedOnSkills   = s.availableSkills.map { it.name }.filter { s.skillOverrides[it] == Override.ForceOn },
+                hiddenPlugins    = s.availablePlugins.map { it.name }.filter { s.pluginOverrides[it] == Override.ForceOff },
+                forcedOnPlugins  = s.availablePlugins.map { it.name }.filter { s.pluginOverrides[it] == Override.ForceOn },
+                hiddenMcpServers   = s.mcpComponents.map { it.id }.filter { s.mcpOverrides[it] == Override.ForceOff },
+                forcedOnMcpServers = s.mcpComponents.map { it.id }.filter { s.mcpOverrides[it] == Override.ForceOn },
+                extraMcpServers  = s.extraMcpServers,
                 prompt = composePromptWithMarker(s.prompt, finalAtts),
                 model = s.model,
                 // Ultracode always runs at xhigh effort — preserve that invariant even if a template
