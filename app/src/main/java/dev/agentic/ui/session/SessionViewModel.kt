@@ -300,8 +300,9 @@ class SessionViewModel(
         l: Local,
     ): SessionUiState {
         // 1. Merge outbox files into the transcript at the turn that produced them (domain logic).
-        // hasMore = the loaded window is start-truncated (older events above): an anchorless file then
-        // pins to the window top instead of gluing to the streamed bottom (see interleaveShared KDoc).
+        // hasMore = the loaded window is start-truncated (older events above): an anchorless file is
+        // then HIDDEN like any other out-of-window card — paging back reveals it at its true position
+        // (see interleaveShared KDoc) — instead of gluing to the streamed bottom.
         var nodes: List<Node> = interleaveShared(t.nodes, shared, truncatedStart = t.hasMore)
         // 2. Optimistic prompt: show the just-submitted INITIAL prompt until a real PromptNode lands.
         if (l.optimisticPrompt != null && nodes.none { it is PromptNode }) {

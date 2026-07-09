@@ -71,11 +71,11 @@ class TranscriptGroupingTest {
         assertEquals("anchored right after the turn's prompt", 1, fileIdx)
     }
 
-    @Test fun truncated_window_with_no_prompts_pins_old_file_to_top_not_bottom() {
+    @Test fun truncated_window_with_no_prompts_hides_the_out_of_window_file() {
         // Windowed transcript (server caps /events at 100): a giant single turn fills the whole window,
-        // so it holds NO PromptNode and the inline agentic_file event fell outside it. The poll copy of
-        // an OLD file must pin to the TOP of the window (its history lives above), NOT glue to the
-        // streaming bottom below everything the agent emits afterwards.
+        // so it holds NO PromptNode and the inline agentic_file event fell outside it. Like every other
+        // card whose position is above the window, the file is NOT rendered — it appears when the user
+        // pages back to its region (inline event for new logs, turn anchor for old ones).
         val display = listOf<Node>(
             TextNode("Task 5 complete."),
             ToolNode("Bash", "run tests", ""),
@@ -83,7 +83,8 @@ class TranscriptGroupingTest {
         )
         val file = AttachmentNode("outbox/plan.md", at = 1_000)
         val out = interleaveShared(display, listOf(file), truncatedStart = true)
-        assertEquals("old file pins to the top of a truncated window", 0, out.indexOfFirst { it is AttachmentNode })
+        assertEquals("out-of-window file is hidden, not pinned or appended", 0, out.count { it is AttachmentNode })
+        assertEquals("display otherwise untouched", display, out)
     }
 
     @Test fun untruncated_window_with_no_prompts_still_appends() {
@@ -95,17 +96,54 @@ class TranscriptGroupingTest {
         assertEquals("legacy append preserved", 1, out.indexOfFirst { it is AttachmentNode })
     }
 
-    @Test fun truncated_window_where_file_predates_all_prompts_pins_to_top() {
-        // Window holds one recent prompt, but the file is OLDER than it (its true position is above the
-        // window) — anchor at top, never after the newer prompt or at the bottom. Pins the PRE-EXISTING
-        // k=-1 fallback (top regardless of truncatedStart) as a regression guard for the windowed world.
+    @Test fun truncated_window_where_file_predates_all_prompts_hides_it() {
+        // Window holds one recent prompt, but the file is OLDER than it — its true position is above the
+        // window, so it is hidden (never after the newer prompt, never at the bottom); paging back to
+        // its delivering turn reveals it.
         val display = listOf<Node>(
             PromptNode("继续", at = 2_000),
             TextNode("continuing..."),
         )
         val file = AttachmentNode("outbox/plan.md", at = 1_000)
         val out = interleaveShared(display, listOf(file), truncatedStart = true)
-        assertEquals("file older than every visible turn pins to top", 0, out.indexOfFirst { it is AttachmentNode })
+        assertEquals("file older than every visible turn is hidden", 0, out.count { it is AttachmentNode })
+    }
+
+    @Test fun truncated_window_still_anchors_a_file_named_by_a_visible_message() {
+        // truncatedStart must NOT hide a file whose anchor IS visible: a message in the window names
+        // it → the card sits right after that message, exactly as in a full transcript.
+        val display = listOf<Node>(
+            TextNode("building..."),
+            TextNode("delivered: outbox/app.apk"),
+            TextNode("let me know"),
+        )
+        val file = AttachmentNode("outbox/app.apk", at = 1_000)
+        val out = interleaveShared(display, listOf(file), truncatedStart = true)
+        assertEquals("anchored after the delivering message despite truncation", 2, out.indexOfFirst { it is AttachmentNode })
+    }
+
+    @Test fun truncated_window_still_anchors_a_file_to_a_visible_older_turn() {
+        // truncatedStart must NOT hide a file whose delivering turn IS resident: a prompt older than
+        // the file sits in the window → anchor right after it, exactly as in a full transcript.
+        val display = listOf<Node>(
+            PromptNode("req", at = 500),
+            TextNode("working"),
+        )
+        val file = AttachmentNode("outbox/silent.bin", at = 1_000)
+        val out = interleaveShared(display, listOf(file), truncatedStart = true)
+        assertEquals("anchored after the resident delivering turn", 1, out.indexOfFirst { it is AttachmentNode })
+    }
+
+    @Test fun untruncated_window_where_file_predates_all_prompts_keeps_legacy_top() {
+        // FULL transcript (no truncation): a file older than the first prompt still pins to the top —
+        // the pre-existing "older-than-first-prompt → top" behavior is unchanged.
+        val display = listOf<Node>(
+            PromptNode("req", at = 2_000),
+            TextNode("working"),
+        )
+        val file = AttachmentNode("outbox/plan.md", at = 1_000)
+        val out = interleaveShared(display, listOf(file), truncatedStart = false)
+        assertEquals("legacy top placement preserved", 0, out.indexOfFirst { it is AttachmentNode })
     }
 
     @Test fun inline_agentic_file_dedups_the_poll_copy() {
