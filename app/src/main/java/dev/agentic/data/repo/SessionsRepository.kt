@@ -318,6 +318,9 @@ class SessionsRepository(
     suspend fun skills(): List<SkillInfo> = api.skills()
     suspend fun plugins(): List<PluginInfo> = api.plugins()
     suspend fun templates(): List<Template> = runCatching { api.getTemplates() }.getOrDefault(emptyList())
+    /** Fetch globally-configured components (skills, plugins, MCP).
+     *  Delegates directly to [AgenticApi.getGlobalSettings] — callers filter by kind as needed. */
+    suspend fun globalSettings(): List<dev.agentic.data.net.ComponentInfo> = api.getGlobalSettings()
     /** Fetch the model catalog and cache it in [ModelCatalog] so [modelLabel] / [MODEL_OPTIONS]
      *  work without a suspend call. Returns the entries or empty on error. */
     suspend fun modelCatalog(): List<ModelEntry> = try {
