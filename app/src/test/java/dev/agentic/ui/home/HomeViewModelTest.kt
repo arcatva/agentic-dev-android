@@ -212,6 +212,38 @@ class HomeViewModelTest {
         api.sessionsGate?.complete(Unit)
     }
 
+    // Codex P2: once manual* no longer replays, combine has no base usage value on a resume restart,
+    // so it would stall until the (possibly slow/hung) live usage poll answers — freezing the spinner
+    // and local interactions. usageFlow must re-seed its last-good value so Home stays interactive.
+    @Test fun `resume stays interactive while the usage poll is still hung`() = runTest(dispatcher) {
+        api.sessionsResult = listOf(Session(id = "a"), Session(id = "b"))
+        api.usageResult = Usage(five_hour = UsageWindow(utilization = 30.0))
+        val vm = HomeViewModel(sessionsRepo())
+
+        // foreground #1: a good usage value is on screen; nothing selected.
+        val sub1 = backgroundScope.launch { vm.uiState.collect { } }
+        advanceTimeBy(100L); runCurrent()
+        assertEquals(30, vm.uiState.value.usage?.five_hour?.utilization?.toInt())
+        assertTrue(vm.uiState.value.selectedIds.isEmpty())
+
+        // background: gate the usage poll shut, tear down.
+        api.usageGate = CompletableDeferred()
+        sub1.cancel(); runCurrent()
+        advanceTimeBy(6_000L); runCurrent()
+
+        // foreground #2: the usage poll is hung. A selection toggle must still surface — combine must
+        // NOT be stalled waiting for the gated poll (it seeds usage from the last-good value).
+        val sub2 = backgroundScope.launch { vm.uiState.collect { } }
+        runCurrent()
+        vm.toggleSelection("a"); runCurrent()
+        assertEquals(
+            "Home stays interactive on resume even while the usage poll is hung",
+            setOf("a"), vm.uiState.value.selectedIds,
+        )
+        sub2.cancel()
+        api.usageGate?.complete(Unit)
+    }
+
     // ── PR-9: server-unreachable banner ──────────────────────────────────────────
 
     @Test fun `PR-9 first load failure sets serverUnreachable flag`() = runTest(dispatcher) {

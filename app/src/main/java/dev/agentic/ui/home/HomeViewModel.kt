@@ -126,11 +126,23 @@ class HomeViewModel(
 
     // Usage refreshed every 60 s (best-effort: a failed tick yields null and is ignored downstream),
     // plus any on-demand pull-to-refresh value.
-    private val usageFlow: Flow<Usage?> =
-        merge(
-            pollFlow(60_000L) { runCatching { sessionsRepo.usage() }.getOrNull() },
-            manualUsage,
+    // Last good usage the pipeline produced — the usage twin of [lastSessionsState]. On a
+    // WhileSubscribed restart the flow{} re-emits it as combine's base value so a resumed Home is
+    // immediately interactive (pull-to-refresh spinner clears, row selection / search reflect) instead
+    // of stalling until the live usage poll answers — combine emits nothing until every source has a
+    // value, and manualUsage (replay=0) no longer provides one on restart. This is the last-GOOD value
+    // already on screen, not the old manual snapshot, so re-emitting it never flashes a stale number.
+    @Volatile private var lastUsage: Usage? = null
+
+    private val usageFlow: Flow<Usage?> = flow {
+        lastUsage?.let { emit(it) }
+        emitAll(
+            merge(
+                pollFlow(60_000L) { runCatching { sessionsRepo.usage() }.getOrNull() },
+                manualUsage,
+            ).onEach { u -> if (u != null) lastUsage = u },
         )
+    }
 
     /**
      * Accumulates sessionsStreamWithState emissions into a (sessions, serverUnreachable) pair so
