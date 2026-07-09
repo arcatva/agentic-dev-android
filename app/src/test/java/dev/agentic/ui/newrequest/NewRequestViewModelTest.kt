@@ -663,4 +663,72 @@ class NewRequestViewModelTest {
         assertFalse("submitting must be false after failure", s.submitting)
         assertNotNull("error must be set on failure", s.error)
     }
+
+    // ── nextOverrideOnTap: pure function unit tests ────────────────────────────
+    // These directly exercise the extracted helper (Bug 2 fix).
+
+    @Test fun `nextOverrideOnTap globally-ON Inherit toggles to ForceOff`() {
+        // Effective = globalEnabled=true, tap → off → differs from global → ForceOff
+        assertEquals(Override.ForceOff, nextOverrideOnTap(Override.Inherit, globalEnabled = true))
+    }
+
+    @Test fun `nextOverrideOnTap globally-OFF Inherit toggles to ForceOn`() {
+        // Effective = globalEnabled=false, tap → on → differs from global → ForceOn
+        assertEquals(Override.ForceOn, nextOverrideOnTap(Override.Inherit, globalEnabled = false))
+    }
+
+    @Test fun `nextOverrideOnTap globally-ON ForceOff tapping back resets to Inherit`() {
+        // Effective = false (ForceOff), tap → on = globalEnabled=true → same as global → Inherit
+        assertEquals(Override.Inherit, nextOverrideOnTap(Override.ForceOff, globalEnabled = true))
+    }
+
+    @Test fun `nextOverrideOnTap globally-OFF ForceOn tapping back resets to Inherit`() {
+        // Effective = true (ForceOn), tap → off = globalEnabled=false → same as global → Inherit
+        assertEquals(Override.Inherit, nextOverrideOnTap(Override.ForceOn, globalEnabled = false))
+    }
+
+    // ── end-to-end plugin submit tests with id != name ─────────────────────────
+    // These tests MUST fail against pre-fix code that uses `it.name` instead of `it.id`.
+    // The plugin id is "github@claude-plugins-official"; name is "github" (short form).
+
+    @Test fun `submit plugin with id != name sends full id in hiddenPlugins (globally-ON tapped off)`() = runTest(dispatcher) {
+        api.createResult = "new-id"
+        // Plugin whose id differs from name: id = "<plugin>@<marketplace>", name = "<plugin>"
+        api.globalSettingsResult = listOf(
+            ComponentInfo(kind = "plugin", id = "github@claude-plugins-official", name = "github", globalEnabled = true),
+        )
+        val vm = NewRequestViewModel(sessionsRepo())
+        advanceUntilIdle()
+        // Simulate one tap: globally-ON + Inherit → nextOverrideOnTap gives ForceOff
+        val comp = vm.uiState.value.availablePluginComponents.single()
+        val cur = vm.uiState.value.pluginOverrides[comp.id] ?: Override.Inherit
+        vm.setOverride("plugin", comp.id, nextOverrideOnTap(cur, comp.globalEnabled))
+        vm.setPrompt("test")
+        vm.submit()
+        advanceUntilIdle()
+        val req = api.createCalls.single()
+        // Must contain the FULL id, not the short name "github"
+        assertEquals(listOf("github@claude-plugins-official"), req.hiddenPlugins)
+        assertEquals(emptyList<String>(), req.forcedOnPlugins)
+    }
+
+    @Test fun `submit plugin with id != name sends full id in forcedOnPlugins (globally-OFF tapped on)`() = runTest(dispatcher) {
+        api.createResult = "new-id"
+        api.globalSettingsResult = listOf(
+            ComponentInfo(kind = "plugin", id = "github@claude-plugins-official", name = "github", globalEnabled = false),
+        )
+        val vm = NewRequestViewModel(sessionsRepo())
+        advanceUntilIdle()
+        // Simulate one tap: globally-OFF + Inherit → nextOverrideOnTap gives ForceOn
+        val comp = vm.uiState.value.availablePluginComponents.single()
+        val cur = vm.uiState.value.pluginOverrides[comp.id] ?: Override.Inherit
+        vm.setOverride("plugin", comp.id, nextOverrideOnTap(cur, comp.globalEnabled))
+        vm.setPrompt("test")
+        vm.submit()
+        advanceUntilIdle()
+        val req = api.createCalls.single()
+        assertEquals(emptyList<String>(), req.hiddenPlugins)
+        // Must contain the FULL id, not the short name "github"
+        assertEquals(listOf("github@claude-plugins-official"), req.forcedOnPlugins)
+    }
 }
