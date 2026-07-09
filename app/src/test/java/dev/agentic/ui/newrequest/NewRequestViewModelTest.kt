@@ -238,8 +238,10 @@ class NewRequestViewModelTest {
         val s = vm.uiState.value
         assertEquals("Deploy api to prod", s.prompt)
         assertEquals(listOf("infra-repo"), s.selectedRepos)
-        // "kubectl" is listed in template.skills → Inherit; "other-skill" → ForceOff
-        assertEquals(Override.Inherit, s.skillOverrides["kubectl"] ?: Override.Inherit)
+        // "kubectl" is listed in template.skills → must be explicitly Inherit in the map.
+        // No elvis fallback here: an absent key is null, not Override.Inherit, so this asserts
+        // setSkillsFromTemplate actually wrote the entry (not just omitted it silently).
+        assertEquals(Override.Inherit, s.skillOverrides["kubectl"])
         assertEquals(Override.ForceOff, s.skillOverrides["other-skill"])
         assertEquals("haiku", s.model)
         assertEquals("low", s.effort)
@@ -297,6 +299,12 @@ class NewRequestViewModelTest {
         assertEquals("auto", req.mode)
     }
 
+    /**
+     * Exhaustive six-list derivation test. Sets a MIX across skills/plugins/mcp —
+     * some ForceOn, some ForceOff, some Inherit — and asserts ALL SIX submit lists EXACTLY.
+     * Inherit ids must appear in NEITHER the hidden nor the forced-on list.
+     * This test fails if any list's filter (== ForceOff / == ForceOn) were swapped or dropped.
+     */
     @Test fun `submit derives six override lists from Inherit ForceOn ForceOff selections`() = runTest(dispatcher) {
         api.createResult = "new-id"
         api.skillsResult = listOf(SkillInfo("sk1"), SkillInfo("sk2"), SkillInfo("sk3"))
@@ -320,12 +328,20 @@ class NewRequestViewModelTest {
         vm.submit()
         advanceUntilIdle()
         val req = api.createCalls.single()
+        // Exact expected contents for all six lists:
         assertEquals(listOf("sk1"), req.forcedOnSkills)
         assertEquals(listOf("sk2"), req.hiddenSkills)
         assertEquals(listOf("pl1"), req.hiddenPlugins)
         assertEquals(emptyList<String>(), req.forcedOnPlugins)
         assertEquals(listOf("mcp-b"), req.forcedOnMcpServers)
         assertEquals(listOf("mcp-c"), req.hiddenMcpServers)
+        // Inherit ids must appear in NEITHER list — explicit absence checks:
+        assertFalse("sk3 (Inherit) must not be in forcedOnSkills", "sk3" in req.forcedOnSkills)
+        assertFalse("sk3 (Inherit) must not be in hiddenSkills", "sk3" in req.hiddenSkills)
+        assertFalse("pl2 (Inherit) must not be in forcedOnPlugins", "pl2" in req.forcedOnPlugins)
+        assertFalse("pl2 (Inherit) must not be in hiddenPlugins", "pl2" in req.hiddenPlugins)
+        assertFalse("mcp-a (Inherit) must not be in forcedOnMcpServers", "mcp-a" in req.forcedOnMcpServers)
+        assertFalse("mcp-a (Inherit) must not be in hiddenMcpServers", "mcp-a" in req.hiddenMcpServers)
     }
 
     @Test fun `all Inherit overrides produce empty lists on submit`() = runTest(dispatcher) {
@@ -405,7 +421,15 @@ class NewRequestViewModelTest {
         vm.updateMcpDraft(McpDraft(name = "", transport = "stdio", command = "node"))
         val err = vm.addMcpServer()
         assertNotNull("empty name should be rejected", err)
-        assertTrue(vm.uiState.value.extraMcpServers.isEmpty())
+        assertTrue("server must NOT be added on empty name", vm.uiState.value.extraMcpServers.isEmpty())
+    }
+
+    @Test fun `addMcpServer rejects whitespace-only name`() = runTest(dispatcher) {
+        val vm = NewRequestViewModel(sessionsRepo())
+        vm.updateMcpDraft(McpDraft(name = "   ", transport = "stdio", command = "node"))
+        val err = vm.addMcpServer()
+        assertNotNull("whitespace-only name should be rejected", err)
+        assertTrue("server must NOT be added on whitespace name", vm.uiState.value.extraMcpServers.isEmpty())
     }
 
     @Test fun `addMcpServer rejects name agentic`() = runTest(dispatcher) {
@@ -413,7 +437,26 @@ class NewRequestViewModelTest {
         vm.updateMcpDraft(McpDraft(name = "agentic", transport = "stdio", command = "node"))
         val err = vm.addMcpServer()
         assertNotNull("name agentic should be rejected", err)
-        assertTrue(vm.uiState.value.extraMcpServers.isEmpty())
+        assertTrue("server must NOT be added when name is agentic", vm.uiState.value.extraMcpServers.isEmpty())
+    }
+
+    @Test fun `addMcpServer rejects no transport (blank transport string)`() = runTest(dispatcher) {
+        val vm = NewRequestViewModel(sessionsRepo())
+        // transport="" means neither stdio nor http — structurally invalid; must be rejected
+        vm.updateMcpDraft(McpDraft(name = "my-mcp", transport = "", command = "node", url = "https://x.com/mcp"))
+        val err = vm.addMcpServer()
+        assertNotNull("blank transport should be rejected", err)
+        assertTrue("server must NOT be added when transport is blank", vm.uiState.value.extraMcpServers.isEmpty())
+    }
+
+    @Test fun `addMcpServer rejects both transports set (command and url, no transport discriminant)`() = runTest(dispatcher) {
+        val vm = NewRequestViewModel(sessionsRepo())
+        // Ambiguous draft: both command and url are set but transport is blank — must be rejected,
+        // not silently pick one or discard the other.
+        vm.updateMcpDraft(McpDraft(name = "my-mcp", transport = "", command = "/usr/bin/node", url = "https://x.com/mcp"))
+        val err = vm.addMcpServer()
+        assertNotNull("draft with both transports set (no transport discriminant) should be rejected", err)
+        assertTrue("server must NOT be added when transport is ambiguous", vm.uiState.value.extraMcpServers.isEmpty())
     }
 
     @Test fun `addMcpServer rejects stdio with no command`() = runTest(dispatcher) {
@@ -421,7 +464,7 @@ class NewRequestViewModelTest {
         vm.updateMcpDraft(McpDraft(name = "my-mcp", transport = "stdio", command = ""))
         val err = vm.addMcpServer()
         assertNotNull("stdio without command should be rejected", err)
-        assertTrue(vm.uiState.value.extraMcpServers.isEmpty())
+        assertTrue("server must NOT be added when stdio has no command", vm.uiState.value.extraMcpServers.isEmpty())
     }
 
     @Test fun `addMcpServer rejects http with no url`() = runTest(dispatcher) {
@@ -429,7 +472,7 @@ class NewRequestViewModelTest {
         vm.updateMcpDraft(McpDraft(name = "my-mcp", transport = "http", url = ""))
         val err = vm.addMcpServer()
         assertNotNull("http without url should be rejected", err)
-        assertTrue(vm.uiState.value.extraMcpServers.isEmpty())
+        assertTrue("server must NOT be added when http has no url", vm.uiState.value.extraMcpServers.isEmpty())
     }
 
     // ── removeMcpServer ────────────────────────────────────────────────────────
