@@ -137,6 +137,81 @@ class HomeViewModelTest {
         sub.cancel()
     }
 
+    // ── background→foreground: a stale pull-to-refresh snapshot must NOT flash on resume ──────────
+    //
+    // Repro of the reported bug: after a pull-to-refresh captured an early usage %, backgrounding the
+    // app past the WhileSubscribed(5s) timeout tears the uiState upstream down; returning to the
+    // foreground restarts it, and the sticky manual* value re-emits its OLD snapshot before the live
+    // poll has answered — so the usage meter briefly flashes the stale number, then snaps back. We gate
+    // the live usage poll open on resume so the ONLY thing that could move the meter is a stale replay.
+
+    @Test fun `resume after a refresh does not flash the stale usage percentage`() = runTest(dispatcher) {
+        api.sessionsResult = listOf(Session(id = "s1"))
+        api.usageResult = Usage(five_hour = UsageWindow(utilization = 5.0))   // early in the window
+        val vm = HomeViewModel(sessionsRepo())
+
+        // foreground #1: subscribe, the poll shows 5%, the user pull-to-refreshes (captures 5%).
+        val sub1 = backgroundScope.launch { vm.uiState.collect { } }
+        advanceTimeBy(100L); runCurrent()
+        vm.refresh(); runCurrent()
+        assertEquals("refresh captured the early 5%", 5, vm.uiState.value.usage?.five_hour?.utilization?.toInt())
+
+        // usage climbs server-side; the live 60s poll catches up to 52% before the app is backgrounded.
+        api.usageResult = Usage(five_hour = UsageWindow(utilization = 52.0))
+        advanceTimeBy(61_000L); runCurrent()
+        assertEquals("live poll reached 52% before backgrounding", 52, vm.uiState.value.usage?.five_hour?.utilization?.toInt())
+
+        // background: gate the usage poll shut, drop the subscriber, let WhileSubscribed(5s) tear down.
+        api.usageGate = CompletableDeferred()
+        sub1.cancel(); runCurrent()
+        advanceTimeBy(6_000L); runCurrent()
+
+        // foreground #2: re-subscribe. The fresh usage poll is gated (hung), so nothing legitimate can
+        // change the meter — it must stay at the last-good 52%, not flash the stale 5% from the old refresh.
+        val sub2 = backgroundScope.launch { vm.uiState.collect { } }
+        runCurrent()
+        assertEquals(
+            "resume must keep last-good 52%, not flash the stale 5% snapshot",
+            52, vm.uiState.value.usage?.five_hour?.utilization?.toInt(),
+        )
+        sub2.cancel()
+        api.usageGate?.complete(Unit)
+    }
+
+    @Test fun `resume after a refresh does not flash the stale session order`() = runTest(dispatcher) {
+        val orderA = listOf(Session(id = "a"), Session(id = "b"))
+        val orderB = listOf(Session(id = "b"), Session(id = "a"))   // server reordered by activity
+        api.sessionsResult = orderA
+        val vm = HomeViewModel(sessionsRepo())
+
+        // foreground #1: subscribe, poll shows order A, pull-to-refresh captures order A.
+        val sub1 = backgroundScope.launch { vm.uiState.collect { } }
+        advanceTimeBy(100L); runCurrent()
+        vm.refresh(); runCurrent()
+        assertEquals("refresh captured order A", orderA, vm.uiState.value.sessions)
+
+        // server reorders; the live 2s poll catches up to order B before backgrounding.
+        api.sessionsResult = orderB
+        advanceTimeBy(2_500L); runCurrent()
+        assertEquals("live poll reached order B before backgrounding", orderB, vm.uiState.value.sessions)
+
+        // background: gate the session poll shut, drop the subscriber, let WhileSubscribed(5s) tear down.
+        api.sessionsGate = CompletableDeferred()
+        sub1.cancel(); runCurrent()
+        advanceTimeBy(6_000L); runCurrent()
+
+        // foreground #2: re-subscribe. The fresh session poll is gated, so the list must stay order B,
+        // not flash the stale order A snapshot from the old refresh.
+        val sub2 = backgroundScope.launch { vm.uiState.collect { } }
+        runCurrent()
+        assertEquals(
+            "resume must keep order B, not flash the stale order A snapshot",
+            orderB, vm.uiState.value.sessions,
+        )
+        sub2.cancel()
+        api.sessionsGate?.complete(Unit)
+    }
+
     // ── PR-9: server-unreachable banner ──────────────────────────────────────────
 
     @Test fun `PR-9 first load failure sets serverUnreachable flag`() = runTest(dispatcher) {
