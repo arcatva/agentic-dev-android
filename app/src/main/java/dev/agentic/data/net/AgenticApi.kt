@@ -85,6 +85,19 @@ interface AgenticApi {
     /** Restore the working tree to the snapshot before [turnIndex] (POST …/rewind). Code only. */
     suspend fun rewind(id: String, turnIndex: Int)
     suspend fun discard(id: String)
+    /** List Claude Code CLI sessions on disk that this server could adopt (GET /api/adoptable).
+     *  Each entry has a stable `sessionId` (the JSONL UUID), a `cwd` it must be re-imported under,
+     *  and `resumable` indicating whether the user will be able to resume or only read history.
+     *  Returns an empty list when the server predates the feature or when the local scan finds
+     *  nothing — both are non-error surfaces for the picker. */
+    suspend fun adoptable(): List<Adoptable> = emptyList()
+    /** Adopt (import) a Claude Code session as a native server session (POST /api/sessions/adopt).
+     *  The picker navigates to the returned id on success. */
+    suspend fun adoptSession(req: AdoptSessionReq): String
+    /** Hand off a native session back to a local Claude Code CLI process (POST /api/sessions/:id/detach).
+     *  Returns the exact `resumeCmd` for the user to paste in a terminal, plus the cwd/claudeSessionId
+     *  the resume requires. After a successful detach, the server sets `Session.detached == true`. */
+    suspend fun detach(id: String): DetachResp
     /** Drop idle pooled connections so the next request opens a fresh socket. Called on app-foreground
      *  so a connection that went half-open while backgrounded can't be reused (and hang). Default no-op
      *  keeps test fakes compiling; [KtorAgenticApi] evicts its OkHttp pool. */

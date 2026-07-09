@@ -34,6 +34,7 @@ import androidx.navigation.navDeepLink
 import androidx.navigation.toRoute
 import dev.agentic.data.log.AppLog
 import dev.agentic.di.appContainer
+import dev.agentic.ui.adopt.AdoptPickerSheet
 import dev.agentic.ui.diagnostics.DiagnosticsScreen
 import dev.agentic.ui.home.HomeAdaptive
 import dev.agentic.ui.home.isWideHome
@@ -276,13 +277,21 @@ fun AppNav() {
         composable<Home> {
             // ONE adaptive tree for every size (list-detail pane scaffold). No more wide-vs-narrow
             // fork — the same SessionScreen renders in both, so the detail UI can't drift.
+            var showAdoptPicker by remember { mutableStateOf(false) }
             HomeAdaptive(
                 onNewRequest = { nav.navigate(NewRequest) },
                 onOpenHistory = { id, live -> nav.navigate(History(id, live)) },
                 onOpenSettings = { id -> nav.navigate(SessionSettings(id)) },
                 onOpenDiagnostics = { nav.navigate(Diagnostics) },
                 onOpenProviders = { nav.navigate(Providers) },
+                onOpenAdoptPicker = { showAdoptPicker = true },
             )
+            if (showAdoptPicker) {
+                AdoptPickerSheet(
+                    onDismiss = { showAdoptPicker = false },
+                    onAdopted = { id -> showAdoptPicker = false; openSessionAdaptive(id) },
+                )
+            }
         }
 
         composable<NewRequest> {
@@ -357,14 +366,22 @@ fun AppNav() {
             // Deep link / notification tap / just-created session: the SAME adaptive home as the Home
             // route, with this session pre-selected in the detail pane (so unfolding keeps the list
             // beside it, and a phone shows the session with the scaffold's built-in Back to the list).
+            var showAdoptPicker by remember { mutableStateOf(false) }
             HomeAdaptive(
                 onNewRequest = { nav.navigate(NewRequest) },
                 onOpenHistory = { id, live -> nav.navigate(History(id, live)) },
                 onOpenSettings = { id -> nav.navigate(SessionSettings(id)) },
                 onOpenDiagnostics = { nav.navigate(Diagnostics) },
                 onOpenProviders = { nav.navigate(Providers) },
+                onOpenAdoptPicker = { showAdoptPicker = true },
                 initialSelectedId = sessionId,
             )
+            if (showAdoptPicker) {
+                AdoptPickerSheet(
+                    onDismiss = { showAdoptPicker = false },
+                    onAdopted = { id -> showAdoptPicker = false; openSessionAdaptive(id) },
+                )
+            }
         }
 
         composable<Workflow> {

@@ -42,6 +42,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.rounded.Checklist
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.DeleteOutline
+import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.FolderOff
@@ -72,6 +73,7 @@ import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.Surface
 import androidx.compose.material3.ToggleButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -135,6 +137,7 @@ fun HomeScreen(
     onNewRequest: () -> Unit,
     onOpenDiagnostics: () -> Unit = {},
     onOpenProviders: () -> Unit = {},
+    onOpenAdoptPicker: () -> Unit = {},
     vm: HomeViewModel? = null,
 ) {
     val container = appContainer()
@@ -174,6 +177,7 @@ fun HomeScreen(
                 onSearchExpandedChange = { searching = it },
                 onOpenDiagnostics = onOpenDiagnostics,
                 onOpenProviders = onOpenProviders,
+                onOpenAdoptPicker = onOpenAdoptPicker,
             )
         },
         floatingActionButton = {
@@ -263,6 +267,7 @@ internal fun HomeTopBar(
     onSearchExpandedChange: (Boolean) -> Unit = {},
     onOpenDiagnostics: () -> Unit = {},
     onOpenProviders: () -> Unit = {},
+    onOpenAdoptPicker: () -> Unit = {},
 ) {
     // While selecting, system/gesture back exits selection mode instead of leaving the screen.
     BackHandler(enabled = selectionMode, onBack = onCloseSelection)
@@ -408,6 +413,11 @@ internal fun HomeTopBar(
                             onClick = { menuOpen = false; onOpenDiagnostics() },
                         )
                         DropdownMenuItem(
+                            text = { Text("Adopt Claude Code session") },
+                            leadingIcon = { Icon(Icons.Rounded.Download, contentDescription = null) },
+                            onClick = { menuOpen = false; onOpenAdoptPicker() },
+                        )
+                        DropdownMenuItem(
                             text = { Text("Log out") },
                             leadingIcon = { Icon(Icons.AutoMirrored.Rounded.Logout, contentDescription = null) },
                             onClick = { menuOpen = false; confirmLogout = true },
@@ -420,6 +430,10 @@ internal fun HomeTopBar(
                     Spacer(Modifier.width(8.dp))
                     FilledTonalIconButton(onClick = onOpenDiagnostics) {
                         Icon(Icons.Rounded.BugReport, contentDescription = "Diagnostics")
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    FilledTonalIconButton(onClick = onOpenAdoptPicker) {
+                        Icon(Icons.Rounded.Download, contentDescription = "Adopt Claude Code session")
                     }
                     Spacer(Modifier.width(8.dp))
                     FilledTonalIconButton(onClick = { confirmLogout = true }) {
@@ -951,6 +965,23 @@ internal fun SessionRow(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                // Provenance chip for sessions imported from a Claude Code CLI session (server
+                // sets origin="adopted"). The row is already grouped under "Claude Code Adopted"
+                // via groupId, but this inline badge makes it obvious in any flat/filter view.
+                if (session.origin == "adopted") {
+                    Spacer(Modifier.height(4.dp))
+                    Surface(
+                        shape = MaterialTheme.shapes.small,
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    ) {
+                        Text(
+                            "adopted",
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                        )
+                    }
+                }
             }
         }
     }

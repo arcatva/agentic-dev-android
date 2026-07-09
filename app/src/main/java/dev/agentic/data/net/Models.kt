@@ -63,6 +63,19 @@ data class Session(
     /** Epoch ms when an automatic resume is scheduled, or null when none is pending.
      *  Absent on older backends → defaults null. The settings screen formats it for display. */
     val autoResumeAt: Long? = null,
+    /** Origin of this session row, as set server-side. One of:
+     *    "native"   — created via POST /api/sessions (the default for new requests).
+     *    "fork"     — created via POST /api/sessions/:id/fork (a fork of an existing session).
+     *    "adopted"  — imported via POST /api/sessions/adopt from a Claude Code CLI session log.
+     *  Default "native" so older backends (or wire payloads that predate the field) still parse.
+     *  Used by the home list to render a small "adopted" badge on imported rows. */
+    val origin: String = "native",
+    /** True when the session has been handed off to an external Claude Code CLI process via
+     *  POST /api/sessions/:id/detach. A detached session freezes its stream watermark and stops
+     *  accepting live follow-ups; the detail screen surfaces a "handed off to a terminal" banner
+     *  and exposes the `resumeCmd` returned by detach so the user can reconnect from the CLI.
+     *  Default false for older backends and for any non-detached session. */
+    val detached: Boolean = false,
 )
 
 @Immutable
@@ -474,3 +487,49 @@ data class NewProviderReq(
     val cost: Float = 0.5f,
     val router: Boolean = false,
 )
+
+// ── Feature: Adopt a Claude Code CLI session into this server ──────────────────
+/** One candidate in GET /api/adoptable — a discoverable Claude Code session log file on disk that
+ *  this server could import as a native session. [resumable]=false means the JSONL ended without a
+ *  terminal status, so it cannot be resumed — only imported read-only. [lineCount] is the JSONL's
+ *  line count (used for ordering / "size" hints in the picker). mtimeMs is a fractional ms
+ *  timestamp from statSync(2); a Long field would drop it from the list when the server sends an
+ *  integer — keep Double (same caveat as SharedFile.mtime). */
+@Serializable
+data class Adoptable(
+    val sessionId: String,
+    val cwd: String = "",
+    val slug: String = "",
+    val firstPrompt: String = "",
+    val mtimeMs: Double = 0.0,
+    val resumable: Boolean = false,
+    val lineCount: Long = 0,
+)
+
+/** Body for POST /api/sessions/adopt — choose which Claude Code session (by `sessionId`) and in
+ *  which working directory to import it. The cwd the user picked at adopt time MUST match the cwd
+ *  the discoverable was scanned under (the server pins imports to the scan root). */
+@Serializable
+data class AdoptSessionReq(
+    val claudeSessionId: String,
+    val cwd: String,
+)
+
+/** Response from POST /api/sessions/adopt — the new server session id. The picker navigates to
+ *  this id (mirrors NewRequestScreen.onCreated → openSessionAdaptive). */
+@Serializable
+data class AdoptSessionResp(val id: String)
+
+/** Response from POST /api/sessions/:id/detach — the server hands the session back to a local
+ *  Claude Code CLI process and returns the exact resumeCmd the user can paste into a terminal.
+ *  [claudeSessionId] is the upstream Claude Code session id (matches NewSessionReq.claudeSessionId
+ *  on adopted rows); [cwd] is the directory the terminal must be inside before running the resume
+ *  command. The detail screen shows `resumeCmd` copyable next to a "handed off to a terminal"
+ *  banner when `Session.detached == true`. */
+@Serializable
+data class DetachResp(
+    val cwd: String,
+    val claudeSessionId: String,
+    val resumeCmd: String,
+)
+
