@@ -76,7 +76,7 @@ checkout → deliver.**
    mkdir -p ./outbox && cp ~/src/agentic-dev-android/app/build/outputs/apk/release/app-release.apk \
      "./outbox/$(date +%Y%m%d-%H%M).apk"
    # tag/release build (user said so): version name, e.g.
-   #   cp …/app-release.apk "./outbox/v0.4.2.apk"
+   #   cp ~/src/agentic-dev-android/app/build/outputs/apk/release/app-release.apk "./outbox/v0.4.2.apk"
    ```
 
 ## Notes
