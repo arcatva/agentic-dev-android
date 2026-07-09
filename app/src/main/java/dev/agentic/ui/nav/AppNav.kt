@@ -29,7 +29,6 @@ import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navDeepLink
 import androidx.navigation.toRoute
@@ -330,16 +329,20 @@ fun AppNav() {
             if (wide) {
                 // Only normalize while THIS entry is the current top — if it sits beneath another
                 // screen (e.g. SessionSettings) when the window turns wide, popUpTo<Session> would
-                // sweep that screen away too. Keyed on the current entry, the effect re-fires when
-                // the user pops back down to this entry and normalizes then.
-                val current by nav.currentBackStackEntryAsState()
-                LaunchedEffect(sessionId, wide, current) {
-                    if (current != backStackEntry) return@LaunchedEffect
-                    AppLog.d("Nav", "wide normalize: Session($sessionId) → Home")
-                    container.homeSelectRequest.value = sessionId
-                    nav.navigate(Home) {
-                        popUpTo<Session> { inclusive = true } // drop THIS duplicate-Home entry
-                        launchSingleTop = true                // reuse the Home below, never stack
+                // sweep that screen away too. The top is observed via currentBackStackEntryFlow
+                // INSIDE the effect (not as composition state) so back-stack changes don't
+                // recompose this whole subtree; the flow emits the current entry immediately on
+                // collect, and the effect relaunches if this entry re-enters composition later, so
+                // popping back down to a stale duplicate still normalizes it.
+                LaunchedEffect(sessionId, wide) {
+                    nav.currentBackStackEntryFlow.collect { current ->
+                        if (current != backStackEntry) return@collect
+                        AppLog.d("Nav", "wide normalize: Session($sessionId) → Home")
+                        container.homeSelectRequest.value = sessionId
+                        nav.navigate(Home) {
+                            popUpTo<Session> { inclusive = true } // drop THIS duplicate-Home entry
+                            launchSingleTop = true                // reuse the Home below, never stack
+                        }
                     }
                 }
                 // Keep rendering the same adaptive Home beneath the (animation-less, see the
