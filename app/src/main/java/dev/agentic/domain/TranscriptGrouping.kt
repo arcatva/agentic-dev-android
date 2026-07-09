@@ -31,8 +31,21 @@ fun groupTools(nodes: List<Node>): List<Node> {
  *
  *  Both anchors are FIXED node indices, never the turn's streamed end / `display.size` — that end grows
  *  on every streamed frame, which made a mid-turn file float to the absolute bottom below everything the
- *  agent emitted after it ("the APK sinks to the bottom and new cards appear above it"). */
-fun interleaveShared(display: List<Node>, shared: List<AttachmentNode>): List<Node> {
+ *  agent emitted after it ("the APK sinks to the bottom and new cards appear above it").
+ *
+ *  [truncatedStart] = the window does NOT start at the log's beginning (older events exist above —
+ *  TranscriptState.hasMore). The server caps every /events response at 100 events, so a long session's
+ *  seed window routinely misses BOTH the inline `agentic_file` event AND every prompt older than the
+ *  file — one giant turn can fill the whole window with promptless nodes. With no anchor at all, the
+ *  old fallback appended at `display.size`, re-gluing the card under the newest streamed content on
+ *  every frame (the "sinks to the bottom" bug, windowed edition). When the start is truncated, a file
+ *  with no visible anchor belongs to the unloaded history above → pin it to the TOP of the window;
+ *  paging back far enough loads its inline `agentic_file` copy and dedup snaps it to its true spot.
+ *  Known tradeoff: on an OLD backend that emits no `agentic_file`/WS `file` events, a file freshly
+ *  delivered mid-giant-turn (mtime newer than everything visible, still no prompt in the window) also
+ *  top-pins — chronologically early, but visible; current backends deliver the inline copy over WS
+ *  first, so the poll copy dedups and this case never renders. */
+fun interleaveShared(display: List<Node>, shared: List<AttachmentNode>, truncatedStart: Boolean = false): List<Node> {
     if (shared.isEmpty()) return display
     // A file already delivered INLINE via an `agentic_file` log event is positioned by the log itself
     // (its AttachmentNode is already in `display`). Drop the poll-derived copy of the same path so the
@@ -52,7 +65,9 @@ fun interleaveShared(display: List<Node>, shared: List<AttachmentNode>): List<No
         } else -1
         val insertAt = when {
             mention >= 0 -> mention + 1
-            turns.isEmpty() -> display.size
+            // No timestamped turn in a TRUNCATED window → the file's history lives above the window;
+            // top, never the streamed bottom. Untruncated (full transcript) keeps the legacy append.
+            turns.isEmpty() -> if (truncatedStart) 0 else display.size
             else -> {
                 // No message names it → anchor after the prompt of its delivering turn (a fixed index).
                 var k = -1
