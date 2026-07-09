@@ -1,6 +1,8 @@
 package dev.agentic.data.net
 
 import androidx.compose.runtime.Immutable
+import kotlinx.serialization.EncodeDefault
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
@@ -138,6 +140,18 @@ data class NewSessionReq(
     /** Blacklist: plugins (`<plugin>@<marketplace>` ids) to DISABLE for this session. Backend maps
      *  these to claude `enabledPlugins:{<id>:false}` in the per-session `--settings`. */
     val hiddenPlugins: List<String> = emptyList(),
+    // ── S5b: tri-state per-session overrides ─────────────────────────────────
+    /** Skills to FORCE ON for this session (override global-off). */
+    val forcedOnSkills: List<String> = emptyList(),
+    /** Plugins to FORCE ON for this session (override global-off). */
+    val forcedOnPlugins: List<String> = emptyList(),
+    /** MCP servers to FORCE ON for this session (override global-off). */
+    val forcedOnMcpServers: List<String> = emptyList(),
+    /** MCP servers to HIDE from this session (override global-on). */
+    val hiddenMcpServers: List<String> = emptyList(),
+    /** Extra MCP servers to ADD for this session only (ad-hoc, not globally configured). */
+    val extraMcpServers: List<McpServerDef> = emptyList(),
+    // ─────────────────────────────────────────────────────────────────────────
     val prompt: String,
     val model: String? = null,
     val effort: String? = null,
@@ -216,6 +230,31 @@ data class UploadResp(val path: String)
  *  adopts the file into the new session's uploads/ dir. */
 @Serializable
 data class StagedUpload(val token: String, val name: String, val path: String)
+
+/** One MCP server to add for this session only (ad-hoc, not globally configured).
+ *  Exactly one transport must be supplied:
+ *  - stdio: set [command] (required), optionally [args] and [env].
+ *  - http/sse: set [url] (required), [type] ("http" or "sse"), optionally [headers].
+ *  [name] must be non-empty and must not be "agentic". Null fields are omitted from JSON. */
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable
+data class McpServerDef(
+    val name: String,
+    // stdio transport
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    val command: String? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    val args: List<String>? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    val env: Map<String, String>? = null,
+    // http/sse transport
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    val type: String? = null,      // "http" or "sse"
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    val url: String? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    val headers: Map<String, String>? = null,
+)
 
 @Serializable
 // mtime is Double, not Long: the server sends fractional milliseconds (statSync mtimeMs); a Long field
