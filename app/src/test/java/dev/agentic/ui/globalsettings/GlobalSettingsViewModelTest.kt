@@ -188,6 +188,84 @@ class GlobalSettingsViewModelTest {
         assertTrue(s.toggling.isEmpty())
     }
 
+    // ── strengthened toggle tests ─────────────────────────────────────────────
+
+    /**
+     * Toggle FAILS → row reverts to original globalEnabled AND an error is surfaced.
+     * Would fail if revert logic were removed (state would stay at the optimistic flipped value).
+     */
+    @Test fun `toggle failure reverts to original enabled and surfaces error`() = runTest(dispatcher) {
+        val original = skill("s1", "Skill One", enabled = false) // starts disabled
+        api.globalSettingsResult = listOf(original)
+        api.toggleGlobalComponentException = RuntimeException("timeout")
+
+        val vm = vm()
+        advanceUntilIdle()
+
+        vm.toggle(original)
+        advanceUntilIdle()
+
+        val s = vm.uiState.value
+        // Must revert: the original was enabled=false, NOT the optimistic true.
+        assertFalse("row must revert to original enabled=false", s.components.first { it.id == "s1" }.globalEnabled)
+        // Error must be surfaced.
+        assertNotNull("error must be non-null after failure", s.error)
+        assertTrue(s.error!!.contains("timeout"))
+        // Must no longer be in toggling set.
+        assertTrue(s.toggling.isEmpty())
+    }
+
+    /**
+     * Toggle returns a list where the toggled row AND an unrelated row differ from a naive flip.
+     * This distinguishes "state comes from the server response" from "state is just the optimistic flip".
+     * Would fail if the VM ignored the returned list and kept the optimistic state.
+     */
+    @Test fun `toggle state reflects returned list not naive optimistic flip`() = runTest(dispatcher) {
+        val c1 = skill("s1", "SkillOne", enabled = true)
+        val c2 = plugin("p1", "PluginOne", enabled = true)
+        api.globalSettingsResult = listOf(c1, c2)
+        // Server response: c1 ends up STILL ENABLED (backend vetoed the disable), c2 also changed.
+        val serverResponse = listOf(c1.copy(globalEnabled = true), c2.copy(globalEnabled = false))
+        api.toggleGlobalComponentResult = serverResponse
+
+        val vm = vm()
+        advanceUntilIdle()
+
+        // Toggle c1 (optimistic flip would set c1 to false; server says c1 stays true).
+        vm.toggle(c1)
+        advanceUntilIdle()
+
+        val components = vm.uiState.value.components
+        // If VM used server response: c1=true (server said so), c2=false (server side-effect).
+        // If VM used naive optimistic: c1=false, c2=true (unchanged from initial).
+        assertTrue("c1 must reflect server-returned enabled=true, not naive flip to false",
+            components.first { it.id == "s1" }.globalEnabled)
+        assertFalse("c2 must reflect server-returned enabled=false (side-effect)",
+            components.first { it.id == "p1" }.globalEnabled)
+    }
+
+    /**
+     * MCP rows must NOT call toggleGlobalComponent — global toggle is deferred for MCP.
+     * Would fail if the kind=="mcp" guard were removed from toggle().
+     */
+    @Test fun `mcp toggle does not call toggleGlobalComponent`() = runTest(dispatcher) {
+        val mcpComponent = mcp("m1", "MCP One", enabled = true)
+        api.globalSettingsResult = listOf(mcpComponent)
+
+        val vm = vm()
+        advanceUntilIdle()
+
+        vm.toggle(mcpComponent)
+        advanceUntilIdle()
+
+        // No API call must have been made.
+        assertTrue("toggleGlobalComponent must not be called for mcp rows",
+            api.toggleGlobalComponentCalls.isEmpty())
+        // State must be unchanged (not optimistically flipped).
+        assertTrue("mcp row enabled state must not change",
+            vm.uiState.value.components.first { it.id == "m1" }.globalEnabled)
+    }
+
     // ── clearError ────────────────────────────────────────────────────────────
 
     @Test fun `clearError removes the error message`() = runTest(dispatcher) {

@@ -144,6 +144,7 @@ fun GlobalSettingsScreen(
                             ComponentRow(
                                 component = component,
                                 toggling = "${component.kind}:${component.id}" in s.toggling,
+                                readOnly = component.kind == "mcp",
                                 onToggle = { resolvedVm.toggle(component) },
                             )
                             if (idx < items.lastIndex) {
@@ -181,12 +182,16 @@ private fun SectionHeader(kind: String) {
 
 /**
  * One component row: name + description on the left, [Switch] on the right.
+ *
+ * When [readOnly] is true (MCP components), the switch is non-interactive and reflects
+ * [ComponentInfo.globalEnabled] without calling [onToggle]. A caption explains why.
  * The whole row is a toggleable semantic unit (Role.Switch) so accessibility tools announce it correctly.
  */
 @Composable
 private fun ComponentRow(
     component: ComponentInfo,
     toggling: Boolean,
+    readOnly: Boolean = false,
     onToggle: () -> Unit,
 ) {
     Row(
@@ -211,12 +216,20 @@ private fun ComponentRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            if (readOnly) {
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    "managed per-session",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
         Spacer(Modifier.width(12.dp))
         Switch(
             checked = component.globalEnabled,
-            onCheckedChange = { if (!toggling) onToggle() },
-            enabled = !toggling,
+            onCheckedChange = { if (!toggling && !readOnly) onToggle() },
+            enabled = !toggling && !readOnly,
         )
     }
 }
