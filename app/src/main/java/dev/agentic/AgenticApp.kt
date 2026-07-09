@@ -8,6 +8,7 @@ import dev.agentic.data.log.AppLog
 import dev.agentic.data.log.CrashHandler
 import dev.agentic.data.log.LogStore
 import dev.agentic.di.AppContainer
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 /** Process-level entry point. Owns the single [AppContainer] (manual DI). */
@@ -38,8 +39,17 @@ class AgenticApp : Application() {
                 AppLog.v("Life", "process ON_START (foreground)")
                 // Drop idle pooled sockets FIRST: a connection that went half-open while backgrounded
                 // would otherwise be reused by the reconnect below and hang. Then reconnect live streams.
-                container.api.evictConnections()
-                container.sessionsRepo.reconnectLiveSessions()
+                //
+                // OFF the main thread: evictAll() closes pooled sockets, and closing a TLS
+                // (Conscrypt) socket writes the close_notify record — a network op that throws
+                // NetworkOnMainThreadException on main (crashed on every foreground return once the
+                // server went HTTPS; a plain-HTTP close never touched the network, which masked
+                // this). One coroutine keeps the evict→reconnect ordering; reconnectLiveSessions
+                // is thread-safe (lock + repo-scope restart()).
+                container.appScope.launch(Dispatchers.IO) {
+                    container.api.evictConnections()
+                    container.sessionsRepo.reconnectLiveSessions()
+                }
             }
             override fun onStop(owner: LifecycleOwner) {
                 // The transition that starts the idle-reaper clock — log it so a "frozen until restart"
