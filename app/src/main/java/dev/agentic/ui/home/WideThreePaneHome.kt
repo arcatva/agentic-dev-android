@@ -7,6 +7,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInHorizontally
 import dev.agentic.ui.AppMotion
+import dev.agentic.ui.FadingText
 import dev.agentic.ui.appEffectsSpec
 import dev.agentic.ui.appSpatialSpec
 import androidx.compose.animation.expandHorizontally
@@ -61,7 +62,6 @@ import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
@@ -360,14 +360,15 @@ fun WideThreePaneHome(
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
                                     Column(Modifier.weight(1f)) {
-                                        Text(
-                                            s.session?.prompt?.take(40)
-                                                ?: homeState.sessions.firstOrNull { it.id == currentSid }?.prompt?.take(40)
-                                                ?: "Session",
+                                        // FadingText (parity with the phone SessionScreen / Home / Workflows
+                                        // titles): overflow dissolves at the right edge instead of an ellipsis.
+                                        // Full prompt, no take(40) — the fade handles overflow visually.
+                                        FadingText(
+                                            (s.session?.prompt
+                                                ?: homeState.sessions.firstOrNull { it.id == currentSid }?.prompt
+                                                ?: "").ifBlank { "Session" },
                                             style = MaterialTheme.typography.titleMedium,
                                             fontWeight = FontWeight.SemiBold,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
                                         )
                                         Text(
                                             currentSid.take(8),
