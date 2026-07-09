@@ -338,11 +338,17 @@ fun AppNav() {
                     nav.currentBackStackEntryFlow.collect { current ->
                         if (current != backStackEntry) return@collect
                         AppLog.d("Nav", "wide normalize: Session($sessionId) → Home")
-                        container.homeSelectRequest.value = sessionId
+                        // Navigate FIRST, hand off the id AFTER (Codex review): this entry renders
+                        // the same WideThreePaneHome, whose homeSelectRequest consumer could
+                        // otherwise swallow + clear the value before the real Home is revealed.
+                        // Popping first tears the duplicate's collector down; the StateFlow then
+                        // retains the id until the real Home entry collects it. (No suspension
+                        // point between the two statements, so cancellation can't split them.)
                         nav.navigate(Home) {
                             popUpTo<Session> { inclusive = true } // drop THIS duplicate-Home entry
                             launchSingleTop = true                // reuse the Home below, never stack
                         }
+                        container.homeSelectRequest.value = sessionId
                     }
                 }
                 // Keep rendering the same adaptive Home beneath the (animation-less, see the
