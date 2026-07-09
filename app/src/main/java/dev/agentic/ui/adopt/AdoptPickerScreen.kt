@@ -33,6 +33,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -77,6 +78,11 @@ fun AdoptPickerSheet(
 
     // First composition → fire the GET. Re-runs only on viewModel identity change (practically never).
     LaunchedEffect(vm) { vm.load() }
+
+    // The VM outlives this sheet (scoped to the Home back-stack entry), so cancel in-flight work and
+    // clear the one-shot adoptedId when the sheet is dismissed — otherwise an adopt that completes
+    // after dismiss would auto-navigate the next time the sheet opens.
+    DisposableEffect(vm) { onDispose { vm.cancelAll() } }
 
     // Honor a successful adopt with a navigation; then ack so we don't re-navigate on recomposition.
     LaunchedEffect(s.adoptedId) {

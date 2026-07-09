@@ -56,6 +56,13 @@ class AdoptPickerViewModel(
     private val _uiState = MutableStateFlow(AdoptPickerUiState())
     val uiState: StateFlow<AdoptPickerUiState> = _uiState.asStateFlow()
 
+    // This VM is scoped to the parent (Home) back-stack entry, so it OUTLIVES the sheet. Track the
+    // in-flight jobs so [cancelAll] (called from the sheet's onDispose) can cancel them and clear the
+    // one-shot adoptedId — otherwise an adopt that completes after dismiss would auto-navigate the
+    // next time the sheet is opened.
+    private var loadJob: kotlinx.coroutines.Job? = null
+    private var adoptJob: kotlinx.coroutines.Job? = null
+
     /**
      * Fetch the adoptable candidates from the server (GET /api/adoptable). A failed fetch leaves
      * [AdoptPickerUiState.items] empty and surfaces a [AdoptPickerUiState.error] banner; the picker
@@ -65,7 +72,8 @@ class AdoptPickerViewModel(
      * and flips `loading` back on for one tick so the spinner reappears.
      */
     fun load() {
-        viewModelScope.launch {
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
             _uiState.update { it.copy(loading = true, error = null) }
             when (val o = sessionsRepo.adoptable()) {
                 is Outcome.Success -> {
@@ -95,7 +103,8 @@ class AdoptPickerViewModel(
     fun adopt(candidate: Adoptable) {
         val csid = candidate.sessionId
         if (csid.isBlank() || _uiState.value.adoptingCsid != null) return
-        viewModelScope.launch {
+        adoptJob?.cancel()
+        adoptJob = viewModelScope.launch {
             _uiState.update { it.copy(adoptingCsid = csid, error = null) }
             when (val o = sessionsRepo.adoptSession(csid, candidate.cwd)) {
                 is Outcome.Success -> {
@@ -119,6 +128,15 @@ class AdoptPickerViewModel(
      *  from re-firing its LaunchedEffect on the next recomposition. */
     fun acknowledgeAdopt() {
         _uiState.update { it.copy(adoptedId = null) }
+    }
+
+    /** Cancel any in-flight load/adopt and reset the transient + one-shot state. Called from the
+     *  sheet's onDispose so a background adopt that finishes after the sheet closes can't leave a
+     *  stale [AdoptPickerUiState.adoptedId] that auto-navigates when the sheet is reopened. */
+    fun cancelAll() {
+        loadJob?.cancel()
+        adoptJob?.cancel()
+        _uiState.update { it.copy(loading = false, adoptingCsid = null, adoptedId = null) }
     }
 
     /** True iff the given candidate's JSONL ended without a terminal status — those rows become

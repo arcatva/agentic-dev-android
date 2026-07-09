@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.agentic.data.log.AppLog
 import dev.agentic.data.net.Outcome
+import dev.agentic.data.net.userMessage
 import dev.agentic.data.net.PatchSessionReq
 import dev.agentic.data.net.Session
 import dev.agentic.data.repo.SessionsRepository
@@ -134,7 +135,7 @@ class SessionSettingsViewModel(
                 }
                 is Outcome.Failure -> {
                     AppLog.w("VM", "session detach failed id=$sessionId err=${r.error}")
-                    _uiState.update { it.copy(detaching = false, error = r.error.toString()) }
+                    _uiState.update { it.copy(detaching = false, error = r.error.userMessage()) }
                 }
             }
         }
