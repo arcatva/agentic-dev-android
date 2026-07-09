@@ -267,16 +267,7 @@ fun NewRequestScreen(
                         overrides = s.skillOverrides,
                         onToggle = { comp ->
                             val cur = s.skillOverrides[comp.id] ?: Override.Inherit
-                            val eff = when (cur) {
-                                Override.Inherit  -> comp.globalEnabled
-                                Override.ForceOn  -> true
-                                Override.ForceOff -> false
-                            }
-                            val newEff = !eff
-                            val newOverride = if (newEff == comp.globalEnabled) Override.Inherit
-                                              else if (newEff) Override.ForceOn
-                                              else Override.ForceOff
-                            realVm.setOverride("skill", comp.id, newOverride)
+                            realVm.setOverride("skill", comp.id, nextOverrideOnTap(cur, comp.globalEnabled))
                         },
                     )
                 }
@@ -289,16 +280,7 @@ fun NewRequestScreen(
                         displayLabel = { it.name.substringBefore('@') },
                         onToggle = { comp ->
                             val cur = s.pluginOverrides[comp.id] ?: Override.Inherit
-                            val eff = when (cur) {
-                                Override.Inherit  -> comp.globalEnabled
-                                Override.ForceOn  -> true
-                                Override.ForceOff -> false
-                            }
-                            val newEff = !eff
-                            val newOverride = if (newEff == comp.globalEnabled) Override.Inherit
-                                              else if (newEff) Override.ForceOn
-                                              else Override.ForceOff
-                            realVm.setOverride("plugin", comp.id, newOverride)
+                            realVm.setOverride("plugin", comp.id, nextOverrideOnTap(cur, comp.globalEnabled))
                         },
                     )
                 }
@@ -328,11 +310,7 @@ fun NewRequestScreen(
                                     kind = "mcp",
                                     effective = eff,
                                     onClick = {
-                                        val newEff = !eff
-                                        val newOverride = if (newEff == comp.globalEnabled) Override.Inherit
-                                                          else if (newEff) Override.ForceOn
-                                                          else Override.ForceOff
-                                        realVm.setOverride("mcp", comp.id, newOverride)
+                                        realVm.setOverride("mcp", comp.id, nextOverrideOnTap(cur, comp.globalEnabled))
                                     },
                                 )
                             }

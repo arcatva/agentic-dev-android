@@ -66,6 +66,32 @@ data class McpDraft(
 }
 
 /**
+ * Given the current [Override] and the component's [globalEnabled] flag, return the
+ * override that results from one tap (effective-state toggle).
+ *
+ * Logic:
+ *  - Resolve current effective state (Inherit → globalEnabled, ForceOn → true, ForceOff → false).
+ *  - Flip the effective state.
+ *  - If the new effective state equals globalEnabled → Inherit (no override needed).
+ *  - Otherwise encode the desired state → ForceOn or ForceOff.
+ *
+ * Pure function: no side effects, easy to unit-test.
+ */
+fun nextOverrideOnTap(current: Override, globalEnabled: Boolean): Override {
+    val eff = when (current) {
+        Override.Inherit  -> globalEnabled
+        Override.ForceOn  -> true
+        Override.ForceOff -> false
+    }
+    val newEff = !eff
+    return when {
+        newEff == globalEnabled -> Override.Inherit
+        newEff               -> Override.ForceOn
+        else                  -> Override.ForceOff
+    }
+}
+
+/**
  * Default content pre-filled into the New-request "CLAUDE.md (optional)" field. It tells each
  * launched session how this multi-session / multi-worktree environment works: stay on your own
  * `agentic/<session>` branch, open a PR for the user to approve instead of pushing to the default
@@ -465,12 +491,15 @@ class NewRequestViewModel(
                 // The whitelist is dead post-cutover; gating is sent as override lists.
                 skills = emptyList(),
                 // ForceOff → hidden; ForceOn → forcedOn; Inherit → neither list
-                hiddenSkills     = s.availableSkillComponents.map { it.name }.filter { s.skillOverrides[it] == Override.ForceOff },
-                forcedOnSkills   = s.availableSkillComponents.map { it.name }.filter { s.skillOverrides[it] == Override.ForceOn },
-                hiddenPlugins    = s.availablePluginComponents.map { it.name }.filter { s.pluginOverrides[it] == Override.ForceOff },
-                forcedOnPlugins  = s.availablePluginComponents.map { it.name }.filter { s.pluginOverrides[it] == Override.ForceOn },
-                hiddenMcpServers   = s.mcpComponents.map { it.id }.filter { s.mcpOverrides[it] == Override.ForceOff },
-                forcedOnMcpServers = s.mcpComponents.map { it.id }.filter { s.mcpOverrides[it] == Override.ForceOn },
+                // All lists keyed by and emit it.id (the canonical component identifier).
+                // Override maps are keyed by id (setOverride always writes by id), so
+                // pluginOverrides["github@mkt"] != null but pluginOverrides["github"] == null.
+                hiddenSkills     = s.availableSkillComponents.filter { s.skillOverrides[it.id] == Override.ForceOff }.map { it.id },
+                forcedOnSkills   = s.availableSkillComponents.filter { s.skillOverrides[it.id] == Override.ForceOn  }.map { it.id },
+                hiddenPlugins    = s.availablePluginComponents.filter { s.pluginOverrides[it.id] == Override.ForceOff }.map { it.id },
+                forcedOnPlugins  = s.availablePluginComponents.filter { s.pluginOverrides[it.id] == Override.ForceOn  }.map { it.id },
+                hiddenMcpServers   = s.mcpComponents.filter { s.mcpOverrides[it.id] == Override.ForceOff }.map { it.id },
+                forcedOnMcpServers = s.mcpComponents.filter { s.mcpOverrides[it.id] == Override.ForceOn  }.map { it.id },
                 extraMcpServers  = s.extraMcpServers,
                 prompt = composePromptWithMarker(s.prompt, finalAtts),
                 model = s.model,
