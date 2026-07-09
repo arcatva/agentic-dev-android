@@ -66,12 +66,17 @@ checkout → deliver.**
    - Use `assembleDebug` instead only if you specifically need a debug build.
 
 3. **Deliver it to the user**: copy the built APK into your worktree's `outbox/` (the platform shows
-   files there to the user for download — see the global outbox note). **Always rename it to
-   `<YYYYMMDD-HHMM>.apk`** (build date/time only) so the user can tell builds apart — do NOT deliver
-   the bare `app-release.apk`:
+   files there to the user for download — see the global outbox note). **Naming rule:**
+   - **Default (ad-hoc build) → build timestamp** `<YYYYMMDD-HHMM>.apk` so the user can tell builds
+     apart. Do NOT deliver the bare `app-release.apk`.
+   - **When the user explicitly says "tag" or "release" → version number** `v<versionName>.apk`
+     (e.g. `v0.4.2.apk`), matching the git tag — NOT the timestamp.
    ```bash
+   # default (ad-hoc): timestamp name
    mkdir -p ./outbox && cp ~/src/agentic-dev-android/app/build/outputs/apk/release/app-release.apk \
      "./outbox/$(date +%Y%m%d-%H%M).apk"
+   # tag/release build (user said so): version name, e.g.
+   #   cp …/app-release.apk "./outbox/v0.4.2.apk"
    ```
 
 ## Notes
