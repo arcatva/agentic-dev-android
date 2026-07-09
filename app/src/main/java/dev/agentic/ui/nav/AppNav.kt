@@ -36,6 +36,7 @@ import dev.agentic.data.log.AppLog
 import dev.agentic.di.appContainer
 import dev.agentic.ui.adopt.AdoptPickerSheet
 import dev.agentic.ui.diagnostics.DiagnosticsScreen
+import dev.agentic.ui.globalsettings.GlobalSettingsScreen
 import dev.agentic.ui.home.HomeAdaptive
 import dev.agentic.ui.home.isWideHome
 import dev.agentic.ui.providers.ProvidersScreen
@@ -64,6 +65,7 @@ import kotlinx.serialization.Serializable
 @Serializable data class SessionSettings(val id: String)
 @Serializable object Diagnostics
 @Serializable object Providers
+@Serializable object GlobalSettings
 
 // ── NavHost ──────────────────────────────────────────────────────────────────
 
@@ -285,6 +287,7 @@ fun AppNav() {
                 onOpenDiagnostics = { nav.navigate(Diagnostics) },
                 onOpenProviders = { nav.navigate(Providers) },
                 onOpenAdoptPicker = { showAdoptPicker = true },
+                onOpenGlobalSettings = { nav.navigate(GlobalSettings) },
             )
             if (showAdoptPicker) {
                 AdoptPickerSheet(
@@ -374,6 +377,7 @@ fun AppNav() {
                 onOpenDiagnostics = { nav.navigate(Diagnostics) },
                 onOpenProviders = { nav.navigate(Providers) },
                 onOpenAdoptPicker = { showAdoptPicker = true },
+                onOpenGlobalSettings = { nav.navigate(GlobalSettings) },
                 initialSelectedId = sessionId,
             )
             if (showAdoptPicker) {
@@ -424,6 +428,10 @@ fun AppNav() {
 
         composable<Providers> {
             ProvidersScreen(onBack = { nav.popBackStack() })
+        }
+
+        composable<GlobalSettings> {
+            GlobalSettingsScreen(onBack = { nav.popBackStack() })
         }
     }
 

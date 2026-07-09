@@ -121,6 +121,7 @@ fun WideThreePaneHome(
     onOpenDiagnostics: () -> Unit,
     onOpenProviders: () -> Unit = {},
     onOpenAdoptPicker: () -> Unit = {},
+    onOpenGlobalSettings: () -> Unit = {},
     initialSelectedId: String? = null,
 ) {
     val container = appContainer()
@@ -195,6 +196,7 @@ fun WideThreePaneHome(
                 onOpenDiagnostics = onOpenDiagnostics,
                 onOpenProviders = onOpenProviders,
                 onOpenAdoptPicker = onOpenAdoptPicker,
+                onOpenGlobalSettings = onOpenGlobalSettings,
             )
         },
     ) { pad ->
