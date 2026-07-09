@@ -1,8 +1,11 @@
 package dev.agentic.data
 
 import dev.agentic.data.net.AgenticApi
+import dev.agentic.data.net.AdoptSessionReq
+import dev.agentic.data.net.Adoptable
 import dev.agentic.data.net.CommitFile
 import dev.agentic.data.net.CreateGroupReq
+import dev.agentic.data.net.DetachResp
 import dev.agentic.data.net.FileDiff
 import dev.agentic.data.net.Group
 import dev.agentic.data.net.ModelEntry
@@ -448,5 +451,37 @@ override suspend fun fork(id: String): String {
     val ackSessionCalls: MutableList<Pair<String, Long>> = mutableListOf()
     override suspend fun ackSession(id: String, eventId: Long) {
         ackSessionCalls.add(id to eventId)
+    }
+
+    // ── Adopt / detach scriptable surface ──────────────────────────────────────
+    /** Returned by adoptable(); if [adoptableException] is set, throws instead. */
+    var adoptableResult: List<Adoptable> = emptyList()
+    var adoptableException: Exception? = null
+    val adoptableCalls: MutableList<Unit> = mutableListOf()
+    override suspend fun adoptable(): List<Adoptable> {
+        adoptableCalls.add(Unit)
+        adoptableException?.let { throw it }
+        return adoptableResult
+    }
+    /** Returned by adoptSession(); if [adoptSessionException] is set, throws instead. [adoptSessionCalls]
+     *  records each (claudeSessionId, cwd) pair. */
+    var adoptSessionResult: String = "adopted-id"
+    var adoptSessionException: Exception? = null
+    val adoptSessionCalls: MutableList<AdoptSessionReq> = mutableListOf()
+    override suspend fun adoptSession(req: AdoptSessionReq): String {
+        adoptSessionCalls.add(req)
+        adoptSessionException?.let { throw it }
+        return adoptSessionResult
+    }
+    /** Returned by detach(); if [detachException] is set, throws instead. The defaults model the
+     *  happy-path CLI hand-off shape so callers can render the resume command without wiring each
+     *  field. [detachCalls] records each session id. */
+    var detachResult: DetachResp = DetachResp(cwd = "/tmp/example", claudeSessionId = "csid", resumeCmd = "claude --resume csid")
+    var detachException: Exception? = null
+    val detachCalls: MutableList<String> = mutableListOf()
+    override suspend fun detach(id: String): DetachResp {
+        detachCalls.add(id)
+        detachException?.let { throw it }
+        return detachResult
     }
 }

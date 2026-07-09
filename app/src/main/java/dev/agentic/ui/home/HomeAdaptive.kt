@@ -101,6 +101,7 @@ fun HomeAdaptive(
     onOpenSettings: (String) -> Unit,
     onOpenDiagnostics: () -> Unit,
     onOpenProviders: () -> Unit = {},
+    onOpenAdoptPicker: () -> Unit = {},
     initialSelectedId: String? = null,
 ) {
     val config = LocalConfiguration.current
@@ -111,6 +112,7 @@ fun HomeAdaptive(
             onOpenSettings = onOpenSettings,
             onOpenDiagnostics = onOpenDiagnostics,
             onOpenProviders = onOpenProviders,
+            onOpenAdoptPicker = onOpenAdoptPicker,
             initialSelectedId = initialSelectedId,
         )
     } else {
@@ -120,6 +122,7 @@ fun HomeAdaptive(
             onOpenSettings = onOpenSettings,
             onOpenDiagnostics = onOpenDiagnostics,
             onOpenProviders = onOpenProviders,
+            onOpenAdoptPicker = onOpenAdoptPicker,
             initialSelectedId = initialSelectedId,
         )
     }
@@ -139,6 +142,7 @@ private fun NarrowScaffoldHome(
     onOpenSettings: (String) -> Unit,
     onOpenDiagnostics: () -> Unit,
     onOpenProviders: () -> Unit,
+    onOpenAdoptPicker: () -> Unit,
     initialSelectedId: String?,
 ) {
     val container = appContainer()
@@ -183,6 +187,7 @@ private fun NarrowScaffoldHome(
                     onNewRequest = onNewRequest,
                     onOpenDiagnostics = onOpenDiagnostics,
                     onOpenProviders = onOpenProviders,
+                    onOpenAdoptPicker = onOpenAdoptPicker,
                     vm = homeVm,
                 )
             }

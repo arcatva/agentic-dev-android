@@ -38,6 +38,12 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import dev.agentic.di.appContainer
 import dev.agentic.ui.EFFORT_OPTIONS
 import dev.agentic.ui.SESSION_START_MODEL_OPTIONS
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontFamily
 import dev.agentic.ui.components.SectionCard
 import dev.agentic.ui.components.SliderField
 
@@ -177,6 +183,43 @@ fun SessionSettingsScreen(
                         checked = s.pendingAutoResume ?: (s.session?.autoResume ?: true),
                         onCheckedChange = { vm.setPendingAutoResume(it) },
                     )
+                }
+
+                // ── Card 3 · Claude Code: hand this session off to a terminal claude --resume ─
+                SectionCard("Claude Code") {
+                    if (s.session?.detached == true) {
+                        Text(
+                            "Handed off to a terminal — a claude --resume session is driving this. " +
+                                "Reopen it here to re-sync the terminal-added turns.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(Modifier.height(8.dp))
+                    }
+                    Button(
+                        onClick = { vm.detach() },
+                        enabled = !s.detaching && !s.loading,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(if (s.detaching) "Handing off…" else "Open in Claude Code")
+                    }
+                    s.resumeCmd?.let { cmd ->
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            "Run this in a terminal on the host to take over the session:",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            cmd,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontFamily = FontFamily.Monospace,
+                        )
+                        val clipboard = LocalClipboardManager.current
+                        TextButton(onClick = { clipboard.setText(AnnotatedString(cmd)) }) {
+                            Text("Copy command")
+                        }
+                    }
                 }
 
                 // ── Error ────────────────────────────────────────────────────────────────

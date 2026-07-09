@@ -3,7 +3,10 @@ package dev.agentic.data.repo
 import dev.agentic.data.SettingsStore
 import dev.agentic.data.log.AppLog
 import dev.agentic.data.net.AgenticApi
+import dev.agentic.data.net.AdoptSessionReq
+import dev.agentic.data.net.Adoptable
 import dev.agentic.data.net.CreateGroupReq
+import dev.agentic.data.net.DetachResp
 import dev.agentic.data.net.Group
 import dev.agentic.data.net.ModelEntry
 import dev.agentic.data.net.NewSessionReq
@@ -244,6 +247,32 @@ class SessionsRepository(
     }
     suspend fun patchSession(id: String, req: PatchSessionReq): Outcome<Session> =
         runCatchingOutcome { api.patchSession(id, req) }
+    /** Adopt picker: discover Claude Code sessions on disk (GET /api/adoptable). Wrapped in [Outcome]
+     *  so the picker ViewModel can render a banner on failure instead of crashing — matches the
+     *  search-fetch pattern, where transient errors fall back to "no candidates". */
+    suspend fun adoptable(): Outcome<List<Adoptable>> = runCatchingOutcome { api.adoptable() }
+    /** Adopt a discovered Claude Code session as a native server session. Returns the new id so
+     *  the picker navigates to it; on failure the [Outcome] carries the error message for the
+     *  picker to show as an inline error. */
+    suspend fun adoptSession(claudeSessionId: String, cwd: String): Outcome<String> {
+        val o = runCatchingOutcome { api.adoptSession(AdoptSessionReq(claudeSessionId, cwd)) }
+        when (o) {
+            is Outcome.Success -> AppLog.d("Repo", "adoptSession OK csid=$claudeSessionId new=${o.value}")
+            is Outcome.Failure -> AppLog.w("Repo", "adoptSession FAILED csid=$claudeSessionId: ${o.error}")
+        }
+        return o
+    }
+    /** Hand a session off to a local Claude Code CLI (POST /api/sessions/:id/detach). The returned
+     *  `resumeCmd` is the exact command line to paste in a terminal — the detail screen displays it
+     *  copyable next to the "handed off to a terminal" banner. */
+    suspend fun detach(id: String): Outcome<DetachResp> {
+        val o = runCatchingOutcome { api.detach(id) }
+        when (o) {
+            is Outcome.Success -> AppLog.d("Repo", "detach OK id=$id")
+            is Outcome.Failure -> AppLog.w("Repo", "detach FAILED id=$id: ${o.error}")
+        }
+        return o
+    }
     suspend fun kill(id: String) { AppLog.d("Repo", "kill id=$id"); runCatchingOutcome { api.kill(id) }; release(id) }
     /** Stop the current turn but keep the session live — no [release], so the transcript stream and
      *  reducer stay up and the user can immediately send the next message. */

@@ -25,6 +25,10 @@ data class SessionSettingsUiState(
     val error: String? = null,
     /** Set when the session is still loading (initial fetch from store). */
     val loading: Boolean = true,
+    /** A hand-off (detach) request is in flight. */
+    val detaching: Boolean = false,
+    /** The `claude --resume …` command from the last successful hand-off, shown for copy. */
+    val resumeCmd: String? = null,
 )
 
 class SessionSettingsViewModel(
@@ -106,6 +110,31 @@ class SessionSettingsViewModel(
                     _uiState.update {
                         it.copy(saving = false, error = r.error.toString())
                     }
+                }
+            }
+        }
+    }
+
+    /** Hand this session off to a terminal `claude --resume`: POST /api/sessions/:id/detach.
+     *  The server hard-stops the live process (single-writer) and returns the resume command. */
+    fun detach() {
+        if (_uiState.value.detaching) return
+        _uiState.update { it.copy(detaching = true, error = null) }
+        viewModelScope.launch {
+            when (val r = sessionsRepo.detach(sessionId)) {
+                is Outcome.Success -> {
+                    AppLog.d("VM", "session detached id=$sessionId")
+                    _uiState.update {
+                        it.copy(
+                            detaching = false,
+                            resumeCmd = r.value.resumeCmd,
+                            session = it.session?.copy(detached = true),
+                        )
+                    }
+                }
+                is Outcome.Failure -> {
+                    AppLog.w("VM", "session detach failed id=$sessionId err=${r.error}")
+                    _uiState.update { it.copy(detaching = false, error = r.error.toString()) }
                 }
             }
         }

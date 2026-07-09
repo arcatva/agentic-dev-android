@@ -718,6 +718,51 @@ class KtorAgenticApi(
         }
     }
 
+    /** Adopt-picker discovery (GET /api/adoptable). The server returns a flat JSON array, so we
+     *  decode straight into `List<Adoptable>` (the global `json` instance already handles missing
+     *  fields leniently via `ignoreUnknownKeys`). Any HTTP failure propagates; callers (picker +
+     *  ViewModel) decide whether to surface it as a banner. */
+    override suspend fun adoptable(): List<Adoptable> {
+        return try {
+            val r: List<Adoptable> = client.get("$baseUrl/api/adoptable") { auth() }.body()
+            AppLog.d("API", "GET adoptable -> OK (${r.size})")
+            r
+        } catch (e: Exception) {
+            AppLog.w("API", "GET adoptable -> FAILED: ${e.message}")
+            throw e
+        }
+    }
+
+    /** Adopt a Claude Code session (POST /api/sessions/adopt). Returns the new server session id
+     *  the picker navigates to on success. */
+    override suspend fun adoptSession(req: AdoptSessionReq): String {
+        return try {
+            val r: String = client.post("$baseUrl/api/sessions/adopt") {
+                auth(); contentType(ContentType.Application.Json); setBody(req)
+            }.body<AdoptSessionResp>().id
+            AppLog.d("API", "POST sessions/adopt -> OK id=$r")
+            r
+        } catch (e: Exception) {
+            AppLog.w("API", "POST sessions/adopt -> FAILED: ${e.message}")
+            throw e
+        }
+    }
+
+    /** Hand a session off to a local Claude Code CLI (POST /api/sessions/:id/detach). Throws on
+     *  non-2xx — the calling ViewModel surfaces the server's body as a user-facing error. After
+     *  success the server flips `Session.detached = true` on subsequent reads, which the detail
+     *  screen uses to keep the "handed off" banner up without an additional round-trip. */
+    override suspend fun detach(id: String): DetachResp {
+        return try {
+            val r: DetachResp = client.post("$baseUrl/api/sessions/${id.encodeURLPathPart()}/detach") { auth() }.body()
+            AppLog.d("API", "POST sessions/${id.take(8)}/detach -> OK")
+            r
+        } catch (e: Exception) {
+            AppLog.w("API", "POST sessions/${id.take(8)}/detach -> FAILED: ${e.message}")
+            throw e
+        }
+    }
+
     /** Restore the working tree to the snapshot before [turnIndex] (code only). Throws on non-2xx. */
     override suspend fun rewind(id: String, turnIndex: Int) {
         try {
