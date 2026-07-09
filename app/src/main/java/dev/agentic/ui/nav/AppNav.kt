@@ -21,11 +21,15 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.core.util.Consumer
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navDeepLink
 import androidx.navigation.toRoute
@@ -90,6 +94,16 @@ import kotlinx.serialization.Serializable
 // and tiling the viewport at every frame, so nothing flashes. ~300ms standard MD3 motion.
 private const val NAV_MOTION_MS = AppMotion.DurationNav
 private val navEasing = AppMotion.Emphasized
+
+/**
+ * True for the routes that render the full-screen adaptive Home ([Home] and [Session]). In wide
+ * mode a transition between two of them is a Home→Home slide of visually identical screens — the
+ * exact animation the "two-layer Home" bug shows — so the NavHost transition lambdas snap
+ * (no animation) instead. This also makes the render-time normalization in `composable<Session>`
+ * invisible: the duplicate entry is swapped out without a slide.
+ */
+private fun NavDestination.isHomeFamily(): Boolean =
+    hasRoute(Home::class) || hasRoute(Session::class)
 
 @Composable
 fun AppNav() {
@@ -165,16 +179,24 @@ fun AppNav() {
                 uri.pathSegments.firstOrNull() else null
             when {
                 id.isNullOrBlank() -> nav.handleDeepLink(intent) // not a session link → default handling
-                // Logged in: open it now (width-aware, so wide doesn't stack a second Home).
-                loggedIn -> {
-                    AppLog.d("Nav", "deep link warm session=$id")
-                    openSessionAdaptive(id)
-                }
-                // Logged out: stash and let the replay effect open it after login (don't reveal a
-                // session past the auth gate).
                 else -> {
-                    AppLog.d("Nav", "deep link warm deferred (logged out) session=$id")
-                    pendingSessionId = id
+                    if (loggedIn) {
+                        // Logged in: open it now (width-aware, so wide doesn't stack a second Home).
+                        AppLog.d("Nav", "deep link warm session=$id")
+                        openSessionAdaptive(id)
+                    } else {
+                        // Logged out: stash and let the replay effect open it after login (don't
+                        // reveal a session past the auth gate).
+                        AppLog.d("Nav", "deep link warm deferred (logged out) session=$id")
+                        pendingSessionId = id
+                    }
+                    // CONSUME the sticky intent (MainActivity publishes it via setIntent BEFORE
+                    // dispatching to this listener). If it stayed set, a later graph reset (the
+                    // NavHost startDestination flips on login/logout) would make NavController
+                    // re-run handleDeepLink(activity.intent) on the STALE uri and auto-synthesize
+                    // a [Home, Session] back stack — the deep-link variant of the two-layer Home
+                    // bug. Mirrors the cold-start consume above.
+                    activity?.intent = Intent()
                 }
             }
         }
@@ -215,23 +237,38 @@ fun AppNav() {
         navController = nav,
         startDestination = if (loggedIn) Home else Login,
         enterTransition = {
-            slideInHorizontally(animationSpec = tween(NAV_MOTION_MS, easing = navEasing)) { it }
+            if (wide && initialState.destination.isHomeFamily() && targetState.destination.isHomeFamily())
+                EnterTransition.None
+            else slideInHorizontally(animationSpec = tween(NAV_MOTION_MS, easing = navEasing)) { it }
         },
         exitTransition = {
-            slideOutHorizontally(animationSpec = tween(NAV_MOTION_MS, easing = navEasing)) { -it }
+            if (wide && initialState.destination.isHomeFamily() && targetState.destination.isHomeFamily())
+                ExitTransition.None
+            else slideOutHorizontally(animationSpec = tween(NAV_MOTION_MS, easing = navEasing)) { -it }
         },
         popEnterTransition = {
-            slideInHorizontally(animationSpec = tween(NAV_MOTION_MS, easing = navEasing)) { -it }
+            if (wide && initialState.destination.isHomeFamily() && targetState.destination.isHomeFamily())
+                EnterTransition.None
+            else slideInHorizontally(animationSpec = tween(NAV_MOTION_MS, easing = navEasing)) { -it }
         },
         popExitTransition = {
-            slideOutHorizontally(animationSpec = tween(NAV_MOTION_MS, easing = navEasing)) { it }
+            if (wide && initialState.destination.isHomeFamily() && targetState.destination.isHomeFamily())
+                ExitTransition.None
+            else slideOutHorizontally(animationSpec = tween(NAV_MOTION_MS, easing = navEasing)) { it }
         },
     ) {
         composable<Login> {
             LoginScreen(
                 onLoggedIn = {
+                    // launchSingleTop guards the race with the NavHost's dynamic startDestination:
+                    // when isLoggedIn flips, the graph is rebuilt with start=Home, which resets the
+                    // stack to [Home] and pops Login — but the LoginScreen can still be composed
+                    // (animating out) when its LaunchedEffect fires this callback. Then popUpTo
+                    // finds no Login and, without singleTop, a SECOND Home would be pushed
+                    // ([Home, Home] — back on the home slides to an identical home).
                     nav.navigate(Home) {
                         popUpTo<Login> { inclusive = true }
+                        launchSingleTop = true
                     }
                 },
             )
@@ -278,6 +315,35 @@ fun AppNav() {
                     }
                 }
                 return@composable
+            }
+            // Render-time normalization for the "two-layer Home" bug: in wide mode this route
+            // renders the SAME full-screen adaptive Home as the [Home] route, so having both on the
+            // back stack makes system-back animate Home→Home. [openSessionAdaptive] prevents that
+            // for in-app navigation, but entries can still get here without passing through it:
+            //  - the route was pushed while narrow (outer foldable screen / split-screen), then the
+            //    window turned wide (unfold) — the stacked entry now renders a duplicate Home;
+            //  - Navigation's own deep-link handling synthesized [Home, Session] (e.g. a stale
+            //    activity intent re-handled on a graph reset), bypassing our width-aware helper.
+            // Normalize exactly like the wide branch of [openSessionAdaptive]: hand the id to the
+            // single Home and remove this entry. Keyed on [wide] so a later narrow→wide resize of
+            // an already-composed entry normalizes too.
+            if (wide) {
+                // Only normalize while THIS entry is the current top — if it sits beneath another
+                // screen (e.g. SessionSettings) when the window turns wide, popUpTo<Session> would
+                // sweep that screen away too. Keyed on the current entry, the effect re-fires when
+                // the user pops back down to this entry and normalizes then.
+                val current by nav.currentBackStackEntryAsState()
+                LaunchedEffect(sessionId, wide, current) {
+                    if (current != backStackEntry) return@LaunchedEffect
+                    AppLog.d("Nav", "wide normalize: Session($sessionId) → Home")
+                    container.homeSelectRequest.value = sessionId
+                    nav.navigate(Home) {
+                        popUpTo<Session> { inclusive = true } // drop THIS duplicate-Home entry
+                        launchSingleTop = true                // reuse the Home below, never stack
+                    }
+                }
+                // Keep rendering the same adaptive Home beneath the (animation-less, see the
+                // transition lambdas) swap so there is no blank flash while the effect runs.
             }
             // Deep link / notification tap / just-created session: the SAME adaptive home as the Home
             // route, with this session pre-selected in the detail pane (so unfolding keeps the list

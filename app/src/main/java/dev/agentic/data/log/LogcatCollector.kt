@@ -90,6 +90,9 @@ class LogcatCollector(private val store: LogStore) {
                 try {
                     while (running) {
                         val line = reader.readLine() ?: break
+                        // Drop framework spam (see LogNoise) so it can't wash the rotation budget
+                        // out — on Samsung Android 16 one View log alone was 92.5% of the capture.
+                        if (LogNoise.isNoise(line)) continue
                         writer.write(line)
                         writer.write("\n")
                         written += line.length + 1L

@@ -34,8 +34,13 @@ class MainActivity : ComponentActivity() {
      * re-reads intent on recomposition.
      */
     override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent)
         AppLog.d("Activity", "onNewIntent (data=${intent.data})")
+        // Publish the intent BEFORE super dispatches to the OnNewIntentListeners: AppNav's warm
+        // deep-link listener handles agentic://session links itself and then CONSUMES the sticky
+        // intent (setIntent(Intent())) so a later NavController graph reset can't re-handle the
+        // stale uri. With the old order (super first, setIntent after) that consume was silently
+        // overwritten right here.
         setIntent(intent)
+        super.onNewIntent(intent)
     }
 }
