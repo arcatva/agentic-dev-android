@@ -22,7 +22,10 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.onEach
@@ -84,11 +87,19 @@ class HomeViewModel(
         refreshGroups()
     }
 
-    // Pull-to-refresh plumbing: a manual reload writes the freshly-fetched values here, and these are
+    // Pull-to-refresh plumbing: a manual reload emits the freshly-fetched values here, and these are
     // merged into the poll flows below so a refresh shows up immediately instead of waiting for the
-    // next 2 s (sessions) / 60 s (usage) poll tick. null = no manual value yet (filtered out).
-    private val manualSessions = MutableStateFlow<List<Session>?>(null)
-    private val manualUsage = MutableStateFlow<Usage?>(null)
+    // next 2 s (sessions) / 60 s (usage) poll tick.
+    // One-shot event streams (deliberately NOT MutableStateFlow). A pull-to-refresh pushes its
+    // freshly-fetched value here and it is delivered ONLY to subscribers present at that instant.
+    // A StateFlow would RETAIN the last value and replay it to every new collector — and because
+    // uiState is a WhileSubscribed StateFlow, its whole upstream is torn down and restarted on each
+    // background→foreground return, so a retained manual value would re-emit an OLD snapshot over the
+    // live data before the poll answers: the usage meter flashes a stale % then snaps back, and the
+    // session list briefly reverts to the old order. replay=0 kills that flash — on resume the last
+    // good uiState value stays put until the live poll delivers fresh data.
+    private val manualSessions = MutableSharedFlow<List<Session>>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+    private val manualUsage = MutableSharedFlow<Usage>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
     private val _refreshing = MutableStateFlow(false)
 
     // Multi-select: ids the user has ticked for batch delete. Empty set ⇒ not in selection mode.
@@ -118,7 +129,7 @@ class HomeViewModel(
     private val usageFlow: Flow<Usage?> =
         merge(
             pollFlow(60_000L) { runCatching { sessionsRepo.usage() }.getOrNull() },
-            manualUsage.filterNotNull(),
+            manualUsage,
         )
 
     /**
@@ -136,27 +147,43 @@ class HomeViewModel(
         val serverUnreachable: Boolean = false,
     )
 
-    private val sessionsState: Flow<SessionsState> =
-        merge(
-            sessionsRepo.sessionsStreamWithState(),
-            manualSessions.filterNotNull().map { SessionsLoadState.Loaded(it) },
-        ).scan(SessionsState()) { acc, event ->
-            when (event) {
-                is SessionsLoadState.FirstLoadError -> {
-                    AppLog.w("VM", "FirstLoadError: server unreachable")
-                    acc.copy(serverUnreachable = true)
+    // Last SessionsState the pipeline produced, retained across a WhileSubscribed restart. The scan
+    // below seeds from THIS (re-read per collection via the flow{} builder), not a fresh empty
+    // SessionsState() — otherwise every background→foreground return re-folds from empty and blanks
+    // the list for a frame before the poll answers (the sessions half of the resume-flash fix; the
+    // usage half is manualUsage's replay=0). Confined to viewModelScope's single dispatcher and only
+    // one active collector exists at a time (WhileSubscribed cancels+joins the prior collection before
+    // restarting), so writes never race a read; @Volatile guards visibility as belt-and-suspenders.
+    // Side effect on the PR-9 banner path: if the FIRST tick after a restart fails (FirstLoadError),
+    // acc is now the retained last-good state, so we keep showing that list UNDER the "can't reach
+    // server" banner instead of blanking to empty — the intended keep-last-good behaviour.
+    @Volatile private var lastSessionsState = SessionsState()
+
+    private val sessionsState: Flow<SessionsState> = flow {
+        emitAll(
+            merge(
+                sessionsRepo.sessionsStreamWithState(),
+                manualSessions.map { SessionsLoadState.Loaded(it) },
+            ).scan(lastSessionsState) { acc, event ->
+                when (event) {
+                    is SessionsLoadState.FirstLoadError -> {
+                        AppLog.w("VM", "FirstLoadError: server unreachable")
+                        acc.copy(serverUnreachable = true)
+                    }
+                    is SessionsLoadState.Loaded ->
+                        SessionsState(sessions = event.sessions, serverUnreachable = false)
                 }
-                is SessionsLoadState.Loaded ->
-                    SessionsState(sessions = event.sessions, serverUnreachable = false)
-            }
-        }.onEach { ss ->
-            // Reconcile the source-of-truth selection with the list: drop ticks for sessions that
-            // have left so deleteSelected() never acts on a ghost id and a vanished id can't later
-            // resurrect a tick. Runs only while uiState is subscribed (this flow is collected by the
-            // WhileSubscribed combine), and never feeds back — it keys off sessions, not _selectedIds.
-            val present = ss.sessions.mapTo(HashSet()) { it.id }
-            _selectedIds.update { sel -> if (sel.isEmpty()) sel else sel.intersect(present) }
-        }
+            }.onEach { ss ->
+                lastSessionsState = ss
+                // Reconcile the source-of-truth selection with the list: drop ticks for sessions that
+                // have left so deleteSelected() never acts on a ghost id and a vanished id can't later
+                // resurrect a tick. Runs only while uiState is subscribed (this flow is collected by the
+                // WhileSubscribed combine), and never feeds back — it keys off sessions, not _selectedIds.
+                val present = ss.sessions.mapTo(HashSet()) { it.id }
+                _selectedIds.update { sel -> if (sel.isEmpty()) sel else sel.intersect(present) }
+            },
+        )
+    }
 
     // Single source of truth. WhileSubscribed means the upstream polls ONLY while the UI observes —
     // no eager infinite collector leaking past the screen (and tests terminate). loading clears on
@@ -204,12 +231,12 @@ class HomeViewModel(
                 val usage = async { runCatching { sessionsRepo.usage() }.getOrNull() }
                 val s = sessions.await()
                 if (s != null) {
-                    manualSessions.value = s
+                    manualSessions.tryEmit(s)
                     AppLog.d("VM", "refresh: pulled ${s.size} sessions")
                 } else {
                     AppLog.w("VM", "refresh: pull failed")
                 }
-                usage.await()?.let { manualUsage.value = it }
+                usage.await()?.let { manualUsage.tryEmit(it) }
             } finally {
                 _refreshing.value = false
             }

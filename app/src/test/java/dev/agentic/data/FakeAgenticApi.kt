@@ -112,6 +112,9 @@ class FakeAgenticApi(
      *  Falls back to [sessionsResult] once exhausted. */
     var sessionsScript: MutableList<Result<List<Session>>> = mutableListOf()
     var sessionsResult: List<Session> = emptyList()
+    /** When set, sessions() suspends on this until completed — mirrors [usageGate] for list polls,
+     *  so a test can hold the live session poll open and observe what the UI shows meanwhile. */
+    var sessionsGate: kotlinx.coroutines.CompletableDeferred<Unit>? = null
 
     // ── Scriptable surface for WorkflowsRepository tests ────────────────────────
 
@@ -227,6 +230,7 @@ class FakeAgenticApi(
     // ── All other members are stubs ───────────────────────────────────────────
 
     override suspend fun sessions(): List<Session> {
+        sessionsGate?.await()
         if (sessionsScript.isNotEmpty()) return sessionsScript.removeAt(0).getOrThrow()
         return sessionsResult
     }
