@@ -39,12 +39,12 @@ fun groupTools(nodes: List<Node>): List<Node> {
  *  file — one giant turn can fill the whole window with promptless nodes. With no anchor at all, the
  *  old fallback appended at `display.size`, re-gluing the card under the newest streamed content on
  *  every frame (the "sinks to the bottom" bug, windowed edition). When the start is truncated, a file
- *  with no visible anchor belongs to the unloaded history above → pin it to the TOP of the window;
- *  paging back far enough loads its inline `agentic_file` copy and dedup snaps it to its true spot.
- *  Known tradeoff: on an OLD backend that emits no `agentic_file`/WS `file` events, a file freshly
- *  delivered mid-giant-turn (mtime newer than everything visible, still no prompt in the window) also
- *  top-pins — chronologically early, but visible; current backends deliver the inline copy over WS
- *  first, so the poll copy dedups and this case never renders. */
+ *  with no visible anchor belongs to the unloaded history above → it is HIDDEN, exactly like every
+ *  other card whose position is outside the window. Paging back reveals it at its true position: on
+ *  current logs the inline `agentic_file` event pages in (and dedups the poll copy); on old logs the
+ *  delivering turn's prompt pages in and the turn anchor below starts matching. Only an anchor that is
+ *  genuinely VISIBLE in the window (a message naming the file, or a resident turn old enough to have
+ *  delivered it) places the poll copy. */
 fun interleaveShared(display: List<Node>, shared: List<AttachmentNode>, truncatedStart: Boolean = false): List<Node> {
     if (shared.isEmpty()) return display
     // A file already delivered INLINE via an `agentic_file` log event is positioned by the log itself
@@ -65,14 +65,20 @@ fun interleaveShared(display: List<Node>, shared: List<AttachmentNode>, truncate
         } else -1
         val insertAt = when {
             mention >= 0 -> mention + 1
-            // No timestamped turn in a TRUNCATED window → the file's history lives above the window;
-            // top, never the streamed bottom. Untruncated (full transcript) keeps the legacy append.
-            turns.isEmpty() -> if (truncatedStart) 0 else display.size
+            // No timestamped turn in a TRUNCATED window → the file's region is not loaded; hide it like
+            // any other out-of-window card. Untruncated (full transcript) keeps the legacy append.
+            turns.isEmpty() -> if (truncatedStart) continue else display.size
             else -> {
                 // No message names it → anchor after the prompt of its delivering turn (a fixed index).
                 var k = -1
                 for (j in turns.indices) if (turns[j].second <= f.at) k = j
-                if (k >= 0) turns[k].first + 1 else 0
+                when {
+                    k >= 0 -> turns[k].first + 1
+                    // Every visible turn is NEWER than the file → its delivering turn lives above a
+                    // truncated window: hidden until paged in. A full transcript keeps legacy top.
+                    truncatedStart -> continue
+                    else -> 0
+                }
             }
         }
         inserts.getOrPut(insertAt) { mutableListOf() }.add(f)
