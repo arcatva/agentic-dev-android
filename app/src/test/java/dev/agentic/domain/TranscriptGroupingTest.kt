@@ -71,6 +71,43 @@ class TranscriptGroupingTest {
         assertEquals("anchored right after the turn's prompt", 1, fileIdx)
     }
 
+    @Test fun truncated_window_with_no_prompts_pins_old_file_to_top_not_bottom() {
+        // Windowed transcript (server caps /events at 100): a giant single turn fills the whole window,
+        // so it holds NO PromptNode and the inline agentic_file event fell outside it. The poll copy of
+        // an OLD file must pin to the TOP of the window (its history lives above), NOT glue to the
+        // streaming bottom below everything the agent emits afterwards.
+        val display = listOf<Node>(
+            TextNode("Task 5 complete."),
+            ToolNode("Bash", "run tests", ""),
+            TextNode("On to Task 7."),
+        )
+        val file = AttachmentNode("outbox/plan.md", at = 1_000)
+        val out = interleaveShared(display, listOf(file), truncatedStart = true)
+        assertEquals("old file pins to the top of a truncated window", 0, out.indexOfFirst { it is AttachmentNode })
+    }
+
+    @Test fun untruncated_window_with_no_prompts_still_appends() {
+        // Full transcript from the very start (no older history) with no timestamped turns — the legacy
+        // append fallback must be unchanged.
+        val display = listOf<Node>(TextNode("hi") as Node)
+        val file = AttachmentNode("outbox/plan.md", at = 1_000)
+        val out = interleaveShared(display, listOf(file), truncatedStart = false)
+        assertEquals("legacy append preserved", 1, out.indexOfFirst { it is AttachmentNode })
+    }
+
+    @Test fun truncated_window_where_file_predates_all_prompts_pins_to_top() {
+        // Window holds one recent prompt, but the file is OLDER than it (its true position is above the
+        // window) — anchor at top, never after the newer prompt or at the bottom. Pins the PRE-EXISTING
+        // k=-1 fallback (top regardless of truncatedStart) as a regression guard for the windowed world.
+        val display = listOf<Node>(
+            PromptNode("继续", at = 2_000),
+            TextNode("continuing..."),
+        )
+        val file = AttachmentNode("outbox/plan.md", at = 1_000)
+        val out = interleaveShared(display, listOf(file), truncatedStart = true)
+        assertEquals("file older than every visible turn pins to top", 0, out.indexOfFirst { it is AttachmentNode })
+    }
+
     @Test fun inline_agentic_file_dedups_the_poll_copy() {
         // A file already present inline (from an agentic_file log event) must NOT be added a second time
         // by the poll-derived shared set (same path) — no duplicate card.

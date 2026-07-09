@@ -154,14 +154,13 @@ class SessionsRepository(
     private val maxResidentEvents: Int = 400,
 ) {
     companion object {
-        /** Hard cap on RENDERED log lines the initial/reseed transcript fetch pulls (windowed GET
-         *  ?limit) — a memory backstop so a pathologically large transcript can't OOM the app. NOTE:
-         *  the server now budgets this tail by LOGICAL EVENTS (cards/turns), not raw lines, within this
-         *  cap (see server window_tail_events): `stream_event` text deltas are >90% of a long log, so
-         *  the old 10k-LINE window reached back only a few turns and dropped older cards — ask pickers,
-         *  delegate/Workflow cards, permission cards — which then vanished on every load/reseed and only
-         *  reappeared by luck. This cap is sized so normal sessions (incl. very long ones) load every
-         *  card in full; older history beyond it can later be paged via ?before. */
+        /** Requested `?limit` for the initial/reseed /events fetch. NOTE: the server clamps EVERY
+         *  /events request to 100 logical events (`q.limit.unwrap_or(100).min(100)`, Discord-style) —
+         *  so this does NOT pull 2000 events; the effective seed window is the newest 100 events and
+         *  `hasMore` pages the rest via ?before. Sized above the clamp so if the server cap is ever
+         *  raised the client benefits automatically. Anything older than the seed window is ABSENT from
+         *  the transcript until paged in — downstream logic must not assume full history is resident
+         *  (see interleaveShared's truncatedStart). */
         const val INITIAL_LOG_LIMIT = 2000
 
         /** Max events a single /events response returns (server caps every request at `min(100)`), which
