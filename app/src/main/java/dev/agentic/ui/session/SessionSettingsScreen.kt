@@ -51,10 +51,10 @@ import dev.agentic.ui.components.SliderField
 /**
  * Per-session settings subpage — session-persistent only.
  *
- * MD3 Expressive structure, matching NewRequestScreen / ProvidersScreen: a bold in-page
- * headline + subtitle, controls grouped into tonal [SectionCard]s ("Settings" for the
- * model/effort/permission sliders, "Reliability" for the auto-resume switch), and a single
- * full-width CTA outside the cards that PATCHes `/api/sessions/:id` via
+ * MD3 Expressive structure, matching NewRequestScreen / GlobalSettingsScreen: the page title
+ * lives only in the TopAppBar, controls are grouped into tonal [SectionCard]s ("Settings" for
+ * the model/effort/permission sliders, "Reliability" for the auto-resume switch), and a single
+ * full-width CTA outside the cards PATCHes `/api/sessions/:id` via
  * [SessionSettingsViewModel.saveToSession].
  *
  * VM creation note: project convention (see AdaptiveHome.kt / SessionScreen.kt) is to build VMs

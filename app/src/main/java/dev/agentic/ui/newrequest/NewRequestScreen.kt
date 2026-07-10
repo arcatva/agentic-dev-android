@@ -309,42 +309,46 @@ fun NewRequestScreen(
                             }
                         }
                     }
-                    // Collapsible "Add MCP server" form.
+                    // Collapsible "Add MCP server" form. The header row and the AnimatedVisibility
+                    // share ONE Column child so the collapsed (zero-height) form doesn't pick up an
+                    // extra spacedBy(8) gap from the surrounding Column.
                     var addMcpExpanded by remember { mutableStateOf(false) }
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .clip(MaterialTheme.shapes.small)
-                            .clickable { addMcpExpanded = !addMcpExpanded }
-                            .padding(vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            "Add MCP server",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.weight(1f),
-                        )
-                        Icon(
-                            if (addMcpExpanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
-                            contentDescription = if (addMcpExpanded) "Collapse Add MCP" else "Expand Add MCP",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    AnimatedVisibility(
-                        visible = addMcpExpanded,
-                        enter = expandVertically() + fadeIn(),
-                        exit = shrinkVertically() + fadeOut(),
-                    ) {
-                        AddMcpForm(
-                            draft = s.mcpDraft,
-                            onDraftChange = realVm::updateMcpDraft,
-                            onAdd = {
-                                val err = realVm.addMcpServer()
-                                if (err == null) addMcpExpanded = false
-                                err
-                            },
-                        )
+                    Column {
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .clip(MaterialTheme.shapes.small)
+                                .clickable { addMcpExpanded = !addMcpExpanded }
+                                .padding(vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                "Add MCP server",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.weight(1f),
+                            )
+                            Icon(
+                                if (addMcpExpanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                                contentDescription = if (addMcpExpanded) "Collapse Add MCP" else "Expand Add MCP",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        AnimatedVisibility(
+                            visible = addMcpExpanded,
+                            enter = expandVertically() + fadeIn(),
+                            exit = shrinkVertically() + fadeOut(),
+                        ) {
+                            AddMcpForm(
+                                draft = s.mcpDraft,
+                                onDraftChange = realVm::updateMcpDraft,
+                                onAdd = {
+                                    val err = realVm.addMcpServer()
+                                    if (err == null) addMcpExpanded = false
+                                    err
+                                },
+                            )
+                        }
                     }
                 }
             }
