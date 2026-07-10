@@ -248,13 +248,17 @@ fun AppNav() {
                 ExitTransition.None
             else slideOutHorizontally(animationSpec = tween(NAV_MOTION_MS, easing = navEasing)) { -it }
         },
+        // POPs between home-family routes snap in EVERY width (no `wide` gate): in narrow, a
+        // Session entry is only popped once its scaffold is back on the list — at that moment both
+        // sides of the pop render the identical list, and the narrow deselect-normalization relies
+        // on this to be invisible. Forward pushes keep the slide in narrow (opening a detail).
         popEnterTransition = {
-            if (wide && initialState.destination.isHomeFamily() && targetState.destination.isHomeFamily())
+            if (initialState.destination.isHomeFamily() && targetState.destination.isHomeFamily())
                 EnterTransition.None
             else slideInHorizontally(animationSpec = tween(NAV_MOTION_MS, easing = navEasing)) { -it }
         },
         popExitTransition = {
-            if (wide && initialState.destination.isHomeFamily() && targetState.destination.isHomeFamily())
+            if (initialState.destination.isHomeFamily() && targetState.destination.isHomeFamily())
                 ExitTransition.None
             else slideOutHorizontally(animationSpec = tween(NAV_MOTION_MS, easing = navEasing)) { it }
         },
@@ -379,6 +383,16 @@ fun AppNav() {
                 onOpenAdoptPicker = { showAdoptPicker = true },
                 onOpenGlobalSettings = { nav.navigate(GlobalSettings) },
                 initialSelectedId = sessionId,
+                // Narrow leg of the two-layer Home bug: while a session is selected, this route is
+                // a legitimate detail screen — but once the scaffold navigates back to its list
+                // (system back from the detail pane), the entry renders the SAME list Home renders
+                // beneath it, so the user must press back TWICE through identical "homes". The
+                // scaffold reports that moment; pop the duplicate right there (a home-family POP is
+                // animation-less, so the swap to the real Home underneath is invisible).
+                onDeselected = {
+                    AppLog.d("Nav", "narrow normalize: Session($sessionId) deselected → pop duplicate")
+                    if (nav.currentBackStackEntry == backStackEntry) nav.popBackStack()
+                },
             )
             if (showAdoptPicker) {
                 AdoptPickerSheet(

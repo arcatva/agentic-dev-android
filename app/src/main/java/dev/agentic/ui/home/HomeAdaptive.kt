@@ -104,9 +104,15 @@ fun HomeAdaptive(
     onOpenAdoptPicker: () -> Unit = {},
     onOpenGlobalSettings: () -> Unit = {},
     initialSelectedId: String? = null,
+    // Non-null when hosted by the SESSION route: invoked once the selection this route was opened
+    // for has been shown and then cleared — at that point the narrow scaffold is an exact duplicate
+    // of the Home route's, and the host pops the duplicate entry (narrow leg of "two-layer Home").
+    onDeselected: (() -> Unit)? = null,
 ) {
     val config = LocalConfiguration.current
     if (isWideHome(config)) {
+        // Wide never needs [onDeselected]: AppNav normalizes the Session route away at render
+        // time regardless of selection (the 3-pane Home is a duplicate even while selected).
         WideThreePaneHome(
             onNewRequest = onNewRequest,
             onOpenHistory = onOpenHistory,
@@ -127,6 +133,7 @@ fun HomeAdaptive(
             onOpenAdoptPicker = onOpenAdoptPicker,
             onOpenGlobalSettings = onOpenGlobalSettings,
             initialSelectedId = initialSelectedId,
+            onDeselected = onDeselected,
         )
     }
 }
@@ -148,6 +155,7 @@ private fun NarrowScaffoldHome(
     onOpenAdoptPicker: () -> Unit,
     onOpenGlobalSettings: () -> Unit = {},
     initialSelectedId: String?,
+    onDeselected: (() -> Unit)? = null,
 ) {
     val container = appContainer()
     val homeVm: HomeViewModel = viewModel(
@@ -168,6 +176,23 @@ private fun NarrowScaffoldHome(
         val id = initialSelectedId?.takeIf { it.isNotBlank() } ?: return@LaunchedEffect
         if (navigator.currentDestination?.contentKey != id) {
             navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, id)
+        }
+    }
+
+    // Session-route host only (onDeselected != null): once a selection has been shown and is then
+    // cleared (scaffold back / predictive back landing on the list), this scaffold renders exactly
+    // what the Home route's does — tell the host so it can pop the duplicate nav entry. Without
+    // this, backing out of a pushed Session shows ITS list first and the real Home's list second:
+    // the narrow "back goes home, then home again" bug.
+    //
+    // hadSelection guards the first composition (selection is applied by the effect above, so
+    // selectedSid starts null — that must NOT count as "deselected") and is rememberSaveable so a
+    // process-restored, already-deselected duplicate normalizes immediately instead of lingering.
+    if (onDeselected != null) {
+        var hadSelection by rememberSaveable { mutableStateOf(false) }
+        LaunchedEffect(selectedSid) {
+            if (selectedSid != null) hadSelection = true
+            else if (hadSelection) onDeselected()
         }
     }
 
