@@ -13,6 +13,7 @@ import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.CallSplit
 import androidx.compose.material.icons.rounded.FolderOpen
+import androidx.compose.material.icons.rounded.MoveToInbox
 import androidx.compose.material.icons.rounded.SmartToy
 import androidx.compose.material.icons.rounded.Whatshot
 import androidx.compose.material3.AssistChip
@@ -44,7 +45,7 @@ import dev.agentic.ui.modelLabel
 import dev.agentic.ui.rememberUltracodeRipplePhase
 
 /** What a session annotation chip stands for — drives the chip's icon, tint, and (for ULTRA) look. */
-internal enum class TagKind { ULTRA, FORK, REPO, SKILL, MODEL, EFFORT }
+internal enum class TagKind { ULTRA, FORK, ADOPTED, REPO, SKILL, MODEL, EFFORT }
 
 /** A single annotation chip for a session. */
 internal data class SessionTag(val label: String, val kind: TagKind)
@@ -70,13 +71,15 @@ internal fun sessionTags(session: Session): List<SessionTag> {
     // Blank-safe to match SessionViewModel.parentPreview's isNullOrBlank() gate — an empty parent id must
     // not show a "fork" chip with no matching Forked-from card.
     val fork = if (!session.parentSessionId.isNullOrBlank()) listOf(SessionTag("Fork", TagKind.FORK)) else emptyList()
+    // Provenance for a session imported from a Claude Code CLI session — same pill treatment as fork.
+    val adopted = if (session.origin == "adopted") listOf(SessionTag("Adopted", TagKind.ADOPTED)) else emptyList()
     val repos = session.repos.filter { it.isNotBlank() }.distinct().map { SessionTag(it, TagKind.REPO) }
     val skills = session.skills.filter { it.isNotBlank() }.distinct().map { SessionTag(it, TagKind.SKILL) }
     val model = session.model?.takeIf { it.isNotBlank() }
         ?.let { SessionTag(modelLabel(it), TagKind.MODEL) }
     val effort = session.effort?.takeIf { it.isNotBlank() && !isUltra }
         ?.let { SessionTag(effortLabel(it), TagKind.EFFORT) }
-    return ultra + fork + repos + skills + listOfNotNull(model, effort)
+    return ultra + fork + adopted + repos + skills + listOfNotNull(model, effort)
 }
 
 /**
@@ -129,6 +132,7 @@ private fun SessionTagChip(tag: SessionTag, onClick: (() -> Unit)? = null) {
     when (tag.kind) {
         TagKind.ULTRA -> UltracodeChip()
         TagKind.FORK -> DisplayChip(tag.label, Icons.Rounded.CallSplit, scheme.primary, "fork", onClick)
+        TagKind.ADOPTED -> DisplayChip(tag.label, Icons.Rounded.MoveToInbox, scheme.primary, "adopted")
         TagKind.REPO -> DisplayChip(tag.label, Icons.Rounded.FolderOpen, scheme.onSurfaceVariant, "repo")
         TagKind.SKILL -> DisplayChip(tag.label, Icons.Rounded.AutoAwesome, AccentCyan, "skill")
         TagKind.MODEL -> DisplayChip(tag.label, Icons.Rounded.SmartToy, scheme.tertiary, "model")

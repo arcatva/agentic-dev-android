@@ -74,7 +74,6 @@ import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
-import androidx.compose.material3.Surface
 import androidx.compose.material3.ToggleButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -978,23 +977,6 @@ internal fun SessionRow(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                // Provenance chip for sessions imported from a Claude Code CLI session (server
-                // sets origin="adopted"). The row is already grouped under "Claude Code Adopted"
-                // via groupId, but this inline badge makes it obvious in any flat/filter view.
-                if (session.origin == "adopted") {
-                    Spacer(Modifier.height(4.dp))
-                    Surface(
-                        shape = MaterialTheme.shapes.small,
-                        color = MaterialTheme.colorScheme.secondaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                    ) {
-                        Text(
-                            "adopted",
-                            style = MaterialTheme.typography.labelSmall,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                        )
-                    }
-                }
             }
         }
     }
