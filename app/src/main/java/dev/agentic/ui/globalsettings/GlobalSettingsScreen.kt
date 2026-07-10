@@ -103,7 +103,7 @@ fun GlobalSettingsScreen(
                         Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
                     }
                 },
-                title = { Text("Global settings") },
+                title = { Text("Settings") },
             )
         },
         snackbarHost = { SnackbarHost(snackbarHost) },

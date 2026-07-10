@@ -127,7 +127,7 @@ fun DiagnosticsScreen(
                 },
                 title = { Text("Diagnostics & logs") },
                 actions = {
-                    IconButton(onClick = onOpenSettings) { Icon(Icons.Rounded.Settings, "Global settings") }
+                    IconButton(onClick = onOpenSettings) { Icon(Icons.Rounded.Settings, "Settings") }
                     IconButton(
                         onClick = { vm.showPicker() },
                         enabled = s.attachingSessionId == null,
