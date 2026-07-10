@@ -15,8 +15,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -72,6 +74,7 @@ import dev.agentic.ui.EFFORT_OPTIONS
 import dev.agentic.ui.SESSION_START_MODEL_OPTIONS
 import dev.agentic.ui.OnAccentVioletContainer
 import dev.agentic.ui.drawUltracodeRipple
+import dev.agentic.ui.fadingEdgeVertical
 import dev.agentic.ui.rememberUltracodeRipplePhase
 import dev.agentic.ui.components.AppTextField
 import dev.agentic.ui.components.AttachmentChip
@@ -525,6 +528,34 @@ fun NewRequestScreen(
 // ── Private helpers ───────────────────────────────────────────────────────────
 
 /**
+ * Caps a chip FlowRow at ~4 chip rows so a long component list (many repos, plugins…) doesn't
+ * dominate the form. Content taller than the cap scrolls vertically INSIDE the cap, with
+ * dynamic fading edges signalling the off-screen rest: the bottom fades while more remains
+ * below, the top fades once scrolled down. Groups short enough to fit are unaffected
+ * (no scroll, no fade).
+ */
+@Composable
+private fun LimitedChipRows(content: @Composable () -> Unit) {
+    val scroll = rememberScrollState()
+    // 4 chip rows: FilterChip container height 32dp × 4 + spacedBy(8dp) × 3 gaps = 152dp.
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .heightIn(max = 152.dp)
+            // The fade masks the scroll VIEWPORT (this node's size), not the full content —
+            // it must sit above verticalScroll's clip in the modifier chain.
+            .fadingEdgeVertical(
+                height = 24.dp,
+                fadeTop = { scroll.value > 0 },
+                fadeBottom = { scroll.value < scroll.maxValue },
+            )
+            .verticalScroll(scroll),
+    ) {
+        content()
+    }
+}
+
+/**
  * Chip-group section with an inline filter field for a list of [ComponentInfo] components.
  * Each chip shows its EFFECTIVE state (globalEnabled resolved through override) via [ComponentChip].
  * Tap toggles effective state; [onToggle] is called with the clicked component so the caller can
@@ -575,24 +606,26 @@ private fun ComponentChipPicker(
             colors = cardFieldColors(),
             modifier = Modifier.fillMaxWidth(),
         )
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            shown.forEach { comp ->
-                val cur = overrides[comp.id] ?: Override.Inherit
-                val effective = when (cur) {
-                    Override.Inherit  -> comp.globalEnabled
-                    Override.ForceOn  -> true
-                    Override.ForceOff -> false
+        LimitedChipRows {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                shown.forEach { comp ->
+                    val cur = overrides[comp.id] ?: Override.Inherit
+                    val effective = when (cur) {
+                        Override.Inherit  -> comp.globalEnabled
+                        Override.ForceOn  -> true
+                        Override.ForceOff -> false
+                    }
+                    ComponentChip(
+                        label = displayLabel(comp),
+                        kind = comp.kind,
+                        effective = effective,
+                        onClick = { onToggle(comp) },
+                    )
                 }
-                ComponentChip(
-                    label = displayLabel(comp),
-                    kind = comp.kind,
-                    effective = effective,
-                    onClick = { onToggle(comp) },
-                )
             }
         }
     }
@@ -654,18 +687,20 @@ private fun ChipPicker(
             colors = cardFieldColors(),
             modifier = Modifier.fillMaxWidth(),
         )
-        FlowRow(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            shown.forEach { o ->
-                ComponentChip(
-                    label = displayLabel(o),
-                    kind = "repo",
-                    effective = o in selected,
-                    onClick = { onToggle(o) },
-                )
+        LimitedChipRows {
+            FlowRow(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                shown.forEach { o ->
+                    ComponentChip(
+                        label = displayLabel(o),
+                        kind = "repo",
+                        effective = o in selected,
+                        onClick = { onToggle(o) },
+                    )
+                }
             }
         }
     }

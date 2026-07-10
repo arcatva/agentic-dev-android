@@ -91,6 +91,43 @@ fun Modifier.fadingEdgeHorizontal(
         }
     }
 
+/**
+ * Fade content out over [height] px at the top and/or bottom edge using an offscreen DstIn mask —
+ * the vertical counterpart of [fadingEdgeHorizontal]. [fadeTop] / [fadeBottom] are evaluated at
+ * draw time, so a vertically-scrollable block can fade only the edge that actually has off-screen
+ * content — top once scrolled down, bottom while more remains below.
+ */
+fun Modifier.fadingEdgeVertical(
+    height: Dp = 24.dp,
+    fadeTop: () -> Boolean = { true },
+    fadeBottom: () -> Boolean = { true },
+): Modifier = this
+    .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+    .drawWithContent {
+        drawContent()
+        val h = height.toPx()
+        if (fadeTop()) {
+            drawRect(
+                brush = Brush.verticalGradient(
+                    colors = listOf(Color.Transparent, Color.Black),
+                    startY = 0f,
+                    endY = h,
+                ),
+                blendMode = BlendMode.DstIn,
+            )
+        }
+        if (fadeBottom()) {
+            drawRect(
+                brush = Brush.verticalGradient(
+                    colors = listOf(Color.Black, Color.Transparent),
+                    startY = size.height - h,
+                    endY = size.height,
+                ),
+                blendMode = BlendMode.DstIn,
+            )
+        }
+    }
+
 /** Single-line text that fades out at the right edge when it overflows (instead of an ellipsis). */
 @Composable
 fun FadingText(
