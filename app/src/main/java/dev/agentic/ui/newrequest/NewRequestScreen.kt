@@ -311,30 +311,16 @@ fun NewRequestScreen(
                             }
                         }
                     }
-                    // Collapsible "Add MCP server" form. The header row and the AnimatedVisibility
-                    // share ONE Column child so the collapsed (zero-height) form doesn't pick up an
-                    // extra spacedBy(8) gap from the surrounding Column.
+                    // Ad-hoc per-session server: a modest text action, NOT a pseudo section
+                    // header — the other groups in this card carry no header rows at all, so a
+                    // titleSmall row with a chevron read as clashing with its surroundings.
+                    // Same inline-text-action family as "Attach files" on the Request card.
+                    // The button and the AnimatedVisibility share ONE Column child so the
+                    // collapsed (zero-height) form doesn't pick up an extra spacedBy(8) gap.
                     var addMcpExpanded by remember { mutableStateOf(false) }
                     Column {
-                        Row(
-                            Modifier
-                                .fillMaxWidth()
-                                .clip(MaterialTheme.shapes.small)
-                                .clickable { addMcpExpanded = !addMcpExpanded }
-                                .padding(vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(
-                                "Add MCP server",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier.weight(1f),
-                            )
-                            Icon(
-                                if (addMcpExpanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
-                                contentDescription = if (addMcpExpanded) "Collapse Add MCP" else "Expand Add MCP",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+                        TextButton(onClick = { addMcpExpanded = !addMcpExpanded }) {
+                            Text(if (addMcpExpanded) "Cancel" else "Add MCP server for this session")
                         }
                         AnimatedVisibility(
                             visible = addMcpExpanded,
