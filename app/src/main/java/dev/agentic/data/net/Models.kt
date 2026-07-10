@@ -605,3 +605,20 @@ data class AddSkillReq(val name: String, val description: String, val instructio
 @Serializable
 data class AddPluginReq(val id: String)
 
+/** One entry of the external skill store (GET /api/skills/catalog). [source] is the
+ *  ready-to-install reference to POST back to /api/skills/install. */
+@Serializable
+data class CatalogSkill(
+    val name: String,
+    val description: String = "",
+    val source: String,
+)
+
+/** Response wrapper for GET /api/skills/catalog. */
+@Serializable
+data class SkillCatalogResp(val skills: List<CatalogSkill> = emptyList())
+
+/** Body for POST /api/skills/install — [source] is `owner/repo[/path]` or a github.com URL. */
+@Serializable
+data class InstallSkillReq(val source: String)
+

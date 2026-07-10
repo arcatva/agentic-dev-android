@@ -15,10 +15,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -39,12 +37,8 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -74,10 +68,10 @@ import dev.agentic.ui.EFFORT_OPTIONS
 import dev.agentic.ui.SESSION_START_MODEL_OPTIONS
 import dev.agentic.ui.OnAccentVioletContainer
 import dev.agentic.ui.drawUltracodeRipple
-import dev.agentic.ui.fadingEdgeVertical
 import dev.agentic.ui.rememberUltracodeRipplePhase
 import dev.agentic.ui.components.AppTextField
 import dev.agentic.ui.components.AttachmentChip
+import dev.agentic.ui.components.CappedScrollColumn
 import dev.agentic.ui.components.ComponentChip
 import dev.agentic.ui.components.SectionCard
 import dev.agentic.ui.components.SliderField
@@ -276,68 +270,20 @@ fun NewRequestScreen(
                 }
                 // MCP — the SAME filter-field + chip picker as Skills/Plugins above, so all four
                 // component groups in this card share one visual pattern (the filter placeholder
-                // names the group; no floating section label).
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (s.mcpComponents.isNotEmpty()) {
-                        ComponentChipPicker(
-                            label = "MCP servers",
-                            filterPlaceholder = "Filter MCP servers",
-                            components = s.mcpComponents,
-                            overrides = s.mcpOverrides,
-                            onToggle = { comp ->
-                                val cur = s.mcpOverrides[comp.id] ?: Override.Inherit
-                                realVm.setOverride("mcp", comp.id, nextOverrideOnTap(cur, comp.globalEnabled))
-                            },
-                        )
-                    }
-                    // Extra (ad-hoc) added servers — shown as removable chips (FlowRow).
-                    if (s.extraMcpServers.isNotEmpty()) {
-                        FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            s.extraMcpServers.forEach { srv ->
-                                InputChip(
-                                    selected = false,
-                                    onClick = {},
-                                    label = { Text(srv.name) },
-                                    trailingIcon = {
-                                        IconButton(onClick = { realVm.removeMcpServer(srv.name) }) {
-                                            Icon(Icons.Rounded.Close, contentDescription = "Remove ${srv.name}")
-                                        }
-                                    },
-                                )
-                            }
-                        }
-                    }
-                    // Ad-hoc per-session server: a modest text action, NOT a pseudo section
-                    // header — the other groups in this card carry no header rows at all, so a
-                    // titleSmall row with a chevron read as clashing with its surroundings.
-                    // Same inline-text-action family as "Attach files" on the Request card.
-                    // The button and the AnimatedVisibility share ONE Column child so the
-                    // collapsed (zero-height) form doesn't pick up an extra spacedBy(8) gap.
-                    var addMcpExpanded by remember { mutableStateOf(false) }
-                    Column {
-                        TextButton(onClick = { addMcpExpanded = !addMcpExpanded }) {
-                            Text(if (addMcpExpanded) "Cancel" else "Add MCP server for this session")
-                        }
-                        AnimatedVisibility(
-                            visible = addMcpExpanded,
-                            enter = expandVertically() + fadeIn(),
-                            exit = shrinkVertically() + fadeOut(),
-                        ) {
-                            AddMcpForm(
-                                draft = s.mcpDraft,
-                                onDraftChange = realVm::updateMcpDraft,
-                                onAdd = {
-                                    val err = realVm.addMcpServer()
-                                    if (err == null) addMcpExpanded = false
-                                    err
-                                },
-                            )
-                        }
-                    }
+                // names the group; no floating section label). This screen only SELECTS
+                // components for the session — adding/removing MCP servers (like skills and
+                // plugins) lives on the Settings page.
+                if (s.mcpComponents.isNotEmpty()) {
+                    ComponentChipPicker(
+                        label = "MCP servers",
+                        filterPlaceholder = "Filter MCP servers",
+                        components = s.mcpComponents,
+                        overrides = s.mcpOverrides,
+                        onToggle = { comp ->
+                            val cur = s.mcpOverrides[comp.id] ?: Override.Inherit
+                            realVm.setOverride("mcp", comp.id, nextOverrideOnTap(cur, comp.globalEnabled))
+                        },
+                    )
                 }
             }
 
@@ -515,30 +461,13 @@ fun NewRequestScreen(
 
 /**
  * Caps a chip FlowRow at ~4 chip rows so a long component list (many repos, plugins…) doesn't
- * dominate the form. Content taller than the cap scrolls vertically INSIDE the cap, with
- * dynamic fading edges signalling the off-screen rest: the bottom fades while more remains
- * below, the top fades once scrolled down. Groups short enough to fit are unaffected
- * (no scroll, no fade).
+ * dominate the form: 4 × 32dp FilterChips + 3 × 8dp gaps = 152dp. Taller content scrolls inside
+ * the cap with fading edges and contained scrolling; see [CappedScrollColumn] (shared with the
+ * Settings skill catalog).
  */
 @Composable
 private fun LimitedChipRows(content: @Composable () -> Unit) {
-    val scroll = rememberScrollState()
-    // 4 chip rows: FilterChip container height 32dp × 4 + spacedBy(8dp) × 3 gaps = 152dp.
-    Box(
-        Modifier
-            .fillMaxWidth()
-            .heightIn(max = 152.dp)
-            // The fade masks the scroll VIEWPORT (this node's size), not the full content —
-            // it must sit above verticalScroll's clip in the modifier chain.
-            .fadingEdgeVertical(
-                height = 24.dp,
-                fadeTop = { scroll.value > 0 },
-                fadeBottom = { scroll.value < scroll.maxValue },
-            )
-            .verticalScroll(scroll),
-    ) {
-        content()
-    }
+    CappedScrollColumn(maxHeight = 152.dp) { content() }
 }
 
 /**
@@ -688,129 +617,6 @@ private fun ChipPicker(
                     )
                 }
             }
-        }
-    }
-}
-
-/**
- * Inline form for adding an ad-hoc MCP server for this session.
- * Shows a transport toggle (stdio | HTTP); stdio reveals command + args + env;
- * HTTP/SSE reveals url + type + headers. Client-side validation mirrors backend.
- *
- * [onAdd] returns a nullable error string (non-null = show error, stay open; null = success).
- */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
-@Composable
-private fun AddMcpForm(
-    draft: McpDraft,
-    onDraftChange: (McpDraft) -> Unit,
-    onAdd: () -> String?,
-) {
-    var localError by remember { mutableStateOf<String?>(null) }
-
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        // Transport toggle: stdio | HTTP/SSE. icon = {} drops the default selected-checkmark —
-        // the filled segment already shows the selection ("no decorative symbols" rule).
-        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-            listOf("stdio", "http").forEachIndexed { i, t ->
-                SegmentedButton(
-                    selected = draft.transport == t,
-                    onClick = { onDraftChange(draft.copy(transport = t)) },
-                    shape = SegmentedButtonDefaults.itemShape(index = i, count = 2),
-                    icon = {},
-                    label = { Text(if (t == "stdio") "stdio" else "HTTP / SSE") },
-                )
-            }
-        }
-
-        // Name field (always shown)
-        AppTextField(
-            value = draft.name,
-            onValueChange = { onDraftChange(draft.copy(name = it)) },
-            placeholder = "Server name (e.g. my-mcp)",
-            singleLine = true,
-            shape = MaterialTheme.shapes.small,
-            colors = cardFieldColors(),
-            modifier = Modifier.fillMaxWidth(),
-        )
-
-        if (draft.transport == "stdio") {
-            AppTextField(
-                value = draft.command,
-                onValueChange = { onDraftChange(draft.copy(command = it)) },
-                placeholder = "Command (e.g. /usr/bin/node server.js)",
-                singleLine = true,
-                shape = MaterialTheme.shapes.small,
-                colors = cardFieldColors(),
-                modifier = Modifier.fillMaxWidth(),
-            )
-            AppTextField(
-                value = draft.args,
-                onValueChange = { onDraftChange(draft.copy(args = it)) },
-                placeholder = "Args (optional, space-separated)",
-                singleLine = true,
-                shape = MaterialTheme.shapes.small,
-                colors = cardFieldColors(),
-                modifier = Modifier.fillMaxWidth(),
-            )
-            AppTextField(
-                value = draft.env,
-                onValueChange = { onDraftChange(draft.copy(env = it)) },
-                placeholder = "Env vars (optional, KEY=VALUE lines)",
-                singleLine = false,
-                minLines = 2,
-                maxLines = 4,
-                shape = MaterialTheme.shapes.small,
-                colors = cardFieldColors(),
-                modifier = Modifier.fillMaxWidth(),
-            )
-        } else {
-            // HTTP/SSE type sub-toggle (icon = {} — no selected-checkmark)
-            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                listOf("http", "sse").forEachIndexed { i, t ->
-                    SegmentedButton(
-                        selected = draft.httpType == t,
-                        onClick = { onDraftChange(draft.copy(httpType = t)) },
-                        shape = SegmentedButtonDefaults.itemShape(index = i, count = 2),
-                        icon = {},
-                        label = { Text(t.uppercase()) },
-                    )
-                }
-            }
-            AppTextField(
-                value = draft.url,
-                onValueChange = { onDraftChange(draft.copy(url = it)) },
-                placeholder = "URL (e.g. https://example.com/mcp)",
-                singleLine = true,
-                shape = MaterialTheme.shapes.small,
-                colors = cardFieldColors(),
-                modifier = Modifier.fillMaxWidth(),
-            )
-            AppTextField(
-                value = draft.headers,
-                onValueChange = { onDraftChange(draft.copy(headers = it)) },
-                placeholder = "Headers (optional, KEY=VALUE lines)",
-                singleLine = false,
-                minLines = 2,
-                maxLines = 4,
-                shape = MaterialTheme.shapes.small,
-                colors = cardFieldColors(),
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
-
-        localError?.let { err ->
-            Text(err, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-        }
-
-        Button(
-            onClick = {
-                val err = onAdd()
-                localError = err
-            },
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text("Add MCP server")
         }
     }
 }

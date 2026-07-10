@@ -87,6 +87,10 @@ interface AgenticApi {
     /** Add a skill globally — [instructions] is the SKILL.md markdown body (the content the
      *  agent loads). Returns the refreshed component list. Default impl = emptyList(). */
     suspend fun addSkill(name: String, description: String, instructions: String = ""): List<ComponentInfo> = emptyList()
+    /** The external skill store (curated anthropics/skills catalog). Default impl = emptyList(). */
+    suspend fun getSkillCatalog(): List<CatalogSkill> = emptyList()
+    /** Install a skill from a GitHub source (`owner/repo[/path]` or URL). Returns the refreshed list. */
+    suspend fun installSkill(source: String): List<ComponentInfo> = emptyList()
     /** Delete a skill globally by name. Returns the refreshed list. */
     suspend fun deleteSkill(name: String): List<ComponentInfo> = emptyList()
     /** Install a plugin globally (slow — CLI shells out). Returns the refreshed list. */

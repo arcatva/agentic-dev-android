@@ -3,6 +3,7 @@ package dev.agentic.data
 import dev.agentic.data.net.AgenticApi
 import dev.agentic.data.net.AdoptSessionReq
 import dev.agentic.data.net.Adoptable
+import dev.agentic.data.net.CatalogSkill
 import dev.agentic.data.net.CommitFile
 import dev.agentic.data.net.ComponentInfo
 import dev.agentic.data.net.CreateGroupReq
@@ -525,6 +526,24 @@ override suspend fun fork(id: String): String {
         addSkillInstructions.add(instructions)
         addSkillException?.let { throw it }
         return addSkillResult
+    }
+
+    var skillCatalogResult: List<CatalogSkill> = emptyList()
+    var skillCatalogException: Exception? = null
+    var skillCatalogCalls: Int = 0
+    override suspend fun getSkillCatalog(): List<CatalogSkill> {
+        skillCatalogCalls++
+        skillCatalogException?.let { throw it }
+        return skillCatalogResult
+    }
+
+    var installSkillResult: List<ComponentInfo> = emptyList()
+    var installSkillException: Exception? = null
+    val installSkillCalls: MutableList<String> = mutableListOf()
+    override suspend fun installSkill(source: String): List<ComponentInfo> {
+        installSkillCalls.add(source)
+        installSkillException?.let { throw it }
+        return installSkillResult
     }
 
     var deleteSkillResult: List<ComponentInfo> = emptyList()
