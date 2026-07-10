@@ -692,10 +692,10 @@ class KtorAgenticApi(
     }
 
     // ── Feature: Global Settings CRUD (S5c) ─────────────────────────────────────
-    override suspend fun addSkill(name: String, description: String): List<ComponentInfo> {
+    override suspend fun addSkill(name: String, description: String, instructions: String): List<ComponentInfo> {
         return try {
             val r: List<ComponentInfo> = client.post("$baseUrl/api/skills") {
-                auth(); contentType(ContentType.Application.Json); setBody(AddSkillReq(name, description))
+                auth(); contentType(ContentType.Application.Json); setBody(AddSkillReq(name, description, instructions))
             }.body()
             AppLog.d("API", "POST skills name=$name -> OK")
             r

@@ -15,7 +15,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -42,6 +41,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -61,9 +62,9 @@ import dev.agentic.ui.providers.ModelsSections
  * as colored chips in FlowRow groups (same visual language as the New Request screen), plus the
  * models registry ([ModelsSections]: Router + Sub-agent models — merged from the old Models screen).
  *
- * Skills and plugins are interactive: tapping a chip calls [GlobalSettingsViewModel.toggle].
- * MCP chips have no global toggle (backend doesn't support it) — long-press is still available
- * for delete.
+ * All chips are interactive: tapping toggles the component's GLOBAL enabled state via
+ * [GlobalSettingsViewModel.toggle] (skills/plugins through settings.local.json, MCP servers by
+ * parking the definition in .claude.json); long-press deletes/uninstalls.
  *
  * Each section now has an "Add" affordance (collapsible inline form) and each chip supports
  * long-press → confirm dialog → delete/uninstall.
@@ -141,7 +142,7 @@ fun GlobalSettingsScreen(
                         busy = s.busy,
                         error = s.error,
                         onToggle = { resolvedVm.toggle(it) },
-                        onAddSkill = { name, desc -> resolvedVm.addSkill(name, desc) },
+                        onAddSkill = { name, desc, instructions -> resolvedVm.addSkill(name, desc, instructions) },
                         onDeleteSkill = { resolvedVm.deleteSkill(it) },
                     )
 
@@ -156,11 +157,13 @@ fun GlobalSettingsScreen(
                         onUninstallPlugin = { resolvedVm.uninstallPlugin(it) },
                     )
 
-                    // ── MCP (always rendered, toggle read-only, but add/delete supported) ──
+                    // ── MCP (tap toggles the global state; long-press removes) ──
                     McpSection(
                         mcps = mcps,
+                        toggling = s.toggling,
                         busy = s.busy,
                         error = s.error,
+                        onToggle = { resolvedVm.toggle(it) },
                         onAddMcpServer = { draft -> resolvedVm.addMcpServer(draft) },
                         onDeleteMcpServer = { resolvedVm.deleteMcpServer(it) },
                     )
@@ -177,8 +180,8 @@ fun GlobalSettingsScreen(
 
 @Composable
 private fun AddHeaderButton(label: String, onAdd: () -> Unit) {
-    TextButton(onClick = onAdd) {
-        Icon(Icons.Rounded.Add, contentDescription = "Add $label", modifier = Modifier.padding(end = 4.dp))
+    // Text-only ("no decorative icons" rule): the header context already says what gets added.
+    TextButton(onClick = onAdd, modifier = Modifier.semantics { contentDescription = "Add $label" }) {
         Text("Add")
     }
 }
@@ -193,7 +196,7 @@ private fun SkillsSection(
     busy: Boolean,
     error: String?,
     onToggle: (ComponentInfo) -> Unit,
-    onAddSkill: (name: String, description: String) -> Unit,
+    onAddSkill: (name: String, description: String, instructions: String) -> Unit,
     onDeleteSkill: (name: String) -> Unit,
 ) {
     var addExpanded by remember { mutableStateOf(false) }
@@ -251,9 +254,9 @@ private fun SkillsSection(
                 Column(Modifier.padding(bottom = 12.dp)) {
                     AddSkillForm(
                         busy = busy,
-                        onAdd = { name, desc ->
+                        onAdd = { name, desc, instructions ->
                             submitting = true
-                            onAddSkill(name, desc)
+                            onAddSkill(name, desc, instructions)
                             // Form does NOT close here — closes via LaunchedEffect above on success.
                         },
                     )
@@ -293,10 +296,11 @@ private fun SkillsSection(
 @Composable
 private fun AddSkillForm(
     busy: Boolean,
-    onAdd: (name: String, description: String) -> Unit,
+    onAdd: (name: String, description: String, instructions: String) -> Unit,
 ) {
     var name by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
+    var instructions by remember { mutableStateOf("") }
     var localError by remember { mutableStateOf<String?>(null) }
 
     // No horizontal padding of its own — the enclosing SectionCard already insets its content.
@@ -313,10 +317,25 @@ private fun AddSkillForm(
         AppTextField(
             value = description,
             onValueChange = { description = it },
-            placeholder = "Description (optional)",
+            placeholder = "Description — when should the agent load this skill?",
             singleLine = false,
             minLines = 2,
             maxLines = 4,
+            shape = MaterialTheme.shapes.small,
+            colors = cardFieldColors(),
+            modifier = Modifier.fillMaxWidth(),
+        )
+        // The actual skill content. Without it the created skill is an empty shell — the
+        // description only decides WHEN the skill loads; this markdown is WHAT it says.
+        AppTextField(
+            value = instructions,
+            onValueChange = { instructions = it; localError = null },
+            placeholder = "Instructions (markdown) — the steps and rules the agent follows " +
+                "when this skill is active",
+            supportingText = "This becomes the SKILL.md body — the content the agent actually reads.",
+            singleLine = false,
+            minLines = 4,
+            maxLines = 12,
             shape = MaterialTheme.shapes.small,
             colors = cardFieldColors(),
             modifier = Modifier.fillMaxWidth(),
@@ -326,21 +345,23 @@ private fun AddSkillForm(
         }
         Button(
             onClick = {
-                if (name.isBlank()) {
-                    localError = "Skill name is required"
-                } else {
-                    // Do NOT clear name/description here — keep values in case the API call
-                    // fails so the user can retry without re-typing. The parent section clears
-                    // them by collapsing (and unmounting) the form only on success.
-                    onAdd(name.trim(), description.trim())
-                    localError = null
+                when {
+                    name.isBlank() -> localError = "Skill name is required"
+                    instructions.isBlank() -> localError =
+                        "Instructions are required — a skill without them is an empty shell"
+                    else -> {
+                        // Do NOT clear the fields here — keep values in case the API call
+                        // fails so the user can retry without re-typing. The parent section
+                        // clears them by collapsing (and unmounting) the form only on success.
+                        onAdd(name.trim(), description.trim(), instructions.trim())
+                        localError = null
+                    }
                 }
             },
             enabled = !busy,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Icon(Icons.Rounded.Add, contentDescription = null)
-            Text("  Add skill")
+            Text("Add skill")
         }
     }
 }
@@ -496,8 +517,7 @@ private fun AddPluginForm(
             enabled = !busy,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Icon(Icons.Rounded.Add, contentDescription = null)
-            Text("  Install plugin")
+            Text("Install plugin")
         }
     }
 }
@@ -509,8 +529,10 @@ private fun AddPluginForm(
 @Composable
 private fun McpSection(
     mcps: List<ComponentInfo>,
+    toggling: Set<String>,
     busy: Boolean,
     error: String?,
+    onToggle: (ComponentInfo) -> Unit,
     onAddMcpServer: (McpDraft) -> String?,
     onDeleteMcpServer: (name: String) -> Unit,
 ) {
@@ -574,7 +596,8 @@ private fun McpSection(
                 }
             }
 
-            // Chips (read-only toggle, but deletable via long-press)
+            // Chips — tap toggles the server globally (the backend parks the definition in
+            // .claude.json's mcpServersDisabled); long-press removes it.
             if (mcps.isEmpty()) {
                 Text(
                     "No MCP servers",
@@ -586,14 +609,15 @@ private fun McpSection(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
+                    val toggleKey = { c: ComponentInfo -> "${c.kind}:${c.id}" }
                     mcps.forEach { component ->
+                        val isToggling = toggleKey(component) in toggling
                         ComponentChip(
                             label = component.name.ifBlank { component.id },
                             kind = component.kind,
                             effective = component.globalEnabled,
-                            onClick = { /* MCP global toggle not supported */ },
-                            enabled = !busy,
-                            readOnlyCaption = "managed per-session",
+                            onClick = { if (!isToggling && !busy) onToggle(component) },
+                            enabled = !isToggling && !busy,
                             onLongClick = { if (!busy) pendingDelete = component },
                         )
                     }
@@ -620,13 +644,15 @@ private fun AddMcpForm(
 
     // No horizontal padding of its own — the enclosing SectionCard already insets its content.
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        // Transport toggle: stdio | HTTP/SSE
+        // Transport toggle: stdio | HTTP/SSE. icon = {} drops the default selected-checkmark —
+        // the filled segment already shows the selection ("no decorative symbols" rule).
         SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
             listOf("stdio", "http").forEachIndexed { i, t ->
                 SegmentedButton(
                     selected = draft.transport == t,
                     onClick = { draft = draft.copy(transport = t) },
                     shape = SegmentedButtonDefaults.itemShape(index = i, count = 2),
+                    icon = {},
                     label = { Text(if (t == "stdio") "stdio" else "HTTP / SSE") },
                 )
             }
@@ -674,13 +700,14 @@ private fun AddMcpForm(
                 modifier = Modifier.fillMaxWidth(),
             )
         } else {
-            // HTTP/SSE type sub-toggle
+            // HTTP/SSE type sub-toggle (icon = {} — no selected-checkmark)
             SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                 listOf("http", "sse").forEachIndexed { i, t ->
                     SegmentedButton(
                         selected = draft.httpType == t,
                         onClick = { draft = draft.copy(httpType = t) },
                         shape = SegmentedButtonDefaults.itemShape(index = i, count = 2),
+                        icon = {},
                         label = { Text(t.uppercase()) },
                     )
                 }
@@ -722,8 +749,7 @@ private fun AddMcpForm(
             enabled = !busy,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Icon(Icons.Rounded.Add, contentDescription = null)
-            Text("  Add MCP server")
+            Text("Add MCP server")
         }
     }
 }

@@ -23,7 +23,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AttachFile
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.ExpandLess
@@ -689,13 +688,15 @@ private fun AddMcpForm(
     var localError by remember { mutableStateOf<String?>(null) }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        // Transport toggle: stdio | HTTP/SSE
+        // Transport toggle: stdio | HTTP/SSE. icon = {} drops the default selected-checkmark —
+        // the filled segment already shows the selection ("no decorative symbols" rule).
         SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
             listOf("stdio", "http").forEachIndexed { i, t ->
                 SegmentedButton(
                     selected = draft.transport == t,
                     onClick = { onDraftChange(draft.copy(transport = t)) },
                     shape = SegmentedButtonDefaults.itemShape(index = i, count = 2),
+                    icon = {},
                     label = { Text(if (t == "stdio") "stdio" else "HTTP / SSE") },
                 )
             }
@@ -743,13 +744,14 @@ private fun AddMcpForm(
                 modifier = Modifier.fillMaxWidth(),
             )
         } else {
-            // HTTP/SSE type sub-toggle
+            // HTTP/SSE type sub-toggle (icon = {} — no selected-checkmark)
             SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                 listOf("http", "sse").forEachIndexed { i, t ->
                     SegmentedButton(
                         selected = draft.httpType == t,
                         onClick = { onDraftChange(draft.copy(httpType = t)) },
                         shape = SegmentedButtonDefaults.itemShape(index = i, count = 2),
+                        icon = {},
                         label = { Text(t.uppercase()) },
                     )
                 }
@@ -787,8 +789,7 @@ private fun AddMcpForm(
             },
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Icon(Icons.Rounded.Add, contentDescription = null)
-            Text("  Add MCP server")
+            Text("Add MCP server")
         }
     }
 }

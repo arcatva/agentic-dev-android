@@ -72,16 +72,13 @@ class GlobalSettingsViewModel(
      * Flip [component]'s enabled state: optimistically update, call the API, apply the refreshed
      * list, or revert + surface error on failure.
      *
-     * MCP components ([ComponentInfo.kind] == "mcp") are read-only at the global level —
-     * the backend returns 400 for them — so this function is a no-op for them.
+     * Supports all three kinds — the backend toggles skills/plugins via settings.local.json
+     * and MCP servers by parking their definition in .claude.json (mcpServersDisabled).
      *
      * Toggle calls are serialized via [toggleMutex] so that responses from concurrent taps
      * are applied in order and cannot replace the full component list with a stale snapshot.
      */
     fun toggle(component: ComponentInfo) {
-        // MCP global toggle is not supported by the backend; the switch is read-only.
-        if (component.kind == "mcp") return
-
         val toggleKey = "${component.kind}:${component.id}"
         // Ignore if already toggling this component.
         if (_uiState.value.toggling.contains(toggleKey)) return
@@ -146,13 +143,14 @@ class GlobalSettingsViewModel(
         return true
     }
 
-    /** Add a skill globally. Calls the API and replaces the component list from the response.
-     *  No-ops silently while another op is busy (the UI must also disable the submit button). */
-    fun addSkill(name: String, description: String) {
+    /** Add a skill globally — [instructions] is the SKILL.md markdown body (what the agent
+     *  actually loads and follows). Calls the API and replaces the component list from the
+     *  response. No-ops silently while another op is busy (the UI must also disable submit). */
+    fun addSkill(name: String, description: String, instructions: String) {
         if (!acquireBusy()) return
         viewModelScope.launch {
             try {
-                val refreshed = api.addSkill(name, description)
+                val refreshed = api.addSkill(name, description, instructions)
                 _uiState.update { it.copy(components = refreshed, busy = false, error = null) }
             } catch (e: Exception) {
                 _uiState.update { it.copy(busy = false, error = "Failed to add skill: ${e.message}") }

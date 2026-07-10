@@ -519,8 +519,10 @@ override suspend fun fork(id: String): String {
     var addSkillResult: List<ComponentInfo> = emptyList()
     var addSkillException: Exception? = null
     val addSkillCalls: MutableList<Pair<String, String>> = mutableListOf()
-    override suspend fun addSkill(name: String, description: String): List<ComponentInfo> {
+    val addSkillInstructions: MutableList<String> = mutableListOf()
+    override suspend fun addSkill(name: String, description: String, instructions: String): List<ComponentInfo> {
         addSkillCalls.add(name to description)
+        addSkillInstructions.add(instructions)
         addSkillException?.let { throw it }
         return addSkillResult
     }
