@@ -79,6 +79,11 @@ class GlobalSettingsViewModel(
      * are applied in order and cannot replace the full component list with a stale snapshot.
      */
     fun toggle(component: ComponentInfo) {
+        // Don't interleave with a CRUD op (add/delete): both paths replace [components] with a
+        // full refreshed list from their response, so a stale late arrival could overwrite the
+        // newer mutation. CRUD is blocked while toggles are in flight too (see acquireBusy).
+        if (_uiState.value.busy) return
+
         val toggleKey = "${component.kind}:${component.id}"
         // Ignore if already toggling this component.
         if (_uiState.value.toggling.contains(toggleKey)) return
@@ -138,7 +143,9 @@ class GlobalSettingsViewModel(
      * Must be called on the main thread (StateFlow.update is main-thread safe).
      */
     private fun acquireBusy(): Boolean {
-        if (_uiState.value.busy) return false
+        // Also refuse while any toggle is in flight — a CRUD response and a toggle response
+        // both carry a full component list, and whichever lands second would clobber the first.
+        if (_uiState.value.busy || _uiState.value.toggling.isNotEmpty()) return false
         _uiState.update { it.copy(busy = true, error = null) }
         return true
     }
