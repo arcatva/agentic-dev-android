@@ -436,28 +436,39 @@ private fun CommitRow(
                     color = if (commit.isSession) accent else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.width(8.dp))
-                // Branch / tag / HEAD labels pointing at this commit. Cap the count so a
-                // heavily-decorated commit can't push the subject off this single-line row.
-                commit.refs.take(MAX_REF_CHIPS).forEach { ref ->
-                    RefChip(ref)
-                    Spacer(Modifier.width(4.dp))
-                }
-                if (commit.refs.size > MAX_REF_CHIPS) {
+                // Refs + subject share the space left AFTER the trailing "session" chip is
+                // reserved. Keeping this a single weighted child means the outer row's only
+                // non-weighted trailing item is the session chip, so it always measures at its
+                // full width instead of being starved to a near-zero constraint (which used to
+                // wrap "session" one character per line). Inside here the subject flexes and
+                // ellipsizes; if the ref chips still overflow, each clamps on one line.
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    // Branch / tag / HEAD labels pointing at this commit. Cap the count so a
+                    // heavily-decorated commit can't push the subject off this single-line row.
+                    commit.refs.take(MAX_REF_CHIPS).forEach { ref ->
+                        RefChip(ref)
+                        Spacer(Modifier.width(4.dp))
+                    }
+                    if (commit.refs.size > MAX_REF_CHIPS) {
+                        Text(
+                            "+${commit.refs.size - MAX_REF_CHIPS}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(end = 4.dp),
+                        )
+                    }
                     Text(
-                        "+${commit.refs.size - MAX_REF_CHIPS}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(end = 4.dp),
+                        commit.subject,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
                     )
                 }
-                Text(
-                    commit.subject,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
                 if (commit.isSession) {
                     Spacer(Modifier.width(6.dp))
                     SessionChip(accent)
@@ -489,6 +500,8 @@ private fun SessionChip(accent: Color) {
             style = MaterialTheme.typography.labelSmall,
             color = accent,
             fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            softWrap = false,
             modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp),
         )
     }
