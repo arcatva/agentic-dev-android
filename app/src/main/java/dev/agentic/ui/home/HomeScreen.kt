@@ -137,7 +137,6 @@ fun HomeScreen(
     onOpenSession: (String) -> Unit,
     onNewRequest: () -> Unit,
     onOpenDiagnostics: () -> Unit = {},
-    onOpenProviders: () -> Unit = {},
     onOpenAdoptPicker: () -> Unit = {},
     onOpenGlobalSettings: () -> Unit = {},
     vm: HomeViewModel? = null,
@@ -178,7 +177,6 @@ fun HomeScreen(
                 onOpenSession = onOpenSession,
                 onSearchExpandedChange = { searching = it },
                 onOpenDiagnostics = onOpenDiagnostics,
-                onOpenProviders = onOpenProviders,
                 onOpenAdoptPicker = onOpenAdoptPicker,
                 onOpenGlobalSettings = onOpenGlobalSettings,
             )
@@ -269,7 +267,6 @@ internal fun HomeTopBar(
     onOpenSession: (String) -> Unit,
     onSearchExpandedChange: (Boolean) -> Unit = {},
     onOpenDiagnostics: () -> Unit = {},
-    onOpenProviders: () -> Unit = {},
     onOpenAdoptPicker: () -> Unit = {},
     onOpenGlobalSettings: () -> Unit = {},
 ) {
@@ -412,11 +409,6 @@ internal fun HomeTopBar(
                             onClick = { menuOpen = false; onOpenGlobalSettings() },
                         )
                         DropdownMenuItem(
-                            text = { Text("Models") },
-                            leadingIcon = { Icon(Icons.Rounded.Tune, contentDescription = null) },
-                            onClick = { menuOpen = false; onOpenProviders() },
-                        )
-                        DropdownMenuItem(
                             text = { Text("Diagnostics") },
                             leadingIcon = { Icon(Icons.Rounded.BugReport, contentDescription = null) },
                             onClick = { menuOpen = false; onOpenDiagnostics() },
@@ -435,10 +427,6 @@ internal fun HomeTopBar(
                 } else {
                     FilledTonalIconButton(onClick = onOpenGlobalSettings) {
                         Icon(Icons.Rounded.Settings, contentDescription = "Global settings")
-                    }
-                    Spacer(Modifier.width(8.dp))
-                    FilledTonalIconButton(onClick = onOpenProviders) {
-                        Icon(Icons.Rounded.Tune, contentDescription = "Models")
                     }
                     Spacer(Modifier.width(8.dp))
                     FilledTonalIconButton(onClick = onOpenDiagnostics) {

@@ -39,7 +39,6 @@ import dev.agentic.ui.diagnostics.DiagnosticsScreen
 import dev.agentic.ui.globalsettings.GlobalSettingsScreen
 import dev.agentic.ui.home.HomeAdaptive
 import dev.agentic.ui.home.isWideHome
-import dev.agentic.ui.providers.ProvidersScreen
 import dev.agentic.ui.login.LoginScreen
 import dev.agentic.ui.newrequest.NewRequestScreen
 import dev.agentic.ui.session.SessionSettingsScreen
@@ -64,7 +63,6 @@ import kotlinx.serialization.Serializable
 @Serializable data class FileDiffRoute(val id: String, val repo: String = "", val sha: String = "", val path: String = "")
 @Serializable data class SessionSettings(val id: String)
 @Serializable object Diagnostics
-@Serializable object Providers
 @Serializable object GlobalSettings
 
 // ── NavHost ──────────────────────────────────────────────────────────────────
@@ -289,7 +287,6 @@ fun AppNav() {
                 onOpenHistory = { id, live -> nav.navigate(History(id, live)) },
                 onOpenSettings = { id -> nav.navigate(SessionSettings(id)) },
                 onOpenDiagnostics = { nav.navigate(Diagnostics) },
-                onOpenProviders = { nav.navigate(Providers) },
                 onOpenAdoptPicker = { showAdoptPicker = true },
                 onOpenGlobalSettings = { nav.navigate(GlobalSettings) },
             )
@@ -379,7 +376,6 @@ fun AppNav() {
                 onOpenHistory = { id, live -> nav.navigate(History(id, live)) },
                 onOpenSettings = { id -> nav.navigate(SessionSettings(id)) },
                 onOpenDiagnostics = { nav.navigate(Diagnostics) },
-                onOpenProviders = { nav.navigate(Providers) },
                 onOpenAdoptPicker = { showAdoptPicker = true },
                 onOpenGlobalSettings = { nav.navigate(GlobalSettings) },
                 initialSelectedId = sessionId,
@@ -434,14 +430,11 @@ fun AppNav() {
         composable<Diagnostics> {
             DiagnosticsScreen(
                 onBack = { nav.popBackStack() },
-                onOpenProviders = { nav.navigate(Providers) },
+                // Models management merged into Global settings — the shortcut lands there now.
+                onOpenSettings = { nav.navigate(GlobalSettings) },
                 // After attach+send, land on the session so the user sees the log message arrive.
                 onOpenSession = { id -> openSessionAdaptive(id) },
             )
-        }
-
-        composable<Providers> {
-            ProvidersScreen(onBack = { nav.popBackStack() })
         }
 
         composable<GlobalSettings> {

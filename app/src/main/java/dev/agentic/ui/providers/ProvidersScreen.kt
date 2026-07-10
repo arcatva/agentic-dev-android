@@ -1,25 +1,25 @@
-@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class, ExperimentalFoundationApi::class)
 
 package dev.agentic.ui.providers
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.Crossfade
-import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -27,9 +27,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.Edit
@@ -48,14 +47,12 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.ToggleButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -97,12 +94,11 @@ import dev.agentic.ui.OnAccentBlue
 import dev.agentic.ui.OnAccentBlueContainer
 import dev.agentic.ui.OnAccentViolet
 import dev.agentic.ui.OnAccentVioletContainer
-import dev.agentic.ui.appEffectsSpec
-import dev.agentic.ui.appSpatialSpec
 import dev.agentic.ui.components.AppTextField
 import dev.agentic.ui.components.FloatSliderField
 import dev.agentic.ui.components.SectionCard
 import dev.agentic.ui.components.cardFieldColors
+import kotlinx.coroutines.delay
 
 /** One-tap presets: fill the endpoint + protocol + a default model so adding a model is just
  *  "pick a preset, paste the key". Endpoints are the providers' Anthropic-compatible URLs where
@@ -182,28 +178,28 @@ private class ProviderFormState {
 }
 
 /**
- * Manage the BYOK provider registry with Expressive-style provider cards:
- * rich avatars, emphasized typography, tonal description bubbles, and more breathing room.
+ * Models management sections — the BYOK provider registry, embedded in the GLOBAL SETTINGS page
+ * (this replaced the standalone "Models" screen: models and component settings now live on one page).
  *
- * MD3 Expressive structure: providers are grouped into tonal SectionCards — "Router" for the
- * active router and "Models" for the rest. No floating ALL-CAPS labels outside cards; every
- * section has a proper card header with consistent typography.
+ * Renders two tonal SectionCards: "Router" (the active router card) and "Sub-agent models"
+ * (every other model). The Sub-agent models card carries an "Add" header action — the add/edit
+ * details stay hidden until the user taps Add (or Edit on a card), matching the
+ * Skills / Plugins / MCP servers sections above it.
+ *
+ * Self-contained: owns its ViewModel, the delete-confirm dialog, and the add/edit form state.
+ * Emits its cards as siblings into the caller's Column (which provides the 12dp rhythm).
  */
 @Composable
-fun ProvidersScreen(onBack: () -> Unit) {
+fun ModelsSections() {
     val container = appContainer()
     val vm: ProvidersViewModel = viewModel(
         factory = viewModelFactory { initializer { ProvidersViewModel(container.api) } },
     )
     val ui by vm.uiState.collectAsStateWithLifecycle()
-    val scroll = rememberScrollState()
     val form = remember { ProviderFormState() }
+    // The add/edit details are hidden until Add is tapped (or Edit on a card).
+    var formVisible by remember { mutableStateOf(false) }
     var providerToDelete by remember { mutableStateOf<String?>(null) }
-
-    // Entering edit mode scrolls the form to the top so the user sees it.
-    LaunchedEffect(form.editing) {
-        if (form.editing) scroll.animateScrollTo(0)
-    }
 
     // Deleting a provider is destructive and the API key is write-only.
     val pending = providerToDelete
@@ -215,7 +211,10 @@ fun ProvidersScreen(onBack: () -> Unit) {
             confirmButton = {
                 TextButton(onClick = {
                     providerToDelete = null
-                    if (form.editing && form.name == pending) form.reset()
+                    if (form.editing && form.name == pending) {
+                        form.reset()
+                        formVisible = false
+                    }
                     vm.remove(pending)
                 }) {
                     Text("Delete", color = MaterialTheme.colorScheme.error)
@@ -227,113 +226,95 @@ fun ProvidersScreen(onBack: () -> Unit) {
         )
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Models") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
-                    }
-                },
-            )
-        },
-    ) { padding ->
-        Column(
-            Modifier
-                .padding(padding)
-                .fillMaxSize()
-                .verticalScroll(scroll)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            // The page title lives ONLY in the TopAppBar (app-wide rule) — no in-body headline,
-            // so "Models" never appears twice on one screen.
-            val err = ui.error
-            if (err != null) {
-                Text(err, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-            }
+    val err = ui.error
+    if (err != null) {
+        Text(err, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+    }
 
-            // ── Form-position swap (editing: form on top) ──────────────────
-            val formFadeSpec = appEffectsSpec<Float>()
-            AnimatedContent(
-                targetState = form.editing,
-                transitionSpec = { fadeIn(formFadeSpec) togetherWith fadeOut(formFadeSpec) },
-                label = "providers-form-pos",
-            ) { editing ->
-                val currentRouter = ui.providers.firstOrNull { it.router }?.name
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    if (editing) {
-                        AddOrEditForm(form, ui.busy, currentRouter, onSubmit = { vm.add(form.toReq()) { e -> if (e == null) form.reset() } })
-                        RegisteredList(ui, onEdit = { form.loadFrom(it) }, onDelete = { providerToDelete = it })
-                    } else {
-                        RegisteredList(ui, onEdit = { form.loadFrom(it) }, onDelete = { providerToDelete = it })
-                        AddOrEditForm(form, ui.busy, currentRouter, onSubmit = { vm.add(form.toReq()) { e -> if (e == null) form.reset() } })
+    val router = ui.providers.firstOrNull { it.router }
+    val currentRouter = router?.name
+    val onEdit: (Provider) -> Unit = { form.loadFrom(it); formVisible = true }
+    val onDelete: (String) -> Unit = { providerToDelete = it }
+
+    // ── Router — a standalone card; the violet container makes it self-evident ──
+    if (router != null) {
+        SectionCard("Router") {
+            key(router.name) { ProviderCard(router, ui.busy, onEdit, onDelete, inRouterSection = true) }
+        }
+    }
+
+    // ── Sub-agent models — every non-router model + the Add-toggled add/edit form ──
+    SectionCard(
+        title = "Sub-agent models",
+        trailing = {
+            TextButton(onClick = {
+                if (formVisible) {
+                    formVisible = false
+                } else {
+                    form.reset()
+                    formVisible = true
+                }
+            }) {
+                Icon(Icons.Rounded.Add, contentDescription = "Add a model", modifier = Modifier.padding(end = 4.dp))
+                Text("Add")
+            }
+        },
+    ) {
+        // One Column child — a collapsed AnimatedVisibility is zero-height and would otherwise
+        // double the card's spacedBy(12) gap (same fix as the Global settings sections).
+        Column {
+            val others = ui.providers.filter { it != router }
+            when {
+                ui.loading -> LoadingIndicator()
+                // Hidden while the form is open — "tap Add" would point at a form that's
+                // already right below the message.
+                others.isEmpty() && !formVisible -> Text(
+                    "No sub-agent models yet — tap Add to create one.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                else -> Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    others.forEach { p ->
+                        key(p.name) { ProviderCard(p, ui.busy, onEdit, onDelete) }
                     }
                 }
             }
-
-            Spacer(Modifier.height(8.dp))
-        }
-    }
-}
-
-// ── Registered list (Expressive cards) ─────────────────────────────────────
-
-@Composable
-private fun RegisteredList(
-    ui: ProvidersUiState,
-    onEdit: (Provider) -> Unit,
-    onDelete: (String) -> Unit,
-) {
-    val listKey = when {
-        ui.loading -> "loading"
-        ui.providers.isEmpty() -> "empty"
-        else -> "content"
-    }
-    Crossfade(targetState = listKey, animationSpec = appEffectsSpec(), label = "providers-list") { state ->
-        when (state) {
-            // Expressive LoadingIndicator — the app-wide screen-level loading spinner.
-            "loading" -> LoadingIndicator()
-            "empty" ->
-                Text(
-                    "No models yet — add one below.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodyLarge,
-                )
-            else -> {
-                val router = ui.providers.firstOrNull { it.router }
-                ProviderCardList(ui.providers, router, ui.busy, onEdit, onDelete)
+            // The add-model details only appear after tapping Add (or Edit on a card) — below the list.
+            val formBringIntoView = remember { BringIntoViewRequester() }
+            AnimatedVisibility(
+                visible = formVisible,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut(),
+            ) {
+                Column(
+                    Modifier
+                        .padding(top = 12.dp)
+                        .bringIntoViewRequester(formBringIntoView),
+                ) {
+                    AddOrEditForm(
+                        form = form,
+                        busy = ui.busy,
+                        currentRouter = currentRouter,
+                        onSubmit = {
+                            vm.add(form.toReq()) { e ->
+                                if (e == null) {
+                                    form.reset()
+                                    formVisible = false
+                                }
+                            }
+                        },
+                    )
+                }
             }
-        }
-    }
-}
-
-// ── Provider card list (MD3 Expressive: SectionCard-grouped, no floating labels) ──
-
-@Composable
-private fun ProviderCardList(
-    providers: List<Provider>,
-    router: Provider?,
-    busy: Boolean,
-    onEdit: (Provider) -> Unit,
-    onDelete: (String) -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        // Router section — a standalone card with its own header. The card IS the section;
-        // the router's visual distinction (violet container) makes it self-evident without
-        // an external ALL-CAPS label.
-        if (router != null) {
-            SectionCard("Router") {
-                key(router.name) { ProviderCard(router, busy, onEdit, onDelete, inRouterSection = true) }
-            }
-        }
-        // Remaining models section — grouped under one tonal card with a "Models" header.
-        val others = providers.filter { it != router }
-        if (others.isNotEmpty()) {
-            SectionCard(if (router != null) "Other models" else "Models") {
-                others.forEach { p ->
-                    key(p.name) { ProviderCard(p, busy, onEdit, onDelete) }
+            // Scroll the revealed form into view — Edit on the ROUTER card (top of the page) would
+            // otherwise open the form a full card below with no visible feedback. Keyed on the form
+            // identity too, so Edit on another card re-scrolls even while already open. The page's
+            // scroll state lives in GlobalSettingsScreen; bringIntoView reaches it through the
+            // scrollable ancestor chain. The short delay lets the expand animation gain height first.
+            LaunchedEffect(formVisible, form.editing, form.name) {
+                if (formVisible) {
+                    delay(150)
+                    formBringIntoView.bringIntoView()
                 }
             }
         }
@@ -572,8 +553,14 @@ private fun AddOrEditForm(
     currentRouter: String?,
     onSubmit: () -> Unit,
 ) {
-    // Shared SectionCard — same component as NewRequestScreen, same tonal + shape tokens.
-    SectionCard(title = if (form.editing) "Editing ${form.name}" else "Add a model") {
+    // Plain column — this form now lives INSIDE the "Sub-agent models" SectionCard (revealed by
+    // its Add header action), so it carries a titleSmall subsection header instead of a card.
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(
+            if (form.editing) "Editing ${form.name}" else "Add a model",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+        )
         // Presets — FilterChip matching NewRequestScreen's template chips.
         // Section sub-header uses titleSmall + SemiBold (NOT labelMedium + Bold ALL-CAPS),
         // consistent with every other section header across both screens.

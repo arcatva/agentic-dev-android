@@ -1,10 +1,12 @@
 package dev.agentic.ui.components
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -62,7 +64,16 @@ fun SectionCard(
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.weight(1f),
                     )
-                    trailing()
+                    // Cap the trailing control to a compact 32dp so its 48dp minimum touch
+                    // target doesn't inflate the header row — otherwise the gap between the
+                    // title and the card content reads ~12dp taller than on cards without a
+                    // trailing control (Router / Sub-agent models).
+                    Box(
+                        Modifier.heightIn(max = 32.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        trailing()
+                    }
                 }
             } else {
                 Text(

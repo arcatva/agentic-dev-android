@@ -54,10 +54,12 @@ import dev.agentic.ui.components.ComponentChip
 import dev.agentic.ui.components.SectionCard
 import dev.agentic.ui.components.cardFieldColors
 import dev.agentic.ui.newrequest.McpDraft
+import dev.agentic.ui.providers.ModelsSections
 
 /**
- * Global Settings screen — lists all skills, plugins, and MCP components as colored chips in
- * FlowRow groups (same visual language as the New Request screen).
+ * Global settings screen — the app's single settings page: skills, plugins, and MCP components
+ * as colored chips in FlowRow groups (same visual language as the New Request screen), plus the
+ * models registry ([ModelsSections]: Router + Sub-agent models — merged from the old Models screen).
  *
  * Skills and plugins are interactive: tapping a chip calls [GlobalSettingsViewModel.toggle].
  * MCP chips have no global toggle (backend doesn't support it) — long-press is still available
@@ -162,6 +164,9 @@ fun GlobalSettingsScreen(
                         onAddMcpServer = { draft -> resolvedVm.addMcpServer(draft) },
                         onDeleteMcpServer = { resolvedVm.deleteMcpServer(it) },
                     )
+
+                    // ── Models (Router + Sub-agent models) — merged from the old Models screen ──
+                    ModelsSections()
                 }
             }
         }
@@ -233,45 +238,52 @@ private fun SkillsSection(
         title = "Skills",
         trailing = { AddHeaderButton("Skills") { if (!busy) addExpanded = !addExpanded } },
     ) {
-        // Add form
-        AnimatedVisibility(
-            visible = addExpanded,
-            enter = expandVertically() + fadeIn(),
-            exit = shrinkVertically() + fadeOut(),
-        ) {
-            AddSkillForm(
-                busy = busy,
-                onAdd = { name, desc ->
-                    submitting = true
-                    onAddSkill(name, desc)
-                    // Form does NOT close here — closes via LaunchedEffect above on success.
-                },
-            )
-        }
-
-        // Chips
-        if (skills.isEmpty()) {
-            Text(
-                "No skills",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        } else {
-            androidx.compose.foundation.layout.FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+        // One Column child: a COLLAPSED AnimatedVisibility is a zero-height child, and the card's
+        // spacedBy(12) would still pad both sides of it — doubling the header-to-content gap.
+        // Grouping the form and the chips into a single child keeps the gap at exactly 12dp.
+        Column {
+            // Add form (the bottom padding belongs to the expanded state so it animates away).
+            AnimatedVisibility(
+                visible = addExpanded,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut(),
             ) {
-                val toggleKey = { c: ComponentInfo -> "${c.kind}:${c.id}" }
-                skills.forEach { component ->
-                    val isToggling = toggleKey(component) in toggling
-                    ComponentChip(
-                        label = component.name.ifBlank { component.id },
-                        kind = component.kind,
-                        effective = component.globalEnabled,
-                        onClick = { if (!isToggling && !busy) onToggle(component) },
-                        enabled = !isToggling && !busy,
-                        onLongClick = { if (!busy) pendingDelete = component },
+                Column(Modifier.padding(bottom = 12.dp)) {
+                    AddSkillForm(
+                        busy = busy,
+                        onAdd = { name, desc ->
+                            submitting = true
+                            onAddSkill(name, desc)
+                            // Form does NOT close here — closes via LaunchedEffect above on success.
+                        },
                     )
+                }
+            }
+
+            // Chips
+            if (skills.isEmpty()) {
+                Text(
+                    "No skills",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                androidx.compose.foundation.layout.FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    val toggleKey = { c: ComponentInfo -> "${c.kind}:${c.id}" }
+                    skills.forEach { component ->
+                        val isToggling = toggleKey(component) in toggling
+                        ComponentChip(
+                            label = component.name.ifBlank { component.id },
+                            kind = component.kind,
+                            effective = component.globalEnabled,
+                            onClick = { if (!isToggling && !busy) onToggle(component) },
+                            enabled = !isToggling && !busy,
+                            onLongClick = { if (!busy) pendingDelete = component },
+                        )
+                    }
                 }
             }
         }
@@ -380,55 +392,64 @@ private fun PluginsSection(
         title = "Plugins",
         trailing = { AddHeaderButton("Plugins") { if (!busy) addExpanded = !addExpanded } },
     ) {
-        // Progress indicator while any op is in flight
-        if (busy) {
-            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-            Text(
-                "Plugin operation in progress…",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+        // One Column child — see SkillsSection: keeps the collapsed add-form from doubling the
+        // header-to-content gap via the card's spacedBy(12).
+        Column {
+            // Progress indicator while any op is in flight
+            if (busy) {
+                LinearProgressIndicator(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                )
+                Text(
+                    "Plugin operation in progress…",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 12.dp),
+                )
+            }
 
-        // Add form
-        AnimatedVisibility(
-            visible = addExpanded,
-            enter = expandVertically() + fadeIn(),
-            exit = shrinkVertically() + fadeOut(),
-        ) {
-            AddPluginForm(
-                busy = busy,
-                onInstall = { id ->
-                    submitting = true
-                    onInstallPlugin(id)
-                    // Form does NOT close here — closes via LaunchedEffect above on success.
-                },
-            )
-        }
-
-        // Chips
-        if (plugins.isEmpty()) {
-            Text(
-                "No plugins installed",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        } else {
-            androidx.compose.foundation.layout.FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+            // Add form (the bottom padding belongs to the expanded state so it animates away).
+            AnimatedVisibility(
+                visible = addExpanded,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut(),
             ) {
-                val toggleKey = { c: ComponentInfo -> "${c.kind}:${c.id}" }
-                plugins.forEach { component ->
-                    val isToggling = toggleKey(component) in toggling
-                    ComponentChip(
-                        label = component.name.ifBlank { component.id },
-                        kind = component.kind,
-                        effective = component.globalEnabled,
-                        onClick = { if (!isToggling && !busy) onToggle(component) },
-                        enabled = !isToggling && !busy,
-                        onLongClick = { if (!busy) pendingDelete = component },
+                Column(Modifier.padding(bottom = 12.dp)) {
+                    AddPluginForm(
+                        busy = busy,
+                        onInstall = { id ->
+                            submitting = true
+                            onInstallPlugin(id)
+                            // Form does NOT close here — closes via LaunchedEffect above on success.
+                        },
                     )
+                }
+            }
+
+            // Chips
+            if (plugins.isEmpty()) {
+                Text(
+                    "No plugins installed",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                androidx.compose.foundation.layout.FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    val toggleKey = { c: ComponentInfo -> "${c.kind}:${c.id}" }
+                    plugins.forEach { component ->
+                        val isToggling = toggleKey(component) in toggling
+                        ComponentChip(
+                            label = component.name.ifBlank { component.id },
+                            kind = component.kind,
+                            effective = component.globalEnabled,
+                            onClick = { if (!isToggling && !busy) onToggle(component) },
+                            enabled = !isToggling && !busy,
+                            onLongClick = { if (!busy) pendingDelete = component },
+                        )
+                    }
                 }
             }
         }
@@ -527,49 +548,55 @@ private fun McpSection(
         title = "MCP servers",
         trailing = { AddHeaderButton("MCP servers") { if (!busy) addExpanded = !addExpanded } },
     ) {
-        // Add form
-        AnimatedVisibility(
-            visible = addExpanded,
-            enter = expandVertically() + fadeIn(),
-            exit = shrinkVertically() + fadeOut(),
-        ) {
-            AddMcpForm(
-                busy = busy,
-                onAdd = { draft ->
-                    val validationErr = onAddMcpServer(draft)
-                    if (validationErr == null) {
-                        // Validation passed; API call is enqueued. Track the submit so the
-                        // LaunchedEffect above can close the form when the op completes.
-                        submitting = true
-                    }
-                    // Return validation error (if any) for the form to show inline.
-                    validationErr
-                },
-            )
-        }
-
-        // Chips (read-only toggle, but deletable via long-press)
-        if (mcps.isEmpty()) {
-            Text(
-                "No MCP servers",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        } else {
-            androidx.compose.foundation.layout.FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+        // One Column child — see SkillsSection: keeps the collapsed add-form from doubling the
+        // header-to-content gap via the card's spacedBy(12).
+        Column {
+            // Add form (the bottom padding belongs to the expanded state so it animates away).
+            AnimatedVisibility(
+                visible = addExpanded,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut(),
             ) {
-                mcps.forEach { component ->
-                    ComponentChip(
-                        label = component.name.ifBlank { component.id },
-                        kind = component.kind,
-                        effective = component.globalEnabled,
-                        onClick = { /* MCP global toggle not supported */ },
-                        enabled = !busy,
-                        readOnlyCaption = "managed per-session",
-                        onLongClick = { if (!busy) pendingDelete = component },
+                Column(Modifier.padding(bottom = 12.dp)) {
+                    AddMcpForm(
+                        busy = busy,
+                        onAdd = { draft ->
+                            val validationErr = onAddMcpServer(draft)
+                            if (validationErr == null) {
+                                // Validation passed; API call is enqueued. Track the submit so the
+                                // LaunchedEffect above can close the form when the op completes.
+                                submitting = true
+                            }
+                            // Return validation error (if any) for the form to show inline.
+                            validationErr
+                        },
                     )
+                }
+            }
+
+            // Chips (read-only toggle, but deletable via long-press)
+            if (mcps.isEmpty()) {
+                Text(
+                    "No MCP servers",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                androidx.compose.foundation.layout.FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    mcps.forEach { component ->
+                        ComponentChip(
+                            label = component.name.ifBlank { component.id },
+                            kind = component.kind,
+                            effective = component.globalEnabled,
+                            onClick = { /* MCP global toggle not supported */ },
+                            enabled = !busy,
+                            readOnlyCaption = "managed per-session",
+                            onLongClick = { if (!busy) pendingDelete = component },
+                        )
+                    }
                 }
             }
         }

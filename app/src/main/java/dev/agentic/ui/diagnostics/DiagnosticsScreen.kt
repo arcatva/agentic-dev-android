@@ -30,7 +30,7 @@ import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.FolderZip
 import androidx.compose.material.icons.rounded.Refresh
-import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.AlertDialog
@@ -86,7 +86,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun DiagnosticsScreen(
     onBack: () -> Unit,
-    onOpenProviders: () -> Unit = {},
+    onOpenSettings: () -> Unit = {},
     onOpenSession: (String) -> Unit = {},
 ) {
     val container = appContainer()
@@ -127,7 +127,7 @@ fun DiagnosticsScreen(
                 },
                 title = { Text("Diagnostics & logs") },
                 actions = {
-                    IconButton(onClick = onOpenProviders) { Icon(Icons.Rounded.Tune, "Models / Providers") }
+                    IconButton(onClick = onOpenSettings) { Icon(Icons.Rounded.Settings, "Global settings") }
                     IconButton(
                         onClick = { vm.showPicker() },
                         enabled = s.attachingSessionId == null,

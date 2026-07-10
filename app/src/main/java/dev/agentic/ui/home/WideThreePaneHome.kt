@@ -119,7 +119,6 @@ fun WideThreePaneHome(
     onOpenHistory: (String, Boolean) -> Unit,
     onOpenSettings: (String) -> Unit,
     onOpenDiagnostics: () -> Unit,
-    onOpenProviders: () -> Unit = {},
     onOpenAdoptPicker: () -> Unit = {},
     onOpenGlobalSettings: () -> Unit = {},
     initialSelectedId: String? = null,
@@ -194,7 +193,6 @@ fun WideThreePaneHome(
                 onOpenSession = { selectedId = it },
                 onSearchExpandedChange = { searching = it },
                 onOpenDiagnostics = onOpenDiagnostics,
-                onOpenProviders = onOpenProviders,
                 onOpenAdoptPicker = onOpenAdoptPicker,
                 onOpenGlobalSettings = onOpenGlobalSettings,
             )
