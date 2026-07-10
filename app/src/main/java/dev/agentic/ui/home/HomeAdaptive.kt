@@ -189,10 +189,13 @@ private fun NarrowScaffoldHome(
     // selectedSid starts null — that must NOT count as "deselected") and is rememberSaveable so a
     // process-restored, already-deselected duplicate normalizes immediately instead of lingering.
     if (onDeselected != null) {
+        // rememberUpdatedState so the effect (keyed only on selectedSid) always invokes the
+        // LATEST host lambda even if it was recreated by recomposition since launch.
+        val currentOnDeselected by rememberUpdatedState(onDeselected)
         var hadSelection by rememberSaveable { mutableStateOf(false) }
         LaunchedEffect(selectedSid) {
             if (selectedSid != null) hadSelection = true
-            else if (hadSelection) onDeselected()
+            else if (hadSelection) currentOnDeselected()
         }
     }
 
