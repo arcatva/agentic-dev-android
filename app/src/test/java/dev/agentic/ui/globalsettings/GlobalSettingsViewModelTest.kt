@@ -246,12 +246,13 @@ class GlobalSettingsViewModelTest {
     }
 
     /**
-     * MCP rows must NOT call toggleGlobalComponent — global toggle is deferred for MCP.
-     * Would fail if the kind=="mcp" guard were removed from toggle().
+     * MCP rows toggle like skills/plugins now — the backend supports a global MCP toggle
+     * (it parks the server definition in .claude.json's mcpServersDisabled).
      */
-    @Test fun `mcp toggle does not call toggleGlobalComponent`() = runTest(dispatcher) {
+    @Test fun `mcp toggle calls toggleGlobalComponent`() = runTest(dispatcher) {
         val mcpComponent = mcp("m1", "MCP One", enabled = true)
         api.globalSettingsResult = listOf(mcpComponent)
+        api.toggleGlobalComponentResult = listOf(mcp("m1", "MCP One", enabled = false))
 
         val vm = vm()
         advanceUntilIdle()
@@ -259,12 +260,12 @@ class GlobalSettingsViewModelTest {
         vm.toggle(mcpComponent)
         advanceUntilIdle()
 
-        // No API call must have been made.
-        assertTrue("toggleGlobalComponent must not be called for mcp rows",
-            api.toggleGlobalComponentCalls.isEmpty())
-        // State must be unchanged (not optimistically flipped).
-        assertTrue("mcp row enabled state must not change",
-            vm.uiState.value.components.first { it.id == "m1" }.globalEnabled)
+        assertEquals(
+            listOf(Triple("mcp", "m1", false)),
+            api.toggleGlobalComponentCalls,
+        )
+        assertTrue("mcp row must reflect the API's returned disabled state",
+            !vm.uiState.value.components.first { it.id == "m1" }.globalEnabled)
     }
 
     // ── clearError ────────────────────────────────────────────────────────────
@@ -298,7 +299,7 @@ class GlobalSettingsViewModelTest {
         val vm = vm()
         advanceUntilIdle()
 
-        vm.addSkill("NewSkill", "A great skill")
+        vm.addSkill("NewSkill", "A great skill", "## Do the thing")
         advanceUntilIdle()
 
         assertEquals(1, api.addSkillCalls.size)
@@ -315,7 +316,7 @@ class GlobalSettingsViewModelTest {
         val vm = vm()
         advanceUntilIdle()
 
-        vm.addSkill("Bad", "desc")
+        vm.addSkill("Bad", "desc", "body")
         advanceUntilIdle()
 
         val s = vm.uiState.value
@@ -538,7 +539,7 @@ class GlobalSettingsViewModelTest {
         val vm = vm()
         advanceUntilIdle()
 
-        vm.addSkill("ExistingSkill", "duplicate")
+        vm.addSkill("ExistingSkill", "duplicate", "body")
         // busy must be true synchronously before coroutine runs.
         assertTrue("busy must be true while op is in flight", vm.uiState.value.busy)
 
@@ -596,7 +597,7 @@ class GlobalSettingsViewModelTest {
         advanceUntilIdle()
 
         // First op — will throw.
-        vm.addSkill("bad", "desc")
+        vm.addSkill("bad", "desc", "body")
         advanceUntilIdle()
 
         assertFalse("busy must be false after thrown op", vm.uiState.value.busy)
@@ -607,7 +608,7 @@ class GlobalSettingsViewModelTest {
         val added = skill("s-ok", "GoodSkill", true)
         api.addSkillResult = listOf(added)
 
-        vm.addSkill("GoodSkill", "ok desc")
+        vm.addSkill("GoodSkill", "ok desc", "body")
         advanceUntilIdle()
 
         // Second op succeeded: components updated and no error.
