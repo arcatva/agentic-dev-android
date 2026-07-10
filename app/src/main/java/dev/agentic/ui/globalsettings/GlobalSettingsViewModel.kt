@@ -21,8 +21,13 @@ data class GlobalSettingsUiState(
     val error: String? = null,
     /** Set of component ids currently mid-toggle (prevents double-tap). */
     val toggling: Set<String> = emptySet(),
-    /** True while installPlugin or uninstallPlugin is in flight (CLI is slow). */
-    val pluginBusy: Boolean = false,
+    /**
+     * True while ANY mutating CRUD op (add/delete skill, install/uninstall plugin, add/delete MCP)
+     * is in flight. The UI must disable Add buttons, submit buttons, and delete long-press while
+     * this is true. Replaces the old per-feature pluginBusy — a single flag is simpler and correct
+     * because these ops are serialized one-at-a-time (parallel CRUD on the same list is unsafe).
+     */
+    val busy: Boolean = false,
 )
 
 /**
@@ -130,81 +135,104 @@ class GlobalSettingsViewModel(
 
     // ── CRUD actions ─────────────────────────────────────────────────────────────
 
-    /** Add a skill globally. Calls the API and replaces the component list from the response. */
+    /**
+     * Guard: return true and set busy=true+clear previous error if no op is in flight.
+     * Return false (caller must not proceed) when already busy.
+     * Must be called on the main thread (StateFlow.update is main-thread safe).
+     */
+    private fun acquireBusy(): Boolean {
+        if (_uiState.value.busy) return false
+        _uiState.update { it.copy(busy = true, error = null) }
+        return true
+    }
+
+    /** Add a skill globally. Calls the API and replaces the component list from the response.
+     *  No-ops silently while another op is busy (the UI must also disable the submit button). */
     fun addSkill(name: String, description: String) {
+        if (!acquireBusy()) return
         viewModelScope.launch {
             try {
                 val refreshed = api.addSkill(name, description)
-                _uiState.update { it.copy(components = refreshed, error = null) }
+                _uiState.update { it.copy(components = refreshed, busy = false, error = null) }
             } catch (e: Exception) {
-                _uiState.update { it.copy(error = "Failed to add skill: ${e.message}") }
+                _uiState.update { it.copy(busy = false, error = "Failed to add skill: ${e.message}") }
             }
         }
     }
 
-    /** Delete a skill by name globally. */
+    /** Delete a skill by name globally. No-ops while busy. */
     fun deleteSkill(name: String) {
+        if (!acquireBusy()) return
         viewModelScope.launch {
             try {
                 val refreshed = api.deleteSkill(name)
-                _uiState.update { it.copy(components = refreshed, error = null) }
+                _uiState.update { it.copy(components = refreshed, busy = false, error = null) }
             } catch (e: Exception) {
-                _uiState.update { it.copy(error = "Failed to delete skill: ${e.message}") }
+                _uiState.update { it.copy(busy = false, error = "Failed to delete skill: ${e.message}") }
             }
         }
     }
 
-    /** Install a plugin globally (slow — CLI). Sets pluginBusy while in flight. */
+    /** Install a plugin globally (slow — CLI). Sets busy while in flight.
+     *  No-ops while another op is already in flight. */
     fun installPlugin(id: String) {
-        _uiState.update { it.copy(pluginBusy = true) }
+        if (!acquireBusy()) return
         viewModelScope.launch {
             try {
                 val refreshed = api.installPlugin(id)
-                _uiState.update { it.copy(components = refreshed, pluginBusy = false, error = null) }
+                _uiState.update { it.copy(components = refreshed, busy = false, error = null) }
             } catch (e: Exception) {
-                _uiState.update { it.copy(pluginBusy = false, error = "Failed to install plugin: ${e.message}") }
+                _uiState.update { it.copy(busy = false, error = "Failed to install plugin: ${e.message}") }
             }
         }
     }
 
-    /** Uninstall a plugin globally (slow). Sets pluginBusy while in flight. */
+    /** Uninstall a plugin globally (slow). Sets busy while in flight. */
     fun uninstallPlugin(id: String) {
-        _uiState.update { it.copy(pluginBusy = true) }
+        if (!acquireBusy()) return
         viewModelScope.launch {
             try {
                 val refreshed = api.uninstallPlugin(id)
-                _uiState.update { it.copy(components = refreshed, pluginBusy = false, error = null) }
+                _uiState.update { it.copy(busy = false, components = refreshed, error = null) }
             } catch (e: Exception) {
-                _uiState.update { it.copy(pluginBusy = false, error = "Failed to uninstall plugin: ${e.message}") }
+                _uiState.update { it.copy(busy = false, error = "Failed to uninstall plugin: ${e.message}") }
             }
         }
     }
 
-    /** Add an MCP server globally. Returns a validation error string, or null on success (mirrors
-     *  NewRequestViewModel.addMcpServer). Reuses McpDraft.validationError for client-side validation. */
+    /**
+     * Add an MCP server globally.
+     *
+     * Returns a validation error string synchronously (for the form to show inline), or null when
+     * validation passes (the async API call has been enqueued). API errors land in [uiState.error]
+     * (shown via snackbar) — this keeps the form open so the user can retry after fixing the input.
+     * No-ops while busy (returns null — the UI is expected to disable the button anyway).
+     */
     fun addMcpServer(draft: McpDraft): String? {
         val err = draft.validationError
         if (err != null) return err
+        if (!acquireBusy()) return null
         val def = buildMcpServerDef(draft)
         viewModelScope.launch {
             try {
                 val refreshed = api.addMcpServer(def)
-                _uiState.update { it.copy(components = refreshed, error = null) }
+                _uiState.update { it.copy(components = refreshed, busy = false, error = null) }
             } catch (e: Exception) {
-                _uiState.update { it.copy(error = "Failed to add MCP server: ${e.message}") }
+                _uiState.update { it.copy(busy = false, error = "Failed to add MCP server: ${e.message}") }
             }
         }
         return null
     }
 
-    /** Delete an MCP server globally by name. */
+    /** Delete an MCP server globally by name. No-ops while busy. */
     fun deleteMcpServer(name: String) {
+        if (!acquireBusy()) return
         viewModelScope.launch {
             try {
                 val refreshed = api.deleteMcpServer(name)
-                _uiState.update { it.copy(components = refreshed, error = null) }
+                _uiState.update { it.copy(components = refreshed, busy = false, error = null) }
             } catch (e: Exception) {
-                _uiState.update { it.copy(error = "Failed to delete MCP server: ${e.message}") }
+                _uiState.update { it.copy(busy = false, error = "Failed to delete MCP server: ${e.message}") }
             }
         }
     }

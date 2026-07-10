@@ -135,6 +135,8 @@ fun GlobalSettingsScreen(
                     SkillsSection(
                         skills = skills,
                         toggling = s.toggling,
+                        busy = s.busy,
+                        error = s.error,
                         onToggle = { resolvedVm.toggle(it) },
                         onAddSkill = { name, desc -> resolvedVm.addSkill(name, desc) },
                         onDeleteSkill = { resolvedVm.deleteSkill(it) },
@@ -145,7 +147,8 @@ fun GlobalSettingsScreen(
                     PluginsSection(
                         plugins = plugins,
                         toggling = s.toggling,
-                        pluginBusy = s.pluginBusy,
+                        busy = s.busy,
+                        error = s.error,
                         onToggle = { resolvedVm.toggle(it) },
                         onInstallPlugin = { resolvedVm.installPlugin(it) },
                         onUninstallPlugin = { resolvedVm.uninstallPlugin(it) },
@@ -155,6 +158,8 @@ fun GlobalSettingsScreen(
                     // ── MCP (always rendered, toggle read-only, but add/delete supported) ──
                     McpSection(
                         mcps = mcps,
+                        busy = s.busy,
+                        error = s.error,
                         onAddMcpServer = { draft -> resolvedVm.addMcpServer(draft) },
                         onDeleteMcpServer = { resolvedVm.deleteMcpServer(it) },
                     )
@@ -209,12 +214,31 @@ private fun SectionHeader(label: String) {
 private fun SkillsSection(
     skills: List<ComponentInfo>,
     toggling: Set<String>,
+    busy: Boolean,
+    error: String?,
     onToggle: (ComponentInfo) -> Unit,
     onAddSkill: (name: String, description: String) -> Unit,
     onDeleteSkill: (name: String) -> Unit,
 ) {
     var addExpanded by remember { mutableStateOf(false) }
     var pendingDelete by remember { mutableStateOf<ComponentInfo?>(null) }
+    // True while waiting for the add-skill API call started from this form.
+    // The form closes ONLY on success (busy→false with no error); stays open on failure
+    // so the user can retry without re-entering values.
+    var submitting by remember { mutableStateOf(false) }
+
+    // Detect op completion: busy just went false (op finished). If error is null → success →
+    // close and reset the form. If error is non-null → failure → keep form open for retry.
+    LaunchedEffect(busy, error) {
+        if (submitting && !busy) {
+            if (error == null) {
+                // Success: close the form.
+                addExpanded = false
+            }
+            // Either way stop tracking the in-flight submit so a subsequent tap works.
+            submitting = false
+        }
+    }
 
     // Confirm delete dialog
     pendingDelete?.let { comp ->
@@ -234,7 +258,9 @@ private fun SkillsSection(
         )
     }
 
-    SectionHeaderRow(label = "Skills", onAdd = { addExpanded = !addExpanded })
+    SectionHeaderRow(label = "Skills", onAdd = {
+        if (!busy) addExpanded = !addExpanded
+    })
 
     // Add form
     AnimatedVisibility(
@@ -243,9 +269,11 @@ private fun SkillsSection(
         exit = shrinkVertically() + fadeOut(),
     ) {
         AddSkillForm(
+            busy = busy,
             onAdd = { name, desc ->
+                submitting = true
                 onAddSkill(name, desc)
-                addExpanded = false
+                // Form does NOT close here — closes via LaunchedEffect above on success.
             },
         )
     }
@@ -271,9 +299,9 @@ private fun SkillsSection(
                     label = component.name.ifBlank { component.id },
                     kind = component.kind,
                     effective = component.globalEnabled,
-                    onClick = { if (!isToggling) onToggle(component) },
-                    enabled = !isToggling,
-                    onLongClick = { pendingDelete = component },
+                    onClick = { if (!isToggling && !busy) onToggle(component) },
+                    enabled = !isToggling && !busy,
+                    onLongClick = { if (!busy) pendingDelete = component },
                 )
             }
         }
@@ -281,7 +309,10 @@ private fun SkillsSection(
 }
 
 @Composable
-private fun AddSkillForm(onAdd: (name: String, description: String) -> Unit) {
+private fun AddSkillForm(
+    busy: Boolean,
+    onAdd: (name: String, description: String) -> Unit,
+) {
     var name by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var localError by remember { mutableStateOf<String?>(null) }
@@ -318,12 +349,14 @@ private fun AddSkillForm(onAdd: (name: String, description: String) -> Unit) {
                 if (name.isBlank()) {
                     localError = "Skill name is required"
                 } else {
+                    // Do NOT clear name/description here — keep values in case the API call
+                    // fails so the user can retry without re-typing. The parent section clears
+                    // them by collapsing (and unmounting) the form only on success.
                     onAdd(name.trim(), description.trim())
-                    name = ""
-                    description = ""
                     localError = null
                 }
             },
+            enabled = !busy,
             modifier = Modifier.fillMaxWidth(),
         ) {
             Icon(Icons.Rounded.Add, contentDescription = null)
@@ -339,13 +372,23 @@ private fun AddSkillForm(onAdd: (name: String, description: String) -> Unit) {
 private fun PluginsSection(
     plugins: List<ComponentInfo>,
     toggling: Set<String>,
-    pluginBusy: Boolean,
+    busy: Boolean,
+    error: String?,
     onToggle: (ComponentInfo) -> Unit,
     onInstallPlugin: (id: String) -> Unit,
     onUninstallPlugin: (id: String) -> Unit,
 ) {
     var addExpanded by remember { mutableStateOf(false) }
     var pendingDelete by remember { mutableStateOf<ComponentInfo?>(null) }
+    var submitting by remember { mutableStateOf(false) }
+
+    // Close form on success (busy→false, no error); keep open on error so user can retry.
+    LaunchedEffect(busy, error) {
+        if (submitting && !busy) {
+            if (error == null) addExpanded = false
+            submitting = false
+        }
+    }
 
     // Confirm uninstall dialog
     pendingDelete?.let { comp ->
@@ -365,10 +408,10 @@ private fun PluginsSection(
         )
     }
 
-    SectionHeaderRow(label = "Plugins", onAdd = { if (!pluginBusy) addExpanded = !addExpanded })
+    SectionHeaderRow(label = "Plugins", onAdd = { if (!busy) addExpanded = !addExpanded })
 
-    // Busy indicator while plugin CLI op is in flight
-    if (pluginBusy) {
+    // Progress indicator while any op is in flight
+    if (busy) {
         LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp))
         Text(
             "Plugin operation in progress…",
@@ -385,10 +428,11 @@ private fun PluginsSection(
         exit = shrinkVertically() + fadeOut(),
     ) {
         AddPluginForm(
-            pluginBusy = pluginBusy,
+            busy = busy,
             onInstall = { id ->
+                submitting = true
                 onInstallPlugin(id)
-                addExpanded = false
+                // Form does NOT close here — closes via LaunchedEffect above on success.
             },
         )
     }
@@ -414,9 +458,9 @@ private fun PluginsSection(
                     label = component.name.ifBlank { component.id },
                     kind = component.kind,
                     effective = component.globalEnabled,
-                    onClick = { if (!isToggling && !pluginBusy) onToggle(component) },
-                    enabled = !isToggling && !pluginBusy,
-                    onLongClick = { if (!pluginBusy) pendingDelete = component },
+                    onClick = { if (!isToggling && !busy) onToggle(component) },
+                    enabled = !isToggling && !busy,
+                    onLongClick = { if (!busy) pendingDelete = component },
                 )
             }
         }
@@ -425,7 +469,7 @@ private fun PluginsSection(
 
 @Composable
 private fun AddPluginForm(
-    pluginBusy: Boolean,
+    busy: Boolean,
     onInstall: (id: String) -> Unit,
 ) {
     var id by remember { mutableStateOf("") }
@@ -454,13 +498,15 @@ private fun AddPluginForm(
                     trimmed.isBlank() -> localError = "Plugin id is required"
                     trimmed.startsWith("-") -> localError = "Plugin id must not start with a dash"
                     else -> {
+                        // Do NOT clear `id` here — keep it in case the API fails so the user can
+                        // retry. The parent section collapses the form (unmounting this composable)
+                        // only on success, which naturally resets the field.
                         onInstall(trimmed)
-                        id = ""
                         localError = null
                     }
                 }
             },
-            enabled = !pluginBusy,
+            enabled = !busy,
             modifier = Modifier.fillMaxWidth(),
         ) {
             Icon(Icons.Rounded.Add, contentDescription = null)
@@ -476,11 +522,22 @@ private fun AddPluginForm(
 @Composable
 private fun McpSection(
     mcps: List<ComponentInfo>,
+    busy: Boolean,
+    error: String?,
     onAddMcpServer: (McpDraft) -> String?,
     onDeleteMcpServer: (name: String) -> Unit,
 ) {
     var addExpanded by remember { mutableStateOf(false) }
     var pendingDelete by remember { mutableStateOf<ComponentInfo?>(null) }
+    var submitting by remember { mutableStateOf(false) }
+
+    // Close form on success (busy→false, no error); keep open on error so user can retry.
+    LaunchedEffect(busy, error) {
+        if (submitting && !busy) {
+            if (error == null) addExpanded = false
+            submitting = false
+        }
+    }
 
     // Confirm delete dialog
     pendingDelete?.let { comp ->
@@ -500,7 +557,7 @@ private fun McpSection(
         )
     }
 
-    SectionHeaderRow(label = "MCP", onAdd = { addExpanded = !addExpanded })
+    SectionHeaderRow(label = "MCP", onAdd = { if (!busy) addExpanded = !addExpanded })
 
     // Add form
     AnimatedVisibility(
@@ -509,12 +566,16 @@ private fun McpSection(
         exit = shrinkVertically() + fadeOut(),
     ) {
         AddMcpForm(
+            busy = busy,
             onAdd = { draft ->
-                val err = onAddMcpServer(draft)
-                if (err == null) {
-                    addExpanded = false
+                val validationErr = onAddMcpServer(draft)
+                if (validationErr == null) {
+                    // Validation passed; API call is enqueued. Track the submit so the
+                    // LaunchedEffect above can close the form when the op completes.
+                    submitting = true
                 }
-                err
+                // Return validation error (if any) for the form to show inline.
+                validationErr
             },
         )
     }
@@ -539,9 +600,9 @@ private fun McpSection(
                     kind = component.kind,
                     effective = component.globalEnabled,
                     onClick = { /* MCP global toggle not supported */ },
-                    enabled = true,
+                    enabled = !busy,
                     readOnlyCaption = "managed per-session",
-                    onLongClick = { pendingDelete = component },
+                    onLongClick = { if (!busy) pendingDelete = component },
                 )
             }
         }
@@ -551,11 +612,13 @@ private fun McpSection(
 /**
  * Inline form for adding an MCP server globally.
  * Mirrors the AddMcpForm in NewRequestScreen — transport toggle (stdio | HTTP), name, fields.
- * [onAdd] receives the draft and returns a nullable error string (null = success, close the form).
+ * [onAdd] receives the draft and returns a nullable validation error string (null = validation
+ * passed, API call enqueued). The form stays open after a failed API call so the user can retry.
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun AddMcpForm(
+    busy: Boolean,
     onAdd: (McpDraft) -> String?,
 ) {
     var draft by remember { mutableStateOf(McpDraft()) }
@@ -660,10 +723,11 @@ private fun AddMcpForm(
             onClick = {
                 val err = onAdd(draft)
                 localError = err
-                if (err == null) {
-                    draft = McpDraft()
-                }
+                // Do NOT reset `draft` here — keep values so the user can retry if the API fails.
+                // The parent section collapses the form (unmounting this composable) on success,
+                // which naturally resets the draft for the next open.
             },
+            enabled = !busy,
             modifier = Modifier.fillMaxWidth(),
         ) {
             Icon(Icons.Rounded.Add, contentDescription = null)

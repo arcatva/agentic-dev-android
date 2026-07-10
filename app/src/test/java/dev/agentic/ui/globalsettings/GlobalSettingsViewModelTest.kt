@@ -362,7 +362,7 @@ class GlobalSettingsViewModelTest {
 
     // ── installPlugin ─────────────────────────────────────────────────────────────
 
-    @Test fun `installPlugin sets pluginBusy true then clears on success`() = runTest(dispatcher) {
+    @Test fun `installPlugin sets busy true then clears on success`() = runTest(dispatcher) {
         api.globalSettingsResult = emptyList()
         val p1 = plugin("p1@npm", "myplugin", true)
         api.installPluginResult = listOf(p1)
@@ -372,19 +372,19 @@ class GlobalSettingsViewModelTest {
 
         // Start install but do NOT advance yet — verify busy flag is set.
         vm.installPlugin("p1@npm")
-        // pluginBusy should be true synchronously (set before launch).
-        assertTrue("pluginBusy must be true while install is in flight", vm.uiState.value.pluginBusy)
+        // busy should be true synchronously (set before launch via acquireBusy).
+        assertTrue("busy must be true while install is in flight", vm.uiState.value.busy)
 
         advanceUntilIdle()
 
         val s = vm.uiState.value
-        assertFalse("pluginBusy must clear after success", s.pluginBusy)
+        assertFalse("busy must clear after success", s.busy)
         assertEquals(1, s.components.size)
         assertEquals("p1@npm", api.installPluginCalls[0])
         assertNull(s.error)
     }
 
-    @Test fun `installPlugin API error clears pluginBusy and surfaces error`() = runTest(dispatcher) {
+    @Test fun `installPlugin API error clears busy and surfaces error`() = runTest(dispatcher) {
         api.globalSettingsResult = emptyList()
         api.installPluginException = RuntimeException("CLI error")
 
@@ -395,7 +395,7 @@ class GlobalSettingsViewModelTest {
         advanceUntilIdle()
 
         val s = vm.uiState.value
-        assertFalse("pluginBusy must clear after error", s.pluginBusy)
+        assertFalse("busy must clear after error", s.busy)
         assertNotNull(s.error)
         assertTrue(s.error!!.contains("CLI error"))
     }
@@ -517,5 +517,104 @@ class GlobalSettingsViewModelTest {
         assertNotNull(s.error)
         assertTrue(s.error!!.contains("not found"))
         assertEquals(1, s.components.size)  // unchanged
+    }
+
+    // ── New: adversarial-review fixes ──────────────────────────────────────────
+
+    /**
+     * Fix 2 — add-form op FAILS: error is set AND busy is cleared (so the Screen can detect
+     * failure via busy==false+error≠null and keep the form open).
+     * The VM does not own "form is open" state — that's local Compose state — but the VM MUST
+     * surface the error so the Screen can act on it.
+     *
+     * We verify: error is non-null after the failure, busy is false (cleared), and the component
+     * list is UNCHANGED (no stale partial update).
+     */
+    @Test fun `addSkill failure — error is set and busy cleared so form can stay open for retry`() = runTest(dispatcher) {
+        val existing = skill("s1", "ExistingSkill", true)
+        api.globalSettingsResult = listOf(existing)
+        api.addSkillException = RuntimeException("name conflict")
+
+        val vm = vm()
+        advanceUntilIdle()
+
+        vm.addSkill("ExistingSkill", "duplicate")
+        // busy must be true synchronously before coroutine runs.
+        assertTrue("busy must be true while op is in flight", vm.uiState.value.busy)
+
+        advanceUntilIdle()
+
+        val s = vm.uiState.value
+        // Error is surfaced (non-null) so the Screen knows to keep the form open.
+        assertNotNull("error must be non-null after addSkill failure", s.error)
+        assertTrue(s.error!!.contains("name conflict"))
+        // busy is cleared so the Screen can distinguish "in flight" from "finished with error".
+        assertFalse("busy must be false after failure", s.busy)
+        // Component list is unchanged — no stale local mutation.
+        assertEquals("components must be unchanged after failure", 1, s.components.size)
+        assertEquals("ExistingSkill", s.components[0].name)
+    }
+
+    /**
+     * Fix 3 — second mutating action is rejected (no-ops) while a first op is still in flight.
+     * Scenario: two rapid installPlugin calls. The first sets busy=true; the second must return
+     * without enqueuing a second API call, leaving the API called exactly once.
+     */
+    @Test fun `second mutating action is no-op while busy`() = runTest(dispatcher) {
+        api.globalSettingsResult = emptyList()
+        val p1 = plugin("p1@npm", "Plugin1", true)
+        api.installPluginResult = listOf(p1)
+
+        val vm = vm()
+        advanceUntilIdle()
+
+        // First call — sets busy=true synchronously.
+        vm.installPlugin("p1@npm")
+        assertTrue("busy must be true after first call", vm.uiState.value.busy)
+
+        // Second call — must be ignored because busy=true.
+        vm.installPlugin("p2@npm")
+
+        advanceUntilIdle()
+
+        // API must have been called exactly once (the second call was dropped).
+        assertEquals("API must be called exactly once (second call dropped)", 1, api.installPluginCalls.size)
+        assertEquals("p1@npm", api.installPluginCalls[0])
+        assertFalse("busy must be false after first op completes", vm.uiState.value.busy)
+    }
+
+    /**
+     * Fix 3 — busy is cleared in the error path (not only on success).
+     * Uses addSkill (lightweight) but the invariant applies to all CRUD ops:
+     * if the API throws, busy must be false after advanceUntilIdle so subsequent ops can proceed.
+     */
+    @Test fun `busy is cleared after op throws — subsequent op can proceed`() = runTest(dispatcher) {
+        api.globalSettingsResult = emptyList()
+        api.addSkillException = RuntimeException("first error")
+
+        val vm = vm()
+        advanceUntilIdle()
+
+        // First op — will throw.
+        vm.addSkill("bad", "desc")
+        advanceUntilIdle()
+
+        assertFalse("busy must be false after thrown op", vm.uiState.value.busy)
+        assertNotNull(vm.uiState.value.error)
+
+        // Now clear the exception and run a second op — must succeed.
+        api.addSkillException = null
+        val added = skill("s-ok", "GoodSkill", true)
+        api.addSkillResult = listOf(added)
+
+        vm.addSkill("GoodSkill", "ok desc")
+        advanceUntilIdle()
+
+        // Second op succeeded: components updated and no error.
+        assertEquals("GoodSkill", vm.uiState.value.components.firstOrNull()?.name)
+        assertNull("error must be null after second op success", vm.uiState.value.error)
+        assertFalse("busy must be false after second op", vm.uiState.value.busy)
+        // API was called twice total (first threw, second succeeded).
+        assertEquals(2, api.addSkillCalls.size)
     }
 }
