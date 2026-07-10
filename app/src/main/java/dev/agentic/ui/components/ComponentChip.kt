@@ -13,6 +13,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import dev.agentic.ui.AccentBlue
 import dev.agentic.ui.AccentCyan
 import dev.agentic.ui.PluginPurple
 
@@ -45,9 +46,13 @@ fun ComponentChip(
     readOnlyCaption: String? = null,
 ) {
     // "Selected = bright tag", not a solid slab: a faint same-hue wash + BRIGHT accent text + a
-    // thin accent outline. Cyan for skills, purple for plugins/mcp. A whole row of ON chips then
+    // thin accent outline. Cyan skills, blue repos, purple plugins/mcp. A whole row of ON chips then
     // reads as light bright-outlined tags rather than a wall of solid colour.
-    val accent = if (kind == "skill") AccentCyan else PluginPurple
+    val accent = when (kind) {
+        "skill" -> AccentCyan
+        "repo" -> AccentBlue
+        else -> PluginPurple // plugin, mcp
+    }
 
     val chipColors = FilterChipDefaults.filterChipColors(
         selectedContainerColor = accent.copy(alpha = 0.14f),

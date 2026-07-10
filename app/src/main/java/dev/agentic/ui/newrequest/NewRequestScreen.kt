@@ -632,11 +632,6 @@ private fun ChipPicker(
     options: List<String>,
     selected: Set<String>,
     onToggle: (String) -> Unit,
-    // Optional accent for the SELECTED (lit) chips. When both are non-null the lit chip is filled
-    // in these colors — used by Skills to match the cyan skill inline card. Null (the default,
-    // used by Repos) keeps FilterChip's stock Material 3 look.
-    selectedContainer: Color? = null,
-    selectedContent: Color? = null,
     // Chip text for an option. Lets Plugins show the short `<plugin>` name while the option value
     // (selection set + onToggle) stays the full `<plugin>@<marketplace>` id. Identity by default.
     displayLabel: (String) -> String = { it },
@@ -645,16 +640,6 @@ private fun ChipPicker(
     // Match against both the raw option and its display label, so typing either form filters.
     val shown = options.filter {
         q.isBlank() || it.contains(q, ignoreCase = true) || displayLabel(it).contains(q, ignoreCase = true)
-    }
-    // Default colors when no accent is supplied; an accented (filled) selected state otherwise.
-    val chipColors = if (selectedContainer != null && selectedContent != null) {
-        FilterChipDefaults.filterChipColors(
-            selectedContainerColor = selectedContainer,
-            selectedLabelColor = selectedContent,
-            selectedLeadingIconColor = selectedContent,
-        )
-    } else {
-        FilterChipDefaults.filterChipColors()
     }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         // Inline chip filter built from AppTextField (NOT the round SearchBar) so it is the SAME
@@ -691,18 +676,17 @@ private fun ChipPicker(
             colors = cardFieldColors(),
             modifier = Modifier.fillMaxWidth(),
         )
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
+        FlowRow(
+            Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             shown.forEach { o ->
-                FilterChip(
-                    selected = o in selected,
+                ComponentChip(
+                    label = displayLabel(o),
+                    kind = "repo",
+                    effective = o in selected,
                     onClick = { onToggle(o) },
-                    label = { Text(displayLabel(o)) },
-                    colors = chipColors,
                 )
             }
         }
