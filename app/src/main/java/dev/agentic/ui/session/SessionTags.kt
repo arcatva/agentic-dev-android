@@ -52,7 +52,8 @@ internal data class SessionTag(val label: String, val kind: TagKind)
 
 /**
  * The annotation tags for a session, in display order: an ultracode marker (only when the session ran
- * in ultracode mode), then a "fork" marker (only when the session branched off a parent), then repos,
+ * in ultracode mode), then a "fork" marker (only when the session branched off a parent), then an
+ * "Adopted" marker (only for a session imported from a Claude Code CLI session), then repos,
  * skills, and the model + effort it ran with. Repo/skill blanks and duplicates are dropped; model and
  * effort are shown with the SAME friendly labels as the New request screen's sliders (e.g. "Sonnet 4.6",
  * "High" — see [modelLabel]/[effortLabel]); a null/blank model or effort contributes no tag. The effort
