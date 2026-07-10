@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -37,10 +36,11 @@ import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -59,6 +59,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -66,6 +67,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import dev.agentic.di.appContainer
+import dev.agentic.ui.components.AppTextField
+import dev.agentic.ui.components.SectionCard
+import dev.agentic.ui.components.cardFieldColors
 import dev.agentic.ui.home.SessionRow
 import kotlinx.coroutines.launch
 
@@ -78,7 +82,7 @@ import kotlinx.coroutines.launch
  * [onOpenSession] navigates to a session; fired after a successful attach+send so the user lands on
  * the session and sees the log-bundle message arrive.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun DiagnosticsScreen(
     onBack: () -> Unit,
@@ -121,7 +125,7 @@ fun DiagnosticsScreen(
                         Icon(Icons.AutoMirrored.Rounded.ArrowBack, "Back")
                     }
                 },
-                title = { Text("Diagnostics & Logs") },
+                title = { Text("Diagnostics & logs") },
                 actions = {
                     IconButton(onClick = onOpenProviders) { Icon(Icons.Rounded.Tune, "Models / Providers") }
                     IconButton(
@@ -164,51 +168,44 @@ fun DiagnosticsScreen(
                 .fillMaxSize()
                 .padding(pad),
         ) {
-            // Settings-style card (MD3 Expressive): the single switch turns on verbose capture across
-            // the app (network, streaming, lifecycle, flow churn) AND mirrors logcat to a file.
-            Surface(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                shape = MaterialTheme.shapes.large,
-                color = MaterialTheme.colorScheme.surfaceContainer,
+            // The shared SectionCard (same tonal card as every other settings-style page); the
+            // switch sits in the header's trailing slot. The single switch turns on verbose capture
+            // across the app (network, streaming, lifecycle, flow churn) AND mirrors logcat to a file.
+            SectionCard(
+                title = "Verbose logging",
+                modifier = Modifier.padding(16.dp),
+                trailing = {
+                    Switch(
+                        checked = s.captureEnabled,
+                        onCheckedChange = { vm.setCaptureEnabled(it) },
+                    )
+                },
             ) {
-                Column(Modifier.padding(16.dp)) {
+                Text(
+                    "Capture detailed network, streaming and lifecycle logs. Turn on, reproduce the issue, then Share.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (s.crashCount > 0) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
-                            Text("Verbose logging", style = MaterialTheme.typography.titleMedium)
-                            Spacer(Modifier.height(2.dp))
-                            Text(
-                                "Capture detailed network, streaming and lifecycle logs. Turn on, reproduce the issue, then Share.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        Spacer(Modifier.width(16.dp))
-                        Switch(
-                            checked = s.captureEnabled,
-                            onCheckedChange = { vm.setCaptureEnabled(it) },
+                        Icon(
+                            Icons.Rounded.Warning, contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(18.dp),
                         )
-                    }
-                    if (s.crashCount > 0) {
-                        Spacer(Modifier.height(12.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.Rounded.Warning, contentDescription = null,
-                                tint = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.size(18.dp),
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                "${s.crashCount} crash report" + (if (s.crashCount > 1) "s" else "") + " captured",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.error,
-                            )
-                        }
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            "${s.crashCount} crash report" + (if (s.crashCount > 1) "s" else "") + " captured",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.error,
+                        )
                     }
                 }
             }
 
             when {
-                s.loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
+                // Expressive LoadingIndicator — the app-wide screen-level loading spinner.
+                s.loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { LoadingIndicator() }
                 s.logText.isBlank() -> Box(Modifier.fillMaxSize(), Alignment.Center) {
                     Text(
                         "No logs captured yet. Turn on Verbose logging above, reproduce the issue, then Share.",
@@ -271,6 +268,7 @@ private fun humanBytes(bytes: Long): String = when {
  * Uses [Dialog] rather than ModalBottomSheet for maximum API compatibility (the sheet failed to
  * render on some devices — see f72f17e).
  */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun SessionPickerSheet(
     sessions: List<dev.agentic.data.net.Session>,
@@ -323,10 +321,11 @@ private fun SessionPickerSheet(
                     }
                 }
 
-                // Bundle summary — what is about to be attached.
+                // Bundle summary — what is about to be attached. shapes.medium matches the app's
+                // section-card corner treatment (SectionCard) instead of a one-off larger radius.
                 Surface(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                    shape = MaterialTheme.shapes.large,
+                    shape = MaterialTheme.shapes.medium,
                     color = MaterialTheme.colorScheme.surfaceContainer,
                 ) {
                     Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -366,28 +365,33 @@ private fun SessionPickerSheet(
                     }
                 }
 
-                // Message sent alongside the attachment (editable).
-                OutlinedTextField(
+                // Message sent alongside the attachment (editable) — the app's shared field family
+                // (AppTextField + filled card colors), not a one-off outlined box.
+                AppTextField(
                     value = message,
                     onValueChange = { message = it },
-                    label = { Text("Message to the agent") },
+                    label = "Message to the agent",
+                    singleLine = false,
                     minLines = 2,
                     maxLines = 4,
-                    shape = MaterialTheme.shapes.large,
+                    shape = MaterialTheme.shapes.small,
+                    colors = cardFieldColors(),
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                 )
 
+                // Subsection header — titleSmall SemiBold, the same rank used across the app
+                // (no ALL-CAPS one-off labels).
                 Text(
-                    "SEND TO",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = 20.dp, top = 12.dp, bottom = 4.dp),
+                    "Send to",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 4.dp),
                 )
 
                 // Session list (server returns most-recently-active first).
                 when {
                     loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
+                        LoadingIndicator()
                     }
                     sessions.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text(

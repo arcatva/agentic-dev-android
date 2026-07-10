@@ -14,9 +14,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Save
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -76,7 +77,7 @@ private val PERMISSION_MODES_FOR_SETTINGS = listOf(
     "bypassPermissions" to "Dangerous",
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SessionSettingsScreen(
     sessionId: String,
@@ -114,7 +115,8 @@ fun SessionSettingsScreen(
                     .padding(pad),
                 contentAlignment = Alignment.Center,
             ) {
-                CircularProgressIndicator()
+                // Expressive LoadingIndicator — the app-wide screen-level loading spinner.
+                LoadingIndicator()
             }
         } else {
             Column(
@@ -125,19 +127,8 @@ fun SessionSettingsScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                // ── Page header (MD3 Expressive headline + subtitle, matching NewRequest/Models) ──
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(
-                        "Session settings",
-                        style = MaterialTheme.typography.headlineLarge,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    Text(
-                        "Saved to this session and applied to every turn",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                // The page title lives ONLY in the TopAppBar (app-wide rule) — no in-body headline,
+                // so the title never appears twice on one screen.
 
                 // ── Card 1 · Settings: model / effort / permission sliders ───────────────
                 // Same card + slider family as NewRequestScreen's "Settings" card.
