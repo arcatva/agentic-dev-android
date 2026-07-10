@@ -3,6 +3,7 @@ package dev.agentic.ui.components
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
@@ -11,6 +12,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -19,8 +21,15 @@ import androidx.compose.ui.unit.dp
 /**
  * Shared tonal containment card — the single source of truth for section cards across the app.
  * Sits one tonal step above the page canvas (surfaceContainer on the background), uses shapes.medium
- * corners, and carries an emphasized section header. Used by NewRequestScreen and ProvidersScreen
- * so they never drift apart.
+ * corners, and carries an emphasized section header. Used by NewRequest / Models / Session settings /
+ * Global settings / Diagnostics so they never drift apart.
+ *
+ * Heading hierarchy (app-wide): TopAppBar page title (titleLarge) → this card header
+ * (titleMedium SemiBold) → in-card subsection headers (titleSmall SemiBold). Keep the card header
+ * one step above the subsections so nested headers don't read as siblings.
+ *
+ * [trailing] is an optional slot rendered at the end of the header row — an "Add" TextButton,
+ * a Switch, etc. — so callers don't rebuild their own header rows outside the card.
  *
  * MD3 Expressive pattern: related controls sit inside a single tonal card instead of floating as
  * uncontained rows. The card's own background steps one level up from the page, and fields inside
@@ -30,6 +39,7 @@ import androidx.compose.ui.unit.dp
 fun SectionCard(
     title: String,
     modifier: Modifier = Modifier,
+    trailing: (@Composable () -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Surface(
@@ -41,11 +51,26 @@ fun SectionCard(
             Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(
-                title,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-            )
+            if (trailing != null) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.weight(1f),
+                    )
+                    trailing()
+                }
+            } else {
+                Text(
+                    title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
             content()
         }
     }

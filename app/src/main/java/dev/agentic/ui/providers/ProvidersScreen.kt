@@ -39,7 +39,6 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonGroup
 import androidx.compose.material3.ButtonGroupDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilterChip
@@ -47,9 +46,8 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -247,23 +245,10 @@ fun ProvidersScreen(onBack: () -> Unit) {
                 .fillMaxSize()
                 .verticalScroll(scroll)
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            // ── Page header (MD3 Expressive headline + subtitle) ────────────
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    "Models",
-                    style = MaterialTheme.typography.headlineLarge,
-                    fontWeight = FontWeight.Bold,
-                )
-                val n = ui.providers.size
-                Text(
-                    "$n ${if (n == 1) "model" else "models"} route your delegated work",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-
+            // The page title lives ONLY in the TopAppBar (app-wide rule) — no in-body headline,
+            // so "Models" never appears twice on one screen.
             val err = ui.error
             if (err != null) {
                 Text(err, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
@@ -277,7 +262,7 @@ fun ProvidersScreen(onBack: () -> Unit) {
                 label = "providers-form-pos",
             ) { editing ->
                 val currentRouter = ui.providers.firstOrNull { it.router }?.name
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     if (editing) {
                         AddOrEditForm(form, ui.busy, currentRouter, onSubmit = { vm.add(form.toReq()) { e -> if (e == null) form.reset() } })
                         RegisteredList(ui, onEdit = { form.loadFrom(it) }, onDelete = { providerToDelete = it })
@@ -308,7 +293,8 @@ private fun RegisteredList(
     }
     Crossfade(targetState = listKey, animationSpec = appEffectsSpec(), label = "providers-list") { state ->
         when (state) {
-            "loading" -> CircularProgressIndicator()
+            // Expressive LoadingIndicator — the app-wide screen-level loading spinner.
+            "loading" -> LoadingIndicator()
             "empty" ->
                 Text(
                     "No models yet — add one below.",
@@ -333,7 +319,7 @@ private fun ProviderCardList(
     onEdit: (Provider) -> Unit,
     onDelete: (String) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         // Router section — a standalone card with its own header. The card IS the section;
         // the router's visual distinction (violet container) makes it self-evident without
         // an external ALL-CAPS label.

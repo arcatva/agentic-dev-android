@@ -8,11 +8,8 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -45,7 +42,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -55,6 +51,7 @@ import dev.agentic.data.net.ComponentInfo
 import dev.agentic.di.appContainer
 import dev.agentic.ui.components.AppTextField
 import dev.agentic.ui.components.ComponentChip
+import dev.agentic.ui.components.SectionCard
 import dev.agentic.ui.components.cardFieldColors
 import dev.agentic.ui.newrequest.McpDraft
 
@@ -104,7 +101,7 @@ fun GlobalSettingsScreen(
                         Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
                     }
                 },
-                title = { Text("Global Settings") },
+                title = { Text("Global settings") },
             )
         },
         snackbarHost = { SnackbarHost(snackbarHost) },
@@ -125,11 +122,15 @@ fun GlobalSettingsScreen(
                 val plugins = s.components.filter { it.kind == "plugin" }
                 val mcps    = s.components.filter { it.kind == "mcp" }
 
+                // Same scaffold as the other form pages (NewRequest / Models / Session settings):
+                // 16dp content padding, sections in tonal SectionCards spaced 12dp apart.
                 Column(
                     Modifier
                         .fillMaxSize()
                         .padding(pad)
-                        .verticalScroll(rememberScrollState()),
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     // ── Skills ───────────────────────────────────────────────────
                     SkillsSection(
@@ -141,7 +142,6 @@ fun GlobalSettingsScreen(
                         onAddSkill = { name, desc -> resolvedVm.addSkill(name, desc) },
                         onDeleteSkill = { resolvedVm.deleteSkill(it) },
                     )
-                    Spacer(Modifier.height(8.dp))
 
                     // ── Plugins ──────────────────────────────────────────────────
                     PluginsSection(
@@ -153,7 +153,6 @@ fun GlobalSettingsScreen(
                         onInstallPlugin = { resolvedVm.installPlugin(it) },
                         onUninstallPlugin = { resolvedVm.uninstallPlugin(it) },
                     )
-                    Spacer(Modifier.height(8.dp))
 
                     // ── MCP (always rendered, toggle read-only, but add/delete supported) ──
                     McpSection(
@@ -163,48 +162,20 @@ fun GlobalSettingsScreen(
                         onAddMcpServer = { draft -> resolvedVm.addMcpServer(draft) },
                         onDeleteMcpServer = { resolvedVm.deleteMcpServer(it) },
                     )
-                    Spacer(Modifier.height(8.dp))
                 }
             }
         }
     }
 }
 
-// ── Section header row with "+ Add" button ────────────────────────────────────
+// ── Shared "Add" header action (rendered in the SectionCard trailing slot) ────
 
 @Composable
-private fun SectionHeaderRow(label: String, onAdd: () -> Unit) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .padding(start = 16.dp, end = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Text(
-            label,
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(vertical = 12.dp),
-        )
-        TextButton(onClick = onAdd) {
-            Icon(Icons.Rounded.Add, contentDescription = "Add $label", modifier = Modifier.padding(end = 4.dp))
-            Text("Add")
-        }
+private fun AddHeaderButton(label: String, onAdd: () -> Unit) {
+    TextButton(onClick = onAdd) {
+        Icon(Icons.Rounded.Add, contentDescription = "Add $label", modifier = Modifier.padding(end = 4.dp))
+        Text("Add")
     }
-}
-
-/** Section header without an add button (used inside sections that render the header themselves). */
-@Composable
-private fun SectionHeader(label: String) {
-    Text(
-        label,
-        style = MaterialTheme.typography.titleSmall,
-        fontWeight = FontWeight.SemiBold,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-    )
 }
 
 // ── Skills section ────────────────────────────────────────────────────────────
@@ -258,51 +229,50 @@ private fun SkillsSection(
         )
     }
 
-    SectionHeaderRow(label = "Skills", onAdd = {
-        if (!busy) addExpanded = !addExpanded
-    })
-
-    // Add form
-    AnimatedVisibility(
-        visible = addExpanded,
-        enter = expandVertically() + fadeIn(),
-        exit = shrinkVertically() + fadeOut(),
+    SectionCard(
+        title = "Skills",
+        trailing = { AddHeaderButton("Skills") { if (!busy) addExpanded = !addExpanded } },
     ) {
-        AddSkillForm(
-            busy = busy,
-            onAdd = { name, desc ->
-                submitting = true
-                onAddSkill(name, desc)
-                // Form does NOT close here — closes via LaunchedEffect above on success.
-            },
-        )
-    }
-
-    // Chips
-    if (skills.isEmpty()) {
-        Text(
-            "No skills",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-        )
-    } else {
-        androidx.compose.foundation.layout.FlowRow(
-            modifier = Modifier.padding(horizontal = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+        // Add form
+        AnimatedVisibility(
+            visible = addExpanded,
+            enter = expandVertically() + fadeIn(),
+            exit = shrinkVertically() + fadeOut(),
         ) {
-            val toggleKey = { c: ComponentInfo -> "${c.kind}:${c.id}" }
-            skills.forEach { component ->
-                val isToggling = toggleKey(component) in toggling
-                ComponentChip(
-                    label = component.name.ifBlank { component.id },
-                    kind = component.kind,
-                    effective = component.globalEnabled,
-                    onClick = { if (!isToggling && !busy) onToggle(component) },
-                    enabled = !isToggling && !busy,
-                    onLongClick = { if (!busy) pendingDelete = component },
-                )
+            AddSkillForm(
+                busy = busy,
+                onAdd = { name, desc ->
+                    submitting = true
+                    onAddSkill(name, desc)
+                    // Form does NOT close here — closes via LaunchedEffect above on success.
+                },
+            )
+        }
+
+        // Chips
+        if (skills.isEmpty()) {
+            Text(
+                "No skills",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            androidx.compose.foundation.layout.FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                val toggleKey = { c: ComponentInfo -> "${c.kind}:${c.id}" }
+                skills.forEach { component ->
+                    val isToggling = toggleKey(component) in toggling
+                    ComponentChip(
+                        label = component.name.ifBlank { component.id },
+                        kind = component.kind,
+                        effective = component.globalEnabled,
+                        onClick = { if (!isToggling && !busy) onToggle(component) },
+                        enabled = !isToggling && !busy,
+                        onLongClick = { if (!busy) pendingDelete = component },
+                    )
+                }
             }
         }
     }
@@ -317,10 +287,8 @@ private fun AddSkillForm(
     var description by remember { mutableStateOf("") }
     var localError by remember { mutableStateOf<String?>(null) }
 
-    Column(
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
+    // No horizontal padding of its own — the enclosing SectionCard already insets its content.
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         AppTextField(
             value = name,
             onValueChange = { name = it; localError = null },
@@ -360,7 +328,7 @@ private fun AddSkillForm(
             modifier = Modifier.fillMaxWidth(),
         ) {
             Icon(Icons.Rounded.Add, contentDescription = null)
-            Text("  Add Skill")
+            Text("  Add skill")
         }
     }
 }
@@ -408,60 +376,60 @@ private fun PluginsSection(
         )
     }
 
-    SectionHeaderRow(label = "Plugins", onAdd = { if (!busy) addExpanded = !addExpanded })
-
-    // Progress indicator while any op is in flight
-    if (busy) {
-        LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp))
-        Text(
-            "Plugin operation in progress…",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp),
-        )
-    }
-
-    // Add form
-    AnimatedVisibility(
-        visible = addExpanded,
-        enter = expandVertically() + fadeIn(),
-        exit = shrinkVertically() + fadeOut(),
+    SectionCard(
+        title = "Plugins",
+        trailing = { AddHeaderButton("Plugins") { if (!busy) addExpanded = !addExpanded } },
     ) {
-        AddPluginForm(
-            busy = busy,
-            onInstall = { id ->
-                submitting = true
-                onInstallPlugin(id)
-                // Form does NOT close here — closes via LaunchedEffect above on success.
-            },
-        )
-    }
+        // Progress indicator while any op is in flight
+        if (busy) {
+            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            Text(
+                "Plugin operation in progress…",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
 
-    // Chips
-    if (plugins.isEmpty()) {
-        Text(
-            "No plugins installed",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-        )
-    } else {
-        androidx.compose.foundation.layout.FlowRow(
-            modifier = Modifier.padding(horizontal = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+        // Add form
+        AnimatedVisibility(
+            visible = addExpanded,
+            enter = expandVertically() + fadeIn(),
+            exit = shrinkVertically() + fadeOut(),
         ) {
-            val toggleKey = { c: ComponentInfo -> "${c.kind}:${c.id}" }
-            plugins.forEach { component ->
-                val isToggling = toggleKey(component) in toggling
-                ComponentChip(
-                    label = component.name.ifBlank { component.id },
-                    kind = component.kind,
-                    effective = component.globalEnabled,
-                    onClick = { if (!isToggling && !busy) onToggle(component) },
-                    enabled = !isToggling && !busy,
-                    onLongClick = { if (!busy) pendingDelete = component },
-                )
+            AddPluginForm(
+                busy = busy,
+                onInstall = { id ->
+                    submitting = true
+                    onInstallPlugin(id)
+                    // Form does NOT close here — closes via LaunchedEffect above on success.
+                },
+            )
+        }
+
+        // Chips
+        if (plugins.isEmpty()) {
+            Text(
+                "No plugins installed",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            androidx.compose.foundation.layout.FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                val toggleKey = { c: ComponentInfo -> "${c.kind}:${c.id}" }
+                plugins.forEach { component ->
+                    val isToggling = toggleKey(component) in toggling
+                    ComponentChip(
+                        label = component.name.ifBlank { component.id },
+                        kind = component.kind,
+                        effective = component.globalEnabled,
+                        onClick = { if (!isToggling && !busy) onToggle(component) },
+                        enabled = !isToggling && !busy,
+                        onLongClick = { if (!busy) pendingDelete = component },
+                    )
+                }
             }
         }
     }
@@ -475,10 +443,8 @@ private fun AddPluginForm(
     var id by remember { mutableStateOf("") }
     var localError by remember { mutableStateOf<String?>(null) }
 
-    Column(
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
+    // No horizontal padding of its own — the enclosing SectionCard already insets its content.
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         AppTextField(
             value = id,
             onValueChange = { id = it; localError = null },
@@ -510,7 +476,7 @@ private fun AddPluginForm(
             modifier = Modifier.fillMaxWidth(),
         ) {
             Icon(Icons.Rounded.Add, contentDescription = null)
-            Text("  Install Plugin")
+            Text("  Install plugin")
         }
     }
 }
@@ -557,53 +523,54 @@ private fun McpSection(
         )
     }
 
-    SectionHeaderRow(label = "MCP", onAdd = { if (!busy) addExpanded = !addExpanded })
-
-    // Add form
-    AnimatedVisibility(
-        visible = addExpanded,
-        enter = expandVertically() + fadeIn(),
-        exit = shrinkVertically() + fadeOut(),
+    SectionCard(
+        title = "MCP servers",
+        trailing = { AddHeaderButton("MCP servers") { if (!busy) addExpanded = !addExpanded } },
     ) {
-        AddMcpForm(
-            busy = busy,
-            onAdd = { draft ->
-                val validationErr = onAddMcpServer(draft)
-                if (validationErr == null) {
-                    // Validation passed; API call is enqueued. Track the submit so the
-                    // LaunchedEffect above can close the form when the op completes.
-                    submitting = true
-                }
-                // Return validation error (if any) for the form to show inline.
-                validationErr
-            },
-        )
-    }
-
-    // Chips (read-only toggle, but deletable via long-press)
-    if (mcps.isEmpty()) {
-        Text(
-            "No MCP servers",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-        )
-    } else {
-        androidx.compose.foundation.layout.FlowRow(
-            modifier = Modifier.padding(horizontal = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+        // Add form
+        AnimatedVisibility(
+            visible = addExpanded,
+            enter = expandVertically() + fadeIn(),
+            exit = shrinkVertically() + fadeOut(),
         ) {
-            mcps.forEach { component ->
-                ComponentChip(
-                    label = component.name.ifBlank { component.id },
-                    kind = component.kind,
-                    effective = component.globalEnabled,
-                    onClick = { /* MCP global toggle not supported */ },
-                    enabled = !busy,
-                    readOnlyCaption = "managed per-session",
-                    onLongClick = { if (!busy) pendingDelete = component },
-                )
+            AddMcpForm(
+                busy = busy,
+                onAdd = { draft ->
+                    val validationErr = onAddMcpServer(draft)
+                    if (validationErr == null) {
+                        // Validation passed; API call is enqueued. Track the submit so the
+                        // LaunchedEffect above can close the form when the op completes.
+                        submitting = true
+                    }
+                    // Return validation error (if any) for the form to show inline.
+                    validationErr
+                },
+            )
+        }
+
+        // Chips (read-only toggle, but deletable via long-press)
+        if (mcps.isEmpty()) {
+            Text(
+                "No MCP servers",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            androidx.compose.foundation.layout.FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                mcps.forEach { component ->
+                    ComponentChip(
+                        label = component.name.ifBlank { component.id },
+                        kind = component.kind,
+                        effective = component.globalEnabled,
+                        onClick = { /* MCP global toggle not supported */ },
+                        enabled = !busy,
+                        readOnlyCaption = "managed per-session",
+                        onLongClick = { if (!busy) pendingDelete = component },
+                    )
+                }
             }
         }
     }
@@ -624,10 +591,8 @@ private fun AddMcpForm(
     var draft by remember { mutableStateOf(McpDraft()) }
     var localError by remember { mutableStateOf<String?>(null) }
 
-    Column(
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
+    // No horizontal padding of its own — the enclosing SectionCard already insets its content.
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         // Transport toggle: stdio | HTTP/SSE
         SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
             listOf("stdio", "http").forEachIndexed { i, t ->
@@ -731,7 +696,7 @@ private fun AddMcpForm(
             modifier = Modifier.fillMaxWidth(),
         ) {
             Icon(Icons.Rounded.Add, contentDescription = null)
-            Text("  Add MCP Server")
+            Text("  Add MCP server")
         }
     }
 }

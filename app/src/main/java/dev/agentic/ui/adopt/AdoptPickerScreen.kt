@@ -24,7 +24,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -60,7 +62,7 @@ import kotlinx.coroutines.delay
  * Scoped VM via `viewModel(key = "adoptPicker", factory = ...)` so a fresh sheet owns a fresh VM
  * instance (and the GET fires once per open).
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun AdoptPickerSheet(
     onDismiss: () -> Unit,
@@ -122,7 +124,8 @@ fun AdoptPickerSheet(
             when {
                 s.loading -> {
                     Box(Modifier.fillMaxWidth().padding(32.dp), Alignment.Center) {
-                        CircularProgressIndicator()
+                        // Expressive LoadingIndicator — the app-wide screen-level loading spinner.
+                        LoadingIndicator()
                     }
                 }
                 s.error != null && s.items.isEmpty() -> {

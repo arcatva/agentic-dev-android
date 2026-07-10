@@ -68,7 +68,6 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.ButtonGroup
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.Scaffold
@@ -114,7 +113,9 @@ import dev.agentic.domain.resetIn
 import dev.agentic.ui.FadingText
 import dev.agentic.ui.appEffectsSpec
 import dev.agentic.ui.appSpatialSpec
+import dev.agentic.ui.components.AppTextField
 import dev.agentic.ui.components.StatusIndicator
+import dev.agentic.ui.components.cardFieldColors
 import dev.agentic.ui.components.clearFocusOnTap
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -406,7 +407,7 @@ internal fun HomeTopBar(
                     Spacer(Modifier.width(4.dp))
                     DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                         DropdownMenuItem(
-                            text = { Text("Global Settings") },
+                            text = { Text("Global settings") },
                             leadingIcon = { Icon(Icons.Rounded.Settings, contentDescription = null) },
                             onClick = { menuOpen = false; onOpenGlobalSettings() },
                         )
@@ -433,7 +434,7 @@ internal fun HomeTopBar(
                     }
                 } else {
                     FilledTonalIconButton(onClick = onOpenGlobalSettings) {
-                        Icon(Icons.Rounded.Settings, contentDescription = "Global Settings")
+                        Icon(Icons.Rounded.Settings, contentDescription = "Global settings")
                     }
                     Spacer(Modifier.width(8.dp))
                     FilledTonalIconButton(onClick = onOpenProviders) {
@@ -661,11 +662,15 @@ internal fun GroupFilterRow(
             onDismissRequest = { createGroupOpen = false },
             title = { Text("New group") },
             text = {
-                OutlinedTextField(
+                // Shared field family (AppTextField + filled card colors) — same as every other
+                // dialog input (e.g. the template-variable dialog on New request).
+                AppTextField(
                     value = name,
                     onValueChange = { name = it },
                     singleLine = true,
-                    label = { Text("Group name") },
+                    label = "Group name",
+                    shape = MaterialTheme.shapes.small,
+                    colors = cardFieldColors(),
                 )
             },
             confirmButton = {
@@ -692,7 +697,14 @@ internal fun GroupFilterRow(
             onDismissRequest = { renameTarget = null },
             title = { Text("Rename group") },
             text = {
-                OutlinedTextField(value = text, onValueChange = { text = it }, singleLine = true, label = { Text("Group name") })
+                AppTextField(
+                    value = text,
+                    onValueChange = { text = it },
+                    singleLine = true,
+                    label = "Group name",
+                    shape = MaterialTheme.shapes.small,
+                    colors = cardFieldColors(),
+                )
             },
             confirmButton = {
                 TextButton(onClick = { renameTarget = null; if (text.isNotBlank()) onRenameGroup(rt.id, text.trim()) }) { Text("Rename") }

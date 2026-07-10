@@ -191,25 +191,13 @@ fun NewRequestScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            // ── Page header (MD3 Expressive headline + subtitle, matching Models screen) ──
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    "New request",
-                    style = MaterialTheme.typography.headlineLarge,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    "Configure a new session and launch it",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            // The page title lives ONLY in the TopAppBar (app-wide rule) — no in-body headline,
+            // so the title never appears twice on one screen.
 
-            // ── Template picker (quick-start strip, above the cards) ──────────────────
-            // Row is hidden when the backend returns no templates (opt-in server feature).
+            // ── Card 0 · Template picker (quick-start strip) ──────────────────────────
+            // Hidden when the backend returns no templates (opt-in server feature).
             if (s.templates.isNotEmpty()) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Start from template", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                SectionCard("Start from template") {
                     Row(
                         Modifier
                             .fillMaxWidth()
@@ -284,37 +272,21 @@ fun NewRequestScreen(
                         },
                     )
                 }
-                // MCP — tri-state chips for globally configured MCP servers + inline add form.
+                // MCP — the SAME filter-field + chip picker as Skills/Plugins above, so all four
+                // component groups in this card share one visual pattern (the filter placeholder
+                // names the group; no floating section label).
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        "MCP servers",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    // Globally configured MCP servers as binary effective-state chips (FlowRow).
                     if (s.mcpComponents.isNotEmpty()) {
-                        FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            s.mcpComponents.forEach { comp ->
+                        ComponentChipPicker(
+                            label = "MCP servers",
+                            filterPlaceholder = "Filter MCP servers",
+                            components = s.mcpComponents,
+                            overrides = s.mcpOverrides,
+                            onToggle = { comp ->
                                 val cur = s.mcpOverrides[comp.id] ?: Override.Inherit
-                                val eff = when (cur) {
-                                    Override.Inherit  -> comp.globalEnabled
-                                    Override.ForceOn  -> true
-                                    Override.ForceOff -> false
-                                }
-                                ComponentChip(
-                                    label = comp.name,
-                                    kind = "mcp",
-                                    effective = eff,
-                                    onClick = {
-                                        realVm.setOverride("mcp", comp.id, nextOverrideOnTap(cur, comp.globalEnabled))
-                                    },
-                                )
-                            }
-                        }
+                                realVm.setOverride("mcp", comp.id, nextOverrideOnTap(cur, comp.globalEnabled))
+                            },
+                        )
                     }
                     // Extra (ad-hoc) added servers — shown as removable chips (FlowRow).
                     if (s.extraMcpServers.isNotEmpty()) {
@@ -555,6 +527,8 @@ fun NewRequestScreen(
  * Tap toggles effective state; [onToggle] is called with the clicked component so the caller can
  * compute the minimal override and call setOverride.
  * [displayLabel] extracts the chip label from a [ComponentInfo] (default = name).
+ * [filterPlaceholder] overrides the derived "Filter <label>" hint — used when lowercasing the
+ * label would mangle an acronym (e.g. "MCP servers" → keep "Filter MCP servers").
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -564,6 +538,7 @@ private fun ComponentChipPicker(
     overrides: Map<String, Override>,
     onToggle: (ComponentInfo) -> Unit,
     displayLabel: (ComponentInfo) -> String = { it.name },
+    filterPlaceholder: String = "Filter ${label.lowercase()}",
 ) {
     var q by remember { mutableStateOf("") }
     val shown = components.filter { c ->
@@ -573,12 +548,12 @@ private fun ComponentChipPicker(
         AppTextField(
             value = q,
             onValueChange = { q = it },
-            placeholder = "Filter ${label.lowercase()}",
+            placeholder = filterPlaceholder,
             singleLine = true,
             leadingIcon = {
                 Icon(
                     Icons.Rounded.Search,
-                    contentDescription = "Filter ${label.lowercase()}",
+                    contentDescription = filterPlaceholder,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             },

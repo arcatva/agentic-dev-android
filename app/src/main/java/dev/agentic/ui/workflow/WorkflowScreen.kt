@@ -451,7 +451,9 @@ internal fun AgentRail(
                                 FadingText(
                                     run.name,
                                     style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
+                                    // SemiBold matches the app-wide card-header emphasis
+                                    // (SectionCard headers, "Main" in the rail).
+                                    fontWeight = FontWeight.SemiBold,
                                     modifier = Modifier.weight(1f),
                                 )
                                 // Finished runs need no status affordance; failed/running/etc. show dot + label.
