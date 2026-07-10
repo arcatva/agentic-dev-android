@@ -404,7 +404,7 @@ internal fun HomeTopBar(
                     Spacer(Modifier.width(4.dp))
                     DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                         DropdownMenuItem(
-                            text = { Text("Global settings") },
+                            text = { Text("Settings") },
                             leadingIcon = { Icon(Icons.Rounded.Settings, contentDescription = null) },
                             onClick = { menuOpen = false; onOpenGlobalSettings() },
                         )
@@ -426,7 +426,7 @@ internal fun HomeTopBar(
                     }
                 } else {
                     FilledTonalIconButton(onClick = onOpenGlobalSettings) {
-                        Icon(Icons.Rounded.Settings, contentDescription = "Global settings")
+                        Icon(Icons.Rounded.Settings, contentDescription = "Settings")
                     }
                     Spacer(Modifier.width(8.dp))
                     FilledTonalIconButton(onClick = onOpenDiagnostics) {
