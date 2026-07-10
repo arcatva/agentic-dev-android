@@ -87,3 +87,44 @@ New tests added (13):
 3. **Plugin install timeout is per-request (180s)**, not per-socket-idle. If the CLI blocks with no output for >20s the socketTimeoutMillis (20s) will fire first. This is the same constraint as the rest of the API; a future improvement could raise the socket timeout for plugin ops specifically.
 
 4. **No optimistic removal for delete**: Unlike toggle (which optimistically flips the chip), deletes wait for the API response before updating the list. This is intentional — a failed delete with a chip already gone would require a reload to recover. The snackbar surfaces the error and the list is always server-authoritative after an op.
+
+## Fix wave
+
+Applied four fixes from the adversarial review of the CRUD frontend.
+
+### Fix 1 — plugin install idle-socket timeout (real bug)
+
+`KtorAgenticApi.installPlugin` previously only overrode `requestTimeoutMillis = 180_000` but left the client-level `socketTimeoutMillis = 20_000` in effect. Since the claude CLI can be silent for well over 20 s while working, the request was killed mid-install. Now both `installPlugin` and `uninstallPlugin` set a full per-request timeout block: `requestTimeoutMillis = 180_000; socketTimeoutMillis = 180_000; connectTimeoutMillis = 20_000`.
+
+### Fix 2 — forms stay open on API error (UX)
+
+All three add forms (`AddSkillForm`, `AddPluginForm`, `AddMcpForm`) previously closed unconditionally when the user tapped submit, losing entered values even on failure. Now:
+- The submit button does NOT reset or close the form.
+- Each section composable (`SkillsSection`, `PluginsSection`, `McpSection`) tracks a local `submitting` flag and uses a `LaunchedEffect(busy, error)` to close the form **only when busy transitions false AND error is null** (success). On failure, busy drops but error is non-null → form stays open for retry.
+- `error: String?` is now threaded from the parent Screen into each section so the LaunchedEffect can distinguish success from failure.
+
+### Fix 3 — global busy flag guards all mutating ops + concurrency prevention
+
+`pluginBusy: Boolean` (plugin-only) was replaced with `busy: Boolean` in `GlobalSettingsUiState`. All six CRUD methods (`addSkill`, `deleteSkill`, `installPlugin`, `uninstallPlugin`, `addMcpServer`, `deleteMcpServer`) go through a shared `acquireBusy()` guard:
+- Returns `false` (no-op) if already busy, preventing overlapping ops.
+- Sets `busy = true` and clears the previous error synchronously before the coroutine launches.
+- `busy` is cleared in both the success and error branches of each method (equivalent to `finally` — each branch has exactly one `_uiState.update` that sets `busy = false`).
+- The Screen disables Add buttons, submit buttons, and long-press delete while `busy` is true.
+
+### Fix 4 — state race audit
+
+- Previous error is cleared at the start of each new op (via `acquireBusy()` calling `_uiState.update { it.copy(busy = true, error = null) }`), so stale error banners from a prior failure don't persist into a new op.
+- Component list is always updated from the API's returned list (never a stale local copy) — no change needed, was already correct.
+- `addMcpServer` async error now lands in `uiState.error` consistently; the sync return value is validation-only (unchanged design, now clearly documented).
+
+### Tests
+
+Three new tests added to `GlobalSettingsViewModelTest` (30 total, up from 27):
+
+1. **`addSkill failure — error is set and busy cleared so form can stay open for retry`**: verifies that after a failed `addSkill`, `error` is non-null, `busy` is false, and `components` is unchanged.
+2. **`second mutating action is no-op while busy`**: two rapid `installPlugin` calls — the second is dropped; API called exactly once.
+3. **`busy is cleared after op throws — subsequent op can proceed`**: first op throws, `busy` drops to false; second op succeeds, confirming `busy` was correctly released after the throw.
+
+### Test result
+
+`./gradlew testDebugUnitTest` — **BUILD SUCCESSFUL** — 584 tests, 0 failures, 0 errors.

@@ -718,11 +718,16 @@ class KtorAgenticApi(
 
     override suspend fun installPlugin(id: String): List<ComponentInfo> {
         return try {
-            // Plugin install shells out to the claude CLI — can take many seconds.
-            // Override the per-request timeout to 180 s so the default 60 s cap doesn't fire.
+            // Plugin install shells out to the claude CLI — can stay quiet for well over the
+            // client-level socketTimeoutMillis (20 s idle cap) while still working. Override
+            // BOTH the socket idle cap AND the request cap so a quiet-but-alive CLI is not cut.
             val r: List<ComponentInfo> = client.post("$baseUrl/api/plugins") {
                 auth(); contentType(ContentType.Application.Json); setBody(AddPluginReq(id))
-                timeout { requestTimeoutMillis = 180_000 }
+                timeout {
+                    requestTimeoutMillis = 180_000
+                    socketTimeoutMillis  = 180_000
+                    connectTimeoutMillis =  20_000
+                }
             }.body()
             AppLog.d("API", "POST plugins id=$id -> OK")
             r
@@ -734,7 +739,15 @@ class KtorAgenticApi(
 
     override suspend fun uninstallPlugin(id: String): List<ComponentInfo> {
         return try {
-            val r: List<ComponentInfo> = client.delete("$baseUrl/api/plugins/${id.encodeURLPathPart()}") { auth() }.body()
+            // Uninstall also shells out to the CLI — same timeout rationale as installPlugin.
+            val r: List<ComponentInfo> = client.delete("$baseUrl/api/plugins/${id.encodeURLPathPart()}") {
+                auth()
+                timeout {
+                    requestTimeoutMillis = 180_000
+                    socketTimeoutMillis  = 180_000
+                    connectTimeoutMillis =  20_000
+                }
+            }.body()
             AppLog.d("API", "DELETE plugins/$id -> OK")
             r
         } catch (e: Exception) {
