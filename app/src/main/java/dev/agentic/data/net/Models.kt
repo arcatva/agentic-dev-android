@@ -594,3 +594,13 @@ data class DetachResp(
     val resumeCmd: String,
 )
 
+// ── Feature: Global Settings CRUD (S5c) ─────────────────────────────────────
+
+/** Body for POST /api/skills (add a new skill globally). */
+@Serializable
+data class AddSkillReq(val name: String, val description: String)
+
+/** Body for POST /api/plugins (install a plugin globally). */
+@Serializable
+data class AddPluginReq(val id: String)
+

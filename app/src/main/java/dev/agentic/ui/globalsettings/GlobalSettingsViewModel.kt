@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.agentic.data.net.AgenticApi
 import dev.agentic.data.net.ComponentInfo
+import dev.agentic.data.net.McpServerDef
+import dev.agentic.ui.newrequest.McpDraft
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,6 +21,8 @@ data class GlobalSettingsUiState(
     val error: String? = null,
     /** Set of component ids currently mid-toggle (prevents double-tap). */
     val toggling: Set<String> = emptySet(),
+    /** True while installPlugin or uninstallPlugin is in flight (CLI is slow). */
+    val pluginBusy: Boolean = false,
 )
 
 /**
@@ -122,5 +126,113 @@ class GlobalSettingsViewModel(
     /** Dismiss the current transient error (called after the snackbar is shown). */
     fun clearError() {
         _uiState.update { it.copy(error = null) }
+    }
+
+    // ── CRUD actions ─────────────────────────────────────────────────────────────
+
+    /** Add a skill globally. Calls the API and replaces the component list from the response. */
+    fun addSkill(name: String, description: String) {
+        viewModelScope.launch {
+            try {
+                val refreshed = api.addSkill(name, description)
+                _uiState.update { it.copy(components = refreshed, error = null) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(error = "Failed to add skill: ${e.message}") }
+            }
+        }
+    }
+
+    /** Delete a skill by name globally. */
+    fun deleteSkill(name: String) {
+        viewModelScope.launch {
+            try {
+                val refreshed = api.deleteSkill(name)
+                _uiState.update { it.copy(components = refreshed, error = null) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(error = "Failed to delete skill: ${e.message}") }
+            }
+        }
+    }
+
+    /** Install a plugin globally (slow — CLI). Sets pluginBusy while in flight. */
+    fun installPlugin(id: String) {
+        _uiState.update { it.copy(pluginBusy = true) }
+        viewModelScope.launch {
+            try {
+                val refreshed = api.installPlugin(id)
+                _uiState.update { it.copy(components = refreshed, pluginBusy = false, error = null) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(pluginBusy = false, error = "Failed to install plugin: ${e.message}") }
+            }
+        }
+    }
+
+    /** Uninstall a plugin globally (slow). Sets pluginBusy while in flight. */
+    fun uninstallPlugin(id: String) {
+        _uiState.update { it.copy(pluginBusy = true) }
+        viewModelScope.launch {
+            try {
+                val refreshed = api.uninstallPlugin(id)
+                _uiState.update { it.copy(components = refreshed, pluginBusy = false, error = null) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(pluginBusy = false, error = "Failed to uninstall plugin: ${e.message}") }
+            }
+        }
+    }
+
+    /** Add an MCP server globally. Returns a validation error string, or null on success (mirrors
+     *  NewRequestViewModel.addMcpServer). Reuses McpDraft.validationError for client-side validation. */
+    fun addMcpServer(draft: McpDraft): String? {
+        val err = draft.validationError
+        if (err != null) return err
+        val def = buildMcpServerDef(draft)
+        viewModelScope.launch {
+            try {
+                val refreshed = api.addMcpServer(def)
+                _uiState.update { it.copy(components = refreshed, error = null) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(error = "Failed to add MCP server: ${e.message}") }
+            }
+        }
+        return null
+    }
+
+    /** Delete an MCP server globally by name. */
+    fun deleteMcpServer(name: String) {
+        viewModelScope.launch {
+            try {
+                val refreshed = api.deleteMcpServer(name)
+                _uiState.update { it.copy(components = refreshed, error = null) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(error = "Failed to delete MCP server: ${e.message}") }
+            }
+        }
+    }
+
+    // Mirrors NewRequestViewModel.buildMcpServerDef so we don't duplicate the parse logic in the UI layer.
+    private fun buildMcpServerDef(draft: McpDraft): McpServerDef {
+        val envMap = draft.env.lines()
+            .map { it.trim() }.filter { it.contains('=') }
+            .associate { it.substringBefore('=') to it.substringAfter('=') }
+            .ifEmpty { null }
+        val headersMap = draft.headers.lines()
+            .map { it.trim() }.filter { it.contains('=') }
+            .associate { it.substringBefore('=') to it.substringAfter('=') }
+            .ifEmpty { null }
+        return if (draft.transport == "stdio") {
+            McpServerDef(
+                name = draft.name.trim(),
+                command = draft.command.trim(),
+                args = draft.args.trim().split("\\s+".toRegex()).filter { it.isNotEmpty() }.ifEmpty { null },
+                env = envMap,
+            )
+        } else {
+            McpServerDef(
+                name = draft.name.trim(),
+                type = draft.httpType,
+                url = draft.url.trim(),
+                headers = headersMap,
+            )
+        }
     }
 }

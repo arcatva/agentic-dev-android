@@ -691,6 +691,82 @@ class KtorAgenticApi(
         }
     }
 
+    // ── Feature: Global Settings CRUD (S5c) ─────────────────────────────────────
+    override suspend fun addSkill(name: String, description: String): List<ComponentInfo> {
+        return try {
+            val r: List<ComponentInfo> = client.post("$baseUrl/api/skills") {
+                auth(); contentType(ContentType.Application.Json); setBody(AddSkillReq(name, description))
+            }.body()
+            AppLog.d("API", "POST skills name=$name -> OK")
+            r
+        } catch (e: Exception) {
+            AppLog.w("API", "POST skills -> FAILED: ${e.message}")
+            throw e
+        }
+    }
+
+    override suspend fun deleteSkill(name: String): List<ComponentInfo> {
+        return try {
+            val r: List<ComponentInfo> = client.delete("$baseUrl/api/skills/${name.encodeURLPathPart()}") { auth() }.body()
+            AppLog.d("API", "DELETE skills/$name -> OK")
+            r
+        } catch (e: Exception) {
+            AppLog.w("API", "DELETE skills/$name -> FAILED: ${e.message}")
+            throw e
+        }
+    }
+
+    override suspend fun installPlugin(id: String): List<ComponentInfo> {
+        return try {
+            // Plugin install shells out to the claude CLI — can take many seconds.
+            // Override the per-request timeout to 180 s so the default 60 s cap doesn't fire.
+            val r: List<ComponentInfo> = client.post("$baseUrl/api/plugins") {
+                auth(); contentType(ContentType.Application.Json); setBody(AddPluginReq(id))
+                timeout { requestTimeoutMillis = 180_000 }
+            }.body()
+            AppLog.d("API", "POST plugins id=$id -> OK")
+            r
+        } catch (e: Exception) {
+            AppLog.w("API", "POST plugins -> FAILED: ${e.message}")
+            throw e
+        }
+    }
+
+    override suspend fun uninstallPlugin(id: String): List<ComponentInfo> {
+        return try {
+            val r: List<ComponentInfo> = client.delete("$baseUrl/api/plugins/${id.encodeURLPathPart()}") { auth() }.body()
+            AppLog.d("API", "DELETE plugins/$id -> OK")
+            r
+        } catch (e: Exception) {
+            AppLog.w("API", "DELETE plugins/$id -> FAILED: ${e.message}")
+            throw e
+        }
+    }
+
+    override suspend fun addMcpServer(def: McpServerDef): List<ComponentInfo> {
+        return try {
+            val r: List<ComponentInfo> = client.post("$baseUrl/api/mcp-servers") {
+                auth(); contentType(ContentType.Application.Json); setBody(def)
+            }.body()
+            AppLog.d("API", "POST mcp-servers name=${def.name} -> OK")
+            r
+        } catch (e: Exception) {
+            AppLog.w("API", "POST mcp-servers -> FAILED: ${e.message}")
+            throw e
+        }
+    }
+
+    override suspend fun deleteMcpServer(name: String): List<ComponentInfo> {
+        return try {
+            val r: List<ComponentInfo> = client.delete("$baseUrl/api/mcp-servers/${name.encodeURLPathPart()}") { auth() }.body()
+            AppLog.d("API", "DELETE mcp-servers/$name -> OK")
+            r
+        } catch (e: Exception) {
+            AppLog.w("API", "DELETE mcp-servers/$name -> FAILED: ${e.message}")
+            throw e
+        }
+    }
+
     // ── Feature: Commit-graph view ─────────────────────────────────────────────
     override suspend fun commits(id: String): List<RepoCommits> {
         return try {

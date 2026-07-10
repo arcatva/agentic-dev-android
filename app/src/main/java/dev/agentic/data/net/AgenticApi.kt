@@ -83,6 +83,19 @@ interface AgenticApi {
     /** Toggle a component's global enabled state. Returns the refreshed full list.
      *  Default impl returns empty list — test fakes override. */
     suspend fun toggleGlobalComponent(kind: String, id: String, enabled: Boolean): List<ComponentInfo> = emptyList()
+    // ── Feature: Global Settings CRUD (S5c) ─────────────────────────────────────
+    /** Add a skill globally. Returns the refreshed component list. Default impl = emptyList(). */
+    suspend fun addSkill(name: String, description: String): List<ComponentInfo> = emptyList()
+    /** Delete a skill globally by name. Returns the refreshed list. */
+    suspend fun deleteSkill(name: String): List<ComponentInfo> = emptyList()
+    /** Install a plugin globally (slow — CLI shells out). Returns the refreshed list. */
+    suspend fun installPlugin(id: String): List<ComponentInfo> = emptyList()
+    /** Uninstall a plugin globally. Returns the refreshed list. */
+    suspend fun uninstallPlugin(id: String): List<ComponentInfo> = emptyList()
+    /** Add a globally configured MCP server. Returns the refreshed list. */
+    suspend fun addMcpServer(def: McpServerDef): List<ComponentInfo> = emptyList()
+    /** Delete a globally configured MCP server by name. Returns the refreshed list. */
+    suspend fun deleteMcpServer(name: String): List<ComponentInfo> = emptyList()
 
     /** Recent commit history per repo for session [id] (GET …/commits). */
     suspend fun commits(id: String): List<RepoCommits>

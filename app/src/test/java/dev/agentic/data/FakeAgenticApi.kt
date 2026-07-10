@@ -25,6 +25,7 @@ import dev.agentic.data.net.SkillInfo
 import dev.agentic.data.net.StagedUpload
 import dev.agentic.data.net.Template
 import dev.agentic.data.net.Usage
+import dev.agentic.data.net.McpServerDef
 import dev.agentic.data.net.WorkflowRun
 
 /**
@@ -512,5 +513,60 @@ override suspend fun fork(id: String): String {
         toggleGlobalComponentCalls.add(Triple(kind, id, enabled))
         toggleGlobalComponentException?.let { throw it }
         return toggleGlobalComponentResult
+    }
+
+    // ── Scriptable surface for GlobalSettings CRUD tests (S5c) ──────────────────
+    var addSkillResult: List<ComponentInfo> = emptyList()
+    var addSkillException: Exception? = null
+    val addSkillCalls: MutableList<Pair<String, String>> = mutableListOf()
+    override suspend fun addSkill(name: String, description: String): List<ComponentInfo> {
+        addSkillCalls.add(name to description)
+        addSkillException?.let { throw it }
+        return addSkillResult
+    }
+
+    var deleteSkillResult: List<ComponentInfo> = emptyList()
+    var deleteSkillException: Exception? = null
+    val deleteSkillCalls: MutableList<String> = mutableListOf()
+    override suspend fun deleteSkill(name: String): List<ComponentInfo> {
+        deleteSkillCalls.add(name)
+        deleteSkillException?.let { throw it }
+        return deleteSkillResult
+    }
+
+    var installPluginResult: List<ComponentInfo> = emptyList()
+    var installPluginException: Exception? = null
+    val installPluginCalls: MutableList<String> = mutableListOf()
+    override suspend fun installPlugin(id: String): List<ComponentInfo> {
+        installPluginCalls.add(id)
+        installPluginException?.let { throw it }
+        return installPluginResult
+    }
+
+    var uninstallPluginResult: List<ComponentInfo> = emptyList()
+    var uninstallPluginException: Exception? = null
+    val uninstallPluginCalls: MutableList<String> = mutableListOf()
+    override suspend fun uninstallPlugin(id: String): List<ComponentInfo> {
+        uninstallPluginCalls.add(id)
+        uninstallPluginException?.let { throw it }
+        return uninstallPluginResult
+    }
+
+    var addMcpServerResult: List<ComponentInfo> = emptyList()
+    var addMcpServerException: Exception? = null
+    val addMcpServerCalls: MutableList<McpServerDef> = mutableListOf()
+    override suspend fun addMcpServer(def: McpServerDef): List<ComponentInfo> {
+        addMcpServerCalls.add(def)
+        addMcpServerException?.let { throw it }
+        return addMcpServerResult
+    }
+
+    var deleteMcpServerResult: List<ComponentInfo> = emptyList()
+    var deleteMcpServerException: Exception? = null
+    val deleteMcpServerCalls: MutableList<String> = mutableListOf()
+    override suspend fun deleteMcpServer(name: String): List<ComponentInfo> {
+        deleteMcpServerCalls.add(name)
+        deleteMcpServerException?.let { throw it }
+        return deleteMcpServerResult
     }
 }
