@@ -2,6 +2,7 @@ package dev.agentic.ui.globalsettings
 
 import dev.agentic.data.FakeAgenticApi
 import dev.agentic.data.net.ComponentInfo
+import dev.agentic.ui.newrequest.McpDraft
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -285,5 +286,236 @@ class GlobalSettingsViewModelTest {
         val vm = vm()
         advanceUntilIdle()
         assertEquals(1, api.getGlobalSettingsCallCount)
+    }
+
+    // ── addSkill ──────────────────────────────────────────────────────────────────
+
+    @Test fun `addSkill calls API and updates components from returned list`() = runTest(dispatcher) {
+        api.globalSettingsResult = emptyList()
+        val added = skill("s-new", "NewSkill", true)
+        api.addSkillResult = listOf(added)
+
+        val vm = vm()
+        advanceUntilIdle()
+
+        vm.addSkill("NewSkill", "A great skill")
+        advanceUntilIdle()
+
+        assertEquals(1, api.addSkillCalls.size)
+        assertEquals("NewSkill", api.addSkillCalls[0].first)
+        assertEquals("A great skill", api.addSkillCalls[0].second)
+        assertEquals(listOf(added), vm.uiState.value.components)
+        assertNull(vm.uiState.value.error)
+    }
+
+    @Test fun `addSkill API error surfaces error message`() = runTest(dispatcher) {
+        api.globalSettingsResult = listOf(skill("s1", "Existing", true))
+        api.addSkillException = RuntimeException("conflict")
+
+        val vm = vm()
+        advanceUntilIdle()
+
+        vm.addSkill("Bad", "desc")
+        advanceUntilIdle()
+
+        val s = vm.uiState.value
+        assertNotNull(s.error)
+        assertTrue(s.error!!.contains("conflict"))
+        // Components unchanged
+        assertEquals(1, s.components.size)
+    }
+
+    // ── deleteSkill ───────────────────────────────────────────────────────────────
+
+    @Test fun `deleteSkill calls API with correct name and updates from returned list`() = runTest(dispatcher) {
+        val s1 = skill("s1", "SkillOne", true)
+        api.globalSettingsResult = listOf(s1)
+        api.deleteSkillResult = emptyList()   // server returns empty after delete
+
+        val vm = vm()
+        advanceUntilIdle()
+
+        vm.deleteSkill("SkillOne")
+        advanceUntilIdle()
+
+        assertEquals(listOf("SkillOne"), api.deleteSkillCalls)
+        assertTrue(vm.uiState.value.components.isEmpty())
+        assertNull(vm.uiState.value.error)
+    }
+
+    @Test fun `deleteSkill API error surfaces error without corrupting state`() = runTest(dispatcher) {
+        val s1 = skill("s1", "SkillOne", true)
+        api.globalSettingsResult = listOf(s1)
+        api.deleteSkillException = RuntimeException("not found")
+
+        val vm = vm()
+        advanceUntilIdle()
+
+        vm.deleteSkill("SkillOne")
+        advanceUntilIdle()
+
+        val state = vm.uiState.value
+        assertNotNull(state.error)
+        assertTrue(state.error!!.contains("not found"))
+        assertEquals(1, state.components.size)   // unchanged
+    }
+
+    // ── installPlugin ─────────────────────────────────────────────────────────────
+
+    @Test fun `installPlugin sets pluginBusy true then clears on success`() = runTest(dispatcher) {
+        api.globalSettingsResult = emptyList()
+        val p1 = plugin("p1@npm", "myplugin", true)
+        api.installPluginResult = listOf(p1)
+
+        val vm = vm()
+        advanceUntilIdle()
+
+        // Start install but do NOT advance yet — verify busy flag is set.
+        vm.installPlugin("p1@npm")
+        // pluginBusy should be true synchronously (set before launch).
+        assertTrue("pluginBusy must be true while install is in flight", vm.uiState.value.pluginBusy)
+
+        advanceUntilIdle()
+
+        val s = vm.uiState.value
+        assertFalse("pluginBusy must clear after success", s.pluginBusy)
+        assertEquals(1, s.components.size)
+        assertEquals("p1@npm", api.installPluginCalls[0])
+        assertNull(s.error)
+    }
+
+    @Test fun `installPlugin API error clears pluginBusy and surfaces error`() = runTest(dispatcher) {
+        api.globalSettingsResult = emptyList()
+        api.installPluginException = RuntimeException("CLI error")
+
+        val vm = vm()
+        advanceUntilIdle()
+
+        vm.installPlugin("bad@npm")
+        advanceUntilIdle()
+
+        val s = vm.uiState.value
+        assertFalse("pluginBusy must clear after error", s.pluginBusy)
+        assertNotNull(s.error)
+        assertTrue(s.error!!.contains("CLI error"))
+    }
+
+    // ── uninstallPlugin ───────────────────────────────────────────────────────────
+
+    @Test fun `uninstallPlugin calls API and updates components from returned list`() = runTest(dispatcher) {
+        val p1 = plugin("p1@npm", "MyPlugin", true)
+        api.globalSettingsResult = listOf(p1)
+        api.uninstallPluginResult = emptyList()
+
+        val vm = vm()
+        advanceUntilIdle()
+
+        vm.uninstallPlugin("p1@npm")
+        advanceUntilIdle()
+
+        assertEquals(listOf("p1@npm"), api.uninstallPluginCalls)
+        assertTrue(vm.uiState.value.components.isEmpty())
+        assertNull(vm.uiState.value.error)
+    }
+
+    // ── addMcpServer — validation ─────────────────────────────────────────────────
+
+    @Test fun `addMcpServer blank name returns validation error without calling API`() = runTest(dispatcher) {
+        api.globalSettingsResult = emptyList()
+        val vm = vm()
+        advanceUntilIdle()
+
+        val err = vm.addMcpServer(McpDraft(name = "", transport = "stdio", command = "node"))
+        assertNotNull("blank name must return an error", err)
+        assertTrue(api.addMcpServerCalls.isEmpty())
+    }
+
+    @Test fun `addMcpServer name agentic returns validation error`() = runTest(dispatcher) {
+        api.globalSettingsResult = emptyList()
+        val vm = vm()
+        advanceUntilIdle()
+
+        val err = vm.addMcpServer(McpDraft(name = "agentic", transport = "stdio", command = "node"))
+        assertNotNull(err)
+        assertTrue(err!!.contains("agentic"))
+        assertTrue(api.addMcpServerCalls.isEmpty())
+    }
+
+    @Test fun `addMcpServer stdio missing command returns validation error`() = runTest(dispatcher) {
+        api.globalSettingsResult = emptyList()
+        val vm = vm()
+        advanceUntilIdle()
+
+        val err = vm.addMcpServer(McpDraft(name = "my-mcp", transport = "stdio", command = ""))
+        assertNotNull(err)
+        assertTrue(api.addMcpServerCalls.isEmpty())
+    }
+
+    @Test fun `addMcpServer valid stdio draft calls API and updates components`() = runTest(dispatcher) {
+        api.globalSettingsResult = emptyList()
+        val newMcp = mcp("my-mcp", "my-mcp", true)
+        api.addMcpServerResult = listOf(newMcp)
+
+        val vm = vm()
+        advanceUntilIdle()
+
+        val err = vm.addMcpServer(McpDraft(name = "my-mcp", transport = "stdio", command = "/usr/bin/node"))
+        assertNull("valid draft must return null error", err)
+        advanceUntilIdle()
+
+        assertEquals(1, api.addMcpServerCalls.size)
+        assertEquals("my-mcp", api.addMcpServerCalls[0].name)
+        assertEquals(1, vm.uiState.value.components.size)
+    }
+
+    @Test fun `addMcpServer API error surfaces error`() = runTest(dispatcher) {
+        api.globalSettingsResult = emptyList()
+        api.addMcpServerException = RuntimeException("duplicate name")
+
+        val vm = vm()
+        advanceUntilIdle()
+
+        val err = vm.addMcpServer(McpDraft(name = "dup", transport = "stdio", command = "node"))
+        assertNull(err)  // validation passes
+        advanceUntilIdle()
+
+        val s = vm.uiState.value
+        assertNotNull(s.error)
+        assertTrue(s.error!!.contains("duplicate name"))
+    }
+
+    // ── deleteMcpServer ───────────────────────────────────────────────────────────
+
+    @Test fun `deleteMcpServer calls API with correct name and updates from returned list`() = runTest(dispatcher) {
+        val m1 = mcp("my-mcp", "my-mcp", true)
+        api.globalSettingsResult = listOf(m1)
+        api.deleteMcpServerResult = emptyList()
+
+        val vm = vm()
+        advanceUntilIdle()
+
+        vm.deleteMcpServer("my-mcp")
+        advanceUntilIdle()
+
+        assertEquals(listOf("my-mcp"), api.deleteMcpServerCalls)
+        assertTrue(vm.uiState.value.components.isEmpty())
+        assertNull(vm.uiState.value.error)
+    }
+
+    @Test fun `deleteMcpServer API error surfaces error without corrupting state`() = runTest(dispatcher) {
+        val m1 = mcp("my-mcp", "my-mcp", true)
+        api.globalSettingsResult = listOf(m1)
+        api.deleteMcpServerException = RuntimeException("not found")
+
+        val vm = vm()
+        advanceUntilIdle()
+
+        vm.deleteMcpServer("my-mcp")
+        advanceUntilIdle()
+
+        val s = vm.uiState.value
+        assertNotNull(s.error)
+        assertTrue(s.error!!.contains("not found"))
+        assertEquals(1, s.components.size)  // unchanged
     }
 }
