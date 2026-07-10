@@ -6,8 +6,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
@@ -64,12 +65,16 @@ fun SectionCard(
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.weight(1f),
                     )
-                    // Cap the trailing control to a compact 32dp so its 48dp minimum touch
-                    // target doesn't inflate the header row — otherwise the gap between the
-                    // title and the card content reads ~12dp taller than on cards without a
-                    // trailing control (Router / Sub-agent models).
+                    // The trailing control occupies only a 32dp LAYOUT slot so its 48dp minimum
+                    // touch target doesn't inflate the header row (which read ~12dp taller than
+                    // on cards without a trailing control). height(32) fixes the slot;
+                    // wrapContentHeight(unbounded) lets the control keep its full natural size —
+                    // touch target stays ≥48dp (a11y) — centered over the slot, overflowing
+                    // invisibly into the card padding (only the pressed ripple shows there).
                     Box(
-                        Modifier.heightIn(max = 32.dp),
+                        Modifier
+                            .height(32.dp)
+                            .wrapContentHeight(align = Alignment.CenterVertically, unbounded = true),
                         contentAlignment = Alignment.Center,
                     ) {
                         trailing()
