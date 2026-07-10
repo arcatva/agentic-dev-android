@@ -452,142 +452,17 @@ class NewRequestViewModelTest {
         assertEquals(emptyList<String>(), req.forcedOnMcpServers)
     }
 
-    // ── addMcpServer: valid stdio ──────────────────────────────────────────────
+    // ── McpDraft validation (the draft class is still used by the Settings add form) ──
 
-    @Test fun `addMcpServer valid stdio server populates extraMcpServers`() = runTest(dispatcher) {
-        val vm = NewRequestViewModel(sessionsRepo())
-        vm.updateMcpDraft(McpDraft(
-            name = "my-mcp",
-            transport = "stdio",
-            command = "/usr/bin/node",
-            args = "server.js --port 3000",
-        ))
-        val err = vm.addMcpServer()
-        assertNull("addMcpServer should succeed", err)
-        val extra = vm.uiState.value.extraMcpServers
-        assertEquals(1, extra.size)
-        assertEquals("my-mcp", extra[0].name)
-        assertEquals("/usr/bin/node", extra[0].command)
-        assertEquals(listOf("server.js", "--port", "3000"), extra[0].args)
-        assertNull(extra[0].url)
-    }
-
-    @Test fun `addMcpServer valid http server populates extraMcpServers`() = runTest(dispatcher) {
-        val vm = NewRequestViewModel(sessionsRepo())
-        vm.updateMcpDraft(McpDraft(
-            name = "remote-mcp",
-            transport = "http",
-            url = "https://example.com/mcp",
-            httpType = "http",
-        ))
-        val err = vm.addMcpServer()
-        assertNull("addMcpServer should succeed", err)
-        val extra = vm.uiState.value.extraMcpServers
-        assertEquals(1, extra.size)
-        assertEquals("remote-mcp", extra[0].name)
-        assertEquals("https://example.com/mcp", extra[0].url)
-        assertEquals("http", extra[0].type)
-        assertNull(extra[0].command)
-    }
-
-    @Test fun `addMcpServer clears draft on success`() = runTest(dispatcher) {
-        val vm = NewRequestViewModel(sessionsRepo())
-        vm.updateMcpDraft(McpDraft(name = "test-mcp", transport = "stdio", command = "node"))
-        vm.addMcpServer()
-        // Draft should be reset after successful add.
-        val draft = vm.uiState.value.mcpDraft
-        assertEquals("", draft.name)
-        assertEquals("", draft.command)
-    }
-
-    // ── addMcpServer: invalid inputs rejected ─────────────────────────────────
-
-    @Test fun `addMcpServer rejects empty name`() = runTest(dispatcher) {
-        val vm = NewRequestViewModel(sessionsRepo())
-        vm.updateMcpDraft(McpDraft(name = "", transport = "stdio", command = "node"))
-        val err = vm.addMcpServer()
-        assertNotNull("empty name should be rejected", err)
-        assertTrue("server must NOT be added on empty name", vm.uiState.value.extraMcpServers.isEmpty())
-    }
-
-    @Test fun `addMcpServer rejects whitespace-only name`() = runTest(dispatcher) {
-        val vm = NewRequestViewModel(sessionsRepo())
-        vm.updateMcpDraft(McpDraft(name = "   ", transport = "stdio", command = "node"))
-        val err = vm.addMcpServer()
-        assertNotNull("whitespace-only name should be rejected", err)
-        assertTrue("server must NOT be added on whitespace name", vm.uiState.value.extraMcpServers.isEmpty())
-    }
-
-    @Test fun `addMcpServer rejects name agentic`() = runTest(dispatcher) {
-        val vm = NewRequestViewModel(sessionsRepo())
-        vm.updateMcpDraft(McpDraft(name = "agentic", transport = "stdio", command = "node"))
-        val err = vm.addMcpServer()
-        assertNotNull("name agentic should be rejected", err)
-        assertTrue("server must NOT be added when name is agentic", vm.uiState.value.extraMcpServers.isEmpty())
-    }
-
-    @Test fun `addMcpServer rejects no transport (blank transport string)`() = runTest(dispatcher) {
-        val vm = NewRequestViewModel(sessionsRepo())
-        // transport="" means neither stdio nor http — structurally invalid; must be rejected
-        vm.updateMcpDraft(McpDraft(name = "my-mcp", transport = "", command = "node", url = "https://x.com/mcp"))
-        val err = vm.addMcpServer()
-        assertNotNull("blank transport should be rejected", err)
-        assertTrue("server must NOT be added when transport is blank", vm.uiState.value.extraMcpServers.isEmpty())
-    }
-
-    @Test fun `addMcpServer rejects both transports set (command and url, no transport discriminant)`() = runTest(dispatcher) {
-        val vm = NewRequestViewModel(sessionsRepo())
-        // Ambiguous draft: both command and url are set but transport is blank — must be rejected,
-        // not silently pick one or discard the other.
-        vm.updateMcpDraft(McpDraft(name = "my-mcp", transport = "", command = "/usr/bin/node", url = "https://x.com/mcp"))
-        val err = vm.addMcpServer()
-        assertNotNull("draft with both transports set (no transport discriminant) should be rejected", err)
-        assertTrue("server must NOT be added when transport is ambiguous", vm.uiState.value.extraMcpServers.isEmpty())
-    }
-
-    @Test fun `addMcpServer rejects stdio with no command`() = runTest(dispatcher) {
-        val vm = NewRequestViewModel(sessionsRepo())
-        vm.updateMcpDraft(McpDraft(name = "my-mcp", transport = "stdio", command = ""))
-        val err = vm.addMcpServer()
-        assertNotNull("stdio without command should be rejected", err)
-        assertTrue("server must NOT be added when stdio has no command", vm.uiState.value.extraMcpServers.isEmpty())
-    }
-
-    @Test fun `addMcpServer rejects http with no url`() = runTest(dispatcher) {
-        val vm = NewRequestViewModel(sessionsRepo())
-        vm.updateMcpDraft(McpDraft(name = "my-mcp", transport = "http", url = ""))
-        val err = vm.addMcpServer()
-        assertNotNull("http without url should be rejected", err)
-        assertTrue("server must NOT be added when http has no url", vm.uiState.value.extraMcpServers.isEmpty())
-    }
-
-    // ── removeMcpServer ────────────────────────────────────────────────────────
-
-    @Test fun `removeMcpServer removes added server by name`() = runTest(dispatcher) {
-        val vm = NewRequestViewModel(sessionsRepo())
-        vm.updateMcpDraft(McpDraft(name = "srvA", transport = "stdio", command = "node"))
-        vm.addMcpServer()
-        vm.updateMcpDraft(McpDraft(name = "srvB", transport = "stdio", command = "python"))
-        vm.addMcpServer()
-        assertEquals(2, vm.uiState.value.extraMcpServers.size)
-        vm.removeMcpServer("srvA")
-        assertEquals(1, vm.uiState.value.extraMcpServers.size)
-        assertEquals("srvB", vm.uiState.value.extraMcpServers[0].name)
-    }
-
-    // ── extraMcpServers sent on submit ─────────────────────────────────────────
-
-    @Test fun `submit includes extraMcpServers in NewSessionReq`() = runTest(dispatcher) {
-        api.createResult = "new-id"
-        val vm = NewRequestViewModel(sessionsRepo())
-        vm.updateMcpDraft(McpDraft(name = "my-mcp", transport = "stdio", command = "/usr/bin/node"))
-        vm.addMcpServer()
-        vm.setPrompt("test")
-        vm.submit()
-        advanceUntilIdle()
-        val req = api.createCalls.single()
-        assertEquals(1, req.extraMcpServers.size)
-        assertEquals("my-mcp", req.extraMcpServers[0].name)
+    @Test fun `mcp draft validation accepts stdio and http, rejects bad drafts`() {
+        assertNull(McpDraft(name = "my-mcp", transport = "stdio", command = "node").validationError)
+        assertNull(McpDraft(name = "remote", transport = "http", url = "https://x.com/mcp").validationError)
+        assertNotNull("empty name", McpDraft(name = "", transport = "stdio", command = "node").validationError)
+        assertNotNull("blank name", McpDraft(name = "   ", transport = "stdio", command = "node").validationError)
+        assertNotNull("reserved name", McpDraft(name = "agentic", transport = "stdio", command = "node").validationError)
+        assertNotNull("blank transport", McpDraft(name = "x", transport = "", command = "node", url = "https://x").validationError)
+        assertNotNull("stdio needs command", McpDraft(name = "x", transport = "stdio", command = "").validationError)
+        assertNotNull("http needs url", McpDraft(name = "x", transport = "http", url = "").validationError)
     }
 
     // ── permissionMode ─────────────────────────────────────────────────────────

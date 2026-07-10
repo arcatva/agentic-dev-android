@@ -3,6 +3,7 @@ package dev.agentic.ui.globalsettings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.agentic.data.net.AgenticApi
+import dev.agentic.data.net.CatalogSkill
 import dev.agentic.data.net.ComponentInfo
 import dev.agentic.data.net.McpServerDef
 import dev.agentic.ui.newrequest.McpDraft
@@ -28,6 +29,11 @@ data class GlobalSettingsUiState(
      * because these ops are serialized one-at-a-time (parallel CRUD on the same list is unsafe).
      */
     val busy: Boolean = false,
+    // ── External skill store (GET /api/skills/catalog) ──
+    /** null = not fetched yet; loaded lazily when the Install mode is first shown. */
+    val catalog: List<CatalogSkill>? = null,
+    val catalogLoading: Boolean = false,
+    val catalogError: String? = null,
 )
 
 /**
@@ -161,6 +167,34 @@ class GlobalSettingsViewModel(
                 _uiState.update { it.copy(components = refreshed, busy = false, error = null) }
             } catch (e: Exception) {
                 _uiState.update { it.copy(busy = false, error = "Failed to add skill: ${e.message}") }
+            }
+        }
+    }
+
+    /** Load the external skill catalog (once — subsequent calls no-op unless it failed). */
+    fun loadCatalog() {
+        val s = _uiState.value
+        if (s.catalogLoading || (s.catalog != null && s.catalogError == null)) return
+        _uiState.update { it.copy(catalogLoading = true, catalogError = null) }
+        viewModelScope.launch {
+            try {
+                val skills = api.getSkillCatalog()
+                _uiState.update { it.copy(catalog = skills, catalogLoading = false) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(catalogLoading = false, catalogError = "Couldn't load the catalog: ${e.message}") }
+            }
+        }
+    }
+
+    /** Install a skill from a GitHub source (catalog entry or user-supplied URL/ref). */
+    fun installSkill(source: String) {
+        if (!acquireBusy()) return
+        viewModelScope.launch {
+            try {
+                val refreshed = api.installSkill(source)
+                _uiState.update { it.copy(components = refreshed, busy = false, error = null) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(busy = false, error = "Failed to install skill: ${e.message}") }
             }
         }
     }

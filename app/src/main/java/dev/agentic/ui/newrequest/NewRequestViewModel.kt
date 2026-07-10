@@ -6,7 +6,6 @@ import android.provider.OpenableColumns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.agentic.data.net.ComponentInfo
-import dev.agentic.data.net.McpServerDef
 import dev.agentic.data.net.NewSessionReq
 import dev.agentic.data.net.Outcome
 import dev.agentic.data.log.AppLog
@@ -37,7 +36,8 @@ import kotlinx.coroutines.launch
 enum class Override { Inherit, ForceOn, ForceOff }
 
 /**
- * Draft state for the "Add MCP server" inline form.
+ * Draft state for the SETTINGS page's "Add MCP server" form ([dev.agentic.ui.globalsettings]).
+ * Lives here for historical reasons — New request no longer adds/removes MCP servers itself.
  * [transport] is "stdio" or "http". Fields not relevant to the selected transport
  * are retained in state but ignored on add (the form shows only the relevant ones).
  */
@@ -144,9 +144,6 @@ data class NewRequestUiState(
     // ── MCP components (fetched from GET /api/global-settings, kind=="mcp") ──
     val mcpComponents: List<ComponentInfo> = emptyList(),
     val mcpOverrides: Map<String, Override> = emptyMap(),
-    // ── Extra MCP servers (inline-add form) ──
-    val extraMcpServers: List<McpServerDef> = emptyList(),
-    val mcpDraft: McpDraft = McpDraft(),
     val prompt: String = "",
     // Session-scoped CLAUDE.md guidance, PRE-FILLED with [DEFAULT_CLAUDE_MD] (the multi-session
     // worktree / PR / conflict workflow). Sent verbatim on submit, so the agent gets it by default;
@@ -274,58 +271,6 @@ class NewRequestViewModel(
     fun setEffort(effort: String?) { _uiState.update { it.copy(effort = effort) } }
     fun setMode(mode: String?) { _uiState.update { it.copy(mode = mode) } }
     fun setPermissionMode(permissionMode: String?) { _uiState.update { it.copy(permissionMode = permissionMode) } }
-
-    /** Update the "Add MCP server" draft form state. */
-    fun updateMcpDraft(draft: McpDraft) { _uiState.update { it.copy(mcpDraft = draft) } }
-
-    /**
-     * Validate and add an MCP server from the current draft form.
-     * Returns a user-readable error string on failure, null on success (draft is reset).
-     */
-    fun addMcpServer(): String? {
-        val draft = _uiState.value.mcpDraft
-        val err = draft.validationError
-        if (err != null) return err
-        val def = buildMcpServerDef(draft)
-        _uiState.update { it.copy(extraMcpServers = it.extraMcpServers + def, mcpDraft = McpDraft()) }
-        return null
-    }
-
-    /** Remove an added MCP server by name (idempotent). */
-    fun removeMcpServer(name: String) {
-        _uiState.update { it.copy(extraMcpServers = it.extraMcpServers.filterNot { s -> s.name == name }) }
-    }
-
-    private fun buildMcpServerDef(draft: McpDraft): McpServerDef {
-        return if (draft.transport == "stdio") {
-            McpServerDef(
-                name = draft.name.trim(),
-                command = draft.command.trim(),
-                args = draft.args.trim().takeIf { it.isNotEmpty() }?.split("\\s+".toRegex()),
-                env = parseKeyValueLines(draft.env),
-            )
-        } else {
-            McpServerDef(
-                name = draft.name.trim(),
-                url = draft.url.trim(),
-                type = draft.httpType,
-                headers = parseKeyValueLines(draft.headers),
-            )
-        }
-    }
-
-    /** Parse "KEY=VALUE\nKEY2=VALUE2" into a map. Blank input → null (omitted from JSON). */
-    private fun parseKeyValueLines(text: String): Map<String, String>? {
-        if (text.isBlank()) return null
-        return text.lines()
-            .mapNotNull { line ->
-                val eq = line.indexOf('=')
-                if (eq > 0) line.substring(0, eq).trim() to line.substring(eq + 1).trim()
-                else null
-            }
-            .takeIf { it.isNotEmpty() }
-            ?.toMap()
-    }
 
     /**
      * Apply [template] to the form: expand [vars] into the prompt body using the domain
@@ -503,7 +448,9 @@ class NewRequestViewModel(
                 forcedOnPlugins  = s.availablePluginComponents.filter { s.pluginOverrides[it.id] == Override.ForceOn  }.map { it.id },
                 hiddenMcpServers   = s.mcpComponents.filter { s.mcpOverrides[it.id] == Override.ForceOff }.map { it.id },
                 forcedOnMcpServers = s.mcpComponents.filter { s.mcpOverrides[it.id] == Override.ForceOn  }.map { it.id },
-                extraMcpServers  = s.extraMcpServers,
+                // Session-scoped ad-hoc MCP servers were removed from the UI — component
+                // management (add/remove) lives on the Settings page; this screen only selects.
+                extraMcpServers  = emptyList(),
                 prompt = composePromptWithMarker(s.prompt, finalAtts),
                 model = s.model,
                 // Ultracode always runs at xhigh effort — preserve that invariant even if a template

@@ -8,6 +8,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -48,9 +49,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import dev.agentic.data.net.CatalogSkill
 import dev.agentic.data.net.ComponentInfo
 import dev.agentic.di.appContainer
 import dev.agentic.ui.components.AppTextField
+import dev.agentic.ui.components.CappedScrollColumn
 import dev.agentic.ui.components.ComponentChip
 import dev.agentic.ui.components.SectionCard
 import dev.agentic.ui.components.cardFieldColors
@@ -141,6 +146,11 @@ fun GlobalSettingsScreen(
                         toggling = s.toggling,
                         busy = s.busy,
                         error = s.error,
+                        catalog = s.catalog,
+                        catalogLoading = s.catalogLoading,
+                        catalogError = s.catalogError,
+                        onLoadCatalog = { resolvedVm.loadCatalog() },
+                        onInstallSkill = { source -> resolvedVm.installSkill(source) },
                         onToggle = { resolvedVm.toggle(it) },
                         onAddSkill = { name, desc, instructions -> resolvedVm.addSkill(name, desc, instructions) },
                         onDeleteSkill = { resolvedVm.deleteSkill(it) },
@@ -195,6 +205,11 @@ private fun SkillsSection(
     toggling: Set<String>,
     busy: Boolean,
     error: String?,
+    catalog: List<CatalogSkill>?,
+    catalogLoading: Boolean,
+    catalogError: String?,
+    onLoadCatalog: () -> Unit,
+    onInstallSkill: (source: String) -> Unit,
     onToggle: (ComponentInfo) -> Unit,
     onAddSkill: (name: String, description: String, instructions: String) -> Unit,
     onDeleteSkill: (name: String) -> Unit,
@@ -254,6 +269,16 @@ private fun SkillsSection(
                 Column(Modifier.padding(bottom = 12.dp)) {
                     AddSkillForm(
                         busy = busy,
+                        installedNames = skills.map { it.name }.toSet(),
+                        catalog = catalog,
+                        catalogLoading = catalogLoading,
+                        catalogError = catalogError,
+                        onLoadCatalog = onLoadCatalog,
+                        onInstall = { source ->
+                            submitting = true
+                            onInstallSkill(source)
+                            // Form does NOT close here — closes via LaunchedEffect above on success.
+                        },
                         onAdd = { name, desc, instructions ->
                             submitting = true
                             onAddSkill(name, desc, instructions)
@@ -293,8 +318,136 @@ private fun SkillsSection(
     }
 }
 
+/**
+ * Two ways to get a skill, as segmented modes:
+ *  - INSTALL (default): the external skill store — the curated anthropics/skills catalog with
+ *    per-entry Install actions, plus a free-form GitHub source (owner/repo/path or URL) for
+ *    anything else.
+ *  - CREATE: author a skill in place (name / description / the SKILL.md instructions body).
+ */
 @Composable
 private fun AddSkillForm(
+    busy: Boolean,
+    installedNames: Set<String>,
+    catalog: List<CatalogSkill>?,
+    catalogLoading: Boolean,
+    catalogError: String?,
+    onLoadCatalog: () -> Unit,
+    onInstall: (source: String) -> Unit,
+    onAdd: (name: String, description: String, instructions: String) -> Unit,
+) {
+    var mode by remember { mutableStateOf("install") }
+    // Fetch the store lazily, the first time the Install mode is visible.
+    LaunchedEffect(mode) { if (mode == "install") onLoadCatalog() }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // icon = {} — no selected-checkmark ("no decorative symbols" rule).
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+            listOf("install" to "Install", "create" to "Create").forEachIndexed { i, (key, label) ->
+                SegmentedButton(
+                    selected = mode == key,
+                    onClick = { mode = key },
+                    shape = SegmentedButtonDefaults.itemShape(index = i, count = 2),
+                    icon = {},
+                    label = { Text(label) },
+                )
+            }
+        }
+        if (mode == "install") {
+            InstallSkillPane(
+                busy = busy,
+                installedNames = installedNames,
+                catalog = catalog,
+                catalogLoading = catalogLoading,
+                catalogError = catalogError,
+                onInstall = onInstall,
+            )
+        } else {
+            CreateSkillPane(busy = busy, onAdd = onAdd)
+        }
+    }
+}
+
+/** The store pane: curated catalog (capped, scrollable) + free-form GitHub source. */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun InstallSkillPane(
+    busy: Boolean,
+    installedNames: Set<String>,
+    catalog: List<CatalogSkill>?,
+    catalogLoading: Boolean,
+    catalogError: String?,
+    onInstall: (source: String) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        when {
+            catalogLoading -> Row(
+                Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                horizontalArrangement = Arrangement.Center,
+            ) { LoadingIndicator() }
+            catalogError != null -> Text(
+                catalogError,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+            )
+            catalog != null -> CappedScrollColumn(maxHeight = 280.dp) {
+                catalog.forEach { entry ->
+                    val installed = entry.name in installedNames
+                    Row(
+                        Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                entry.name,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            if (entry.description.isNotBlank()) {
+                                Text(
+                                    entry.description,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        }
+                        TextButton(
+                            onClick = { onInstall(entry.source) },
+                            enabled = !busy && !installed,
+                        ) {
+                            Text(if (installed) "Installed" else "Install")
+                        }
+                    }
+                }
+            }
+        }
+        // Anything not in the curated store: a GitHub reference.
+        var source by remember { mutableStateOf("") }
+        AppTextField(
+            value = source,
+            onValueChange = { source = it },
+            placeholder = "GitHub source — owner/repo/path or URL",
+            supportingText = "The directory must contain a SKILL.md.",
+            singleLine = true,
+            shape = MaterialTheme.shapes.small,
+            colors = cardFieldColors(),
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Button(
+            onClick = { onInstall(source.trim()) },
+            enabled = !busy && source.isNotBlank(),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text("Install from GitHub")
+        }
+    }
+}
+
+/** The author-in-place pane (name / description / SKILL.md instructions body). */
+@Composable
+private fun CreateSkillPane(
     busy: Boolean,
     onAdd: (name: String, description: String, instructions: String) -> Unit,
 ) {

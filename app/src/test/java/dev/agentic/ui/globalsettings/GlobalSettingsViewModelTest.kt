@@ -289,6 +289,72 @@ class GlobalSettingsViewModelTest {
         assertEquals(1, api.getGlobalSettingsCallCount)
     }
 
+    // ── skill store (catalog + install) ───────────────────────────────────────────
+
+    @Test fun `loadCatalog fetches once and caches`() = runTest(dispatcher) {
+        api.skillCatalogResult = listOf(
+            dev.agentic.data.net.CatalogSkill(name = "pdf", description = "PDF toolkit", source = "anthropics/skills/skills/pdf"),
+        )
+        val vm = vm()
+        advanceUntilIdle()
+
+        vm.loadCatalog()
+        advanceUntilIdle()
+        assertEquals(1, api.skillCatalogCalls)
+        assertEquals("pdf", vm.uiState.value.catalog!!.single().name)
+
+        // Second call is a no-op (already loaded).
+        vm.loadCatalog()
+        advanceUntilIdle()
+        assertEquals(1, api.skillCatalogCalls)
+    }
+
+    @Test fun `loadCatalog failure surfaces catalogError and allows retry`() = runTest(dispatcher) {
+        api.skillCatalogException = RuntimeException("offline")
+        val vm = vm()
+        advanceUntilIdle()
+
+        vm.loadCatalog()
+        advanceUntilIdle()
+        assertNotNull(vm.uiState.value.catalogError)
+        assertNull(vm.uiState.value.catalog)
+
+        // A retry after the failure fetches again.
+        api.skillCatalogException = null
+        vm.loadCatalog()
+        advanceUntilIdle()
+        assertEquals(2, api.skillCatalogCalls)
+        assertNull(vm.uiState.value.catalogError)
+    }
+
+    @Test fun `installSkill calls API and refreshes components`() = runTest(dispatcher) {
+        val installed = skill("pdf", "pdf", true)
+        api.installSkillResult = listOf(installed)
+        val vm = vm()
+        advanceUntilIdle()
+
+        vm.installSkill("anthropics/skills/skills/pdf")
+        advanceUntilIdle()
+
+        assertEquals(listOf("anthropics/skills/skills/pdf"), api.installSkillCalls)
+        assertEquals(listOf(installed), vm.uiState.value.components)
+        assertFalse(vm.uiState.value.busy)
+    }
+
+    @Test fun `installSkill failure surfaces error and clears busy`() = runTest(dispatcher) {
+        api.installSkillException = RuntimeException("no SKILL.md found")
+        val vm = vm()
+        advanceUntilIdle()
+
+        vm.installSkill("owner/repo/not-a-skill")
+        advanceUntilIdle()
+
+        val s = vm.uiState.value
+        assertFalse(s.busy)
+        assertNotNull(s.error)
+        assertTrue(s.error!!.contains("no SKILL.md"))
+    }
+
     // ── addSkill ──────────────────────────────────────────────────────────────────
 
     @Test fun `addSkill calls API and updates components from returned list`() = runTest(dispatcher) {

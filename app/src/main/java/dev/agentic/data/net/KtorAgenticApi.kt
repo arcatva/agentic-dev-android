@@ -705,6 +705,30 @@ class KtorAgenticApi(
         }
     }
 
+    override suspend fun getSkillCatalog(): List<CatalogSkill> {
+        return try {
+            val r: SkillCatalogResp = client.get("$baseUrl/api/skills/catalog") { auth() }.body()
+            AppLog.d("API", "GET skills/catalog -> OK (${r.skills.size})")
+            r.skills
+        } catch (e: Exception) {
+            AppLog.w("API", "GET skills/catalog -> FAILED: ${e.message}")
+            throw e
+        }
+    }
+
+    override suspend fun installSkill(source: String): List<ComponentInfo> {
+        return try {
+            val r: List<ComponentInfo> = client.post("$baseUrl/api/skills/install") {
+                auth(); contentType(ContentType.Application.Json); setBody(InstallSkillReq(source))
+            }.body()
+            AppLog.d("API", "POST skills/install source=$source -> OK")
+            r
+        } catch (e: Exception) {
+            AppLog.w("API", "POST skills/install -> FAILED: ${e.message}")
+            throw e
+        }
+    }
+
     override suspend fun deleteSkill(name: String): List<ComponentInfo> {
         return try {
             val r: List<ComponentInfo> = client.delete("$baseUrl/api/skills/${name.encodeURLPathPart()}") { auth() }.body()
