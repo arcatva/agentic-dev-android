@@ -339,6 +339,12 @@ private fun AddSkillForm(
     var mode by remember { mutableStateOf("install") }
     // Fetch the store lazily, the first time the Install mode is visible.
     LaunchedEffect(mode) { if (mode == "install") onLoadCatalog() }
+    // The Create pane's draft lives HERE, not in the pane: switching to Install unmounts the
+    // pane, and pane-local remember state would silently discard a typed (possibly long)
+    // draft on an accidental mode tap.
+    var createName by remember { mutableStateOf("") }
+    var createDescription by remember { mutableStateOf("") }
+    var createInstructions by remember { mutableStateOf("") }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         // icon = {} — no selected-checkmark ("no decorative symbols" rule).
@@ -363,7 +369,16 @@ private fun AddSkillForm(
                 onInstall = onInstall,
             )
         } else {
-            CreateSkillPane(busy = busy, onAdd = onAdd)
+            CreateSkillPane(
+                busy = busy,
+                name = createName,
+                onNameChange = { createName = it },
+                description = createDescription,
+                onDescriptionChange = { createDescription = it },
+                instructions = createInstructions,
+                onInstructionsChange = { createInstructions = it },
+                onAdd = onAdd,
+            )
         }
     }
 }
@@ -445,22 +460,26 @@ private fun InstallSkillPane(
     }
 }
 
-/** The author-in-place pane (name / description / SKILL.md instructions body). */
+/** The author-in-place pane (name / description / SKILL.md instructions body).
+ *  The draft state is HOISTED to [AddSkillForm] so a mode switch doesn't discard it. */
 @Composable
 private fun CreateSkillPane(
     busy: Boolean,
+    name: String,
+    onNameChange: (String) -> Unit,
+    description: String,
+    onDescriptionChange: (String) -> Unit,
+    instructions: String,
+    onInstructionsChange: (String) -> Unit,
     onAdd: (name: String, description: String, instructions: String) -> Unit,
 ) {
-    var name by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
-    var instructions by remember { mutableStateOf("") }
     var localError by remember { mutableStateOf<String?>(null) }
 
     // No horizontal padding of its own — the enclosing SectionCard already insets its content.
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         AppTextField(
             value = name,
-            onValueChange = { name = it; localError = null },
+            onValueChange = { onNameChange(it); localError = null },
             placeholder = "Skill name",
             singleLine = true,
             shape = MaterialTheme.shapes.small,
@@ -469,7 +488,7 @@ private fun CreateSkillPane(
         )
         AppTextField(
             value = description,
-            onValueChange = { description = it },
+            onValueChange = onDescriptionChange,
             placeholder = "Description — when should the agent load this skill?",
             singleLine = false,
             minLines = 2,
@@ -482,7 +501,7 @@ private fun CreateSkillPane(
         // description only decides WHEN the skill loads; this markdown is WHAT it says.
         AppTextField(
             value = instructions,
-            onValueChange = { instructions = it; localError = null },
+            onValueChange = { onInstructionsChange(it); localError = null },
             placeholder = "Instructions (markdown) — the steps and rules the agent follows " +
                 "when this skill is active",
             supportingText = "This becomes the SKILL.md body — the content the agent actually reads.",
