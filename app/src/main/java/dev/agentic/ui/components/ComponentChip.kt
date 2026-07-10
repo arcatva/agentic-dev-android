@@ -13,19 +13,16 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import dev.agentic.ui.AccentCyan
 import dev.agentic.ui.PluginPurple
-import dev.agentic.ui.PluginPurpleContainer
-import dev.agentic.ui.SkillGreen
-import dev.agentic.ui.SkillGreenContainer
 
 /**
  * Shared chip for skill/plugin/mcp components on both New Request and Global Settings.
  *
- * Restores the original (pre-S5) "lit" filter-chip look that read well: a tonal fill with a DARK
- * container and BRIGHT same-hue text — NOT a muddy dark-on-dark slab.
- *   - ON (effective==true): filled with the kind's dark container + bright accent label
- *     (green for skill, purple for plugin/mcp). The brightness lives in the TEXT, so a row of lit
- *     chips reads as bright tags, not a solid colour block.
+ * "Selected = bright tag" look — a light bright-outlined chip, NOT a solid colour slab (a whole
+ * wrapped row of ON chips would otherwise mush into a wall of colour).
+ *   - ON (effective==true): a faint same-hue wash + BRIGHT accent label + a thin accent outline
+ *     (cyan for skill, purple for plugin/mcp). Reads as a light bright tag.
  *   - OFF (effective==false): the default muted FilterChip — thin neutral outline, grey label,
  *     no fill ("关就是没颜色").
  *   - enabled==false (MCP in Global Settings): rendered non-interactive at 0.5 alpha.
@@ -47,18 +44,21 @@ fun ComponentChip(
     enabled: Boolean = true,
     readOnlyCaption: String? = null,
 ) {
-    // Dark container + BRIGHT same-hue text (the readable pairing the original used). Green for
-    // skills, purple for plugins/mcp.
-    val (containerColor, labelColor) = if (kind == "skill") {
-        SkillGreenContainer to SkillGreen
-    } else {
-        PluginPurpleContainer to PluginPurple
-    }
+    // "Selected = bright tag", not a solid slab: a faint same-hue wash + BRIGHT accent text + a
+    // thin accent outline. Cyan for skills, purple for plugins/mcp. A whole row of ON chips then
+    // reads as light bright-outlined tags rather than a wall of solid colour.
+    val accent = if (kind == "skill") AccentCyan else PluginPurple
 
     val chipColors = FilterChipDefaults.filterChipColors(
-        selectedContainerColor = containerColor,
-        selectedLabelColor = labelColor,
-        selectedLeadingIconColor = labelColor,
+        selectedContainerColor = accent.copy(alpha = 0.14f),
+        selectedLabelColor = accent,
+        selectedLeadingIconColor = accent,
+    )
+    val chipBorder = FilterChipDefaults.filterChipBorder(
+        enabled = enabled,
+        selected = effective,
+        selectedBorderColor = accent.copy(alpha = 0.9f),
+        selectedBorderWidth = 1.dp,
     )
 
     val accessDesc = buildString {
@@ -73,6 +73,7 @@ fun ComponentChip(
             onClick = { if (enabled) onClick() },
             label = { Text(label) },
             colors = chipColors,
+            border = chipBorder,
             modifier = Modifier.semantics { contentDescription = accessDesc },
         )
         if (readOnlyCaption != null) {
