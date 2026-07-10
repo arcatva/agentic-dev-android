@@ -83,6 +83,9 @@ val DEFAULT_CLAUDE_MD: String = """
     worktree on branch `agentic/<session>`, and other sessions may be editing the same repo
     concurrently in their own worktrees — treat the default branch as a moving target.
 
+    A repo's own committed CLAUDE.md may OVERRIDE this workflow — if the repo you're working in
+    specifies its own PR/merge rules (e.g. auto-merge after review), follow the repo's CLAUDE.md.
+
     ## Commit, then open a pull request (don't push to the default branch)
     - Do your work only on this session's `agentic/<session>` branch.
     - When a change is ready, commit it on the branch, push the branch, and open a pull request

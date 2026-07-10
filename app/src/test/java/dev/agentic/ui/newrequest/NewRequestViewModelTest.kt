@@ -533,6 +533,8 @@ class NewRequestViewModelTest {
         assertEquals(DEFAULT_CLAUDE_MD, vm.uiState.value.claudeMd)
         assertTrue("default mentions the PR workflow", vm.uiState.value.claudeMd.contains("pull request"))
         assertTrue("default mentions the session branch", vm.uiState.value.claudeMd.contains("agentic/<session>"))
+        assertTrue("default notes a repo CLAUDE.md may override the workflow",
+            vm.uiState.value.claudeMd.contains("may OVERRIDE this workflow"))
     }
 
     @Test fun `submit sends the pre-filled default claudeMd when unedited`() = runTest(dispatcher) {
