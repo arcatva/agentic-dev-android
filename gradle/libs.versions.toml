@@ -2,15 +2,15 @@
 # ── 构建工具链 ──────────────────────────────────────────────
 # AGP 8.7.x 是 material3 1.4.0-alpha18 / Expressive API 施加的上限
 # （1.5.0-alpha 线需 Compose 1.12 → compileSdk 37 → 更新工具链）
-agp = "8.7.2"
+agp = "8.7.3"
 # Kotlin 2.0.x 在 kotlin-android / compose-compiler / serialization 三插件间保持一致
 kotlin = "2.0.21"
 # detekt 1.23.x supports Kotlin 2.0 (ships its own embedded compiler); used for static analysis (A2)
 detekt = "1.23.8"
 
 # ── Compose ────────────────────────────────────────────────
-# 1.9.0 已验证可在 AGP 8.7.2 / compileSdk 35 / Gradle 8.10.2 上构建
-compose = "1.9.0"
+# 1.9.5 verified on AGP 8.7.3 / compileSdk 35 / Gradle 8.10.2 (assembleDebug+lintVitalRelease)
+compose = "1.9.5"
 # material3 1.4.0-alpha18 将 Expressive API 公开暴露；不要升到 1.5.0-alpha
 # （需 Compose 1.12 → compileSdk 37 → AGP 升级）
 material3 = "1.4.0-alpha18"
@@ -19,20 +19,22 @@ materialIconsExtended = "1.7.8"
 adaptive = "1.2.0"
 
 # ── AndroidX ───────────────────────────────────────────────
-activityCompose = "1.9.3"
+activityCompose = "1.9.3"  # declared floor; resolution already brings activity 1.10.1 + lifecycle 2.9.x
+# transitively (compose 1.9.x requires them) — the lint-crash guard is the NullSafeMutableLiveData
+# disable in app/build.gradle.kts, verified via lintVitalRelease, not this version pin
 # lifecycle 2.8.7 — NullSafeMutableLiveData lint 在 app/build.gradle.kts 中被禁用
 # （与 AGP 8.7.2 内置 lint 二进制不兼容）；保持钉版
 lifecycle = "2.8.7"
-navigationCompose = "2.8.4"
+navigationCompose = "2.8.9"
 
 # ── 网络 ───────────────────────────────────────────────────
 # Ktor 锁在 2.x（3.x 为破坏性大版本，不在本次范围）
-ktor = "2.3.12"
-kotlinxSerializationJson = "1.7.3"
+ktor = "2.3.13"
+kotlinxSerializationJson = "1.7.3"  # 1.8.x pairs with Kotlin 2.1 — hold with the Kotlin 2.0.x pin
 
 # ── Firebase ───────────────────────────────────────────────
-firebaseBom = "33.1.2"
-kotlinxCoroutinesPlayServices = "1.8.1"
+firebaseBom = "33.16.0"
+kotlinxCoroutinesPlayServices = "1.8.1"  # 1.9/1.10 are built with Kotlin 2.1 — hold until the Kotlin 2.0.x pin moves
 
 # ── 测试 ───────────────────────────────────────────────────
 junit = "4.13.2"
@@ -60,7 +62,7 @@ ktor-client-websockets = { group = "io.ktor", name = "ktor-client-websockets", v
 ktor-client-mock = { group = "io.ktor", name = "ktor-client-mock", version.ref = "ktor" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
-firebase-messaging-ktx = { group = "com.google.firebase", name = "firebase-messaging-ktx" }
+firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging" }
 kotlinx-coroutines-play-services = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-play-services", version.ref = "kotlinxCoroutinesPlayServices" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "kotlinxCoroutinesTest" }
