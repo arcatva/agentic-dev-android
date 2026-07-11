@@ -1,0 +1,11 @@
+# Project overrides on top of detekt's defaults (buildUponDefaultConfig = true).
+# Compose-aware tuning: declarative @Composable functions naturally take many parameters and
+# grow long UI trees — size/complexity heuristics designed for imperative code misfire on them
+# (standard practice per detekt + Compose guidance). Non-Compose code keeps the full rules.
+complexity:
+  LongParameterList:
+    ignoreAnnotated: ['Composable']
+  LongMethod:
+    ignoreAnnotated: ['Composable']
+  CyclomaticComplexMethod:
+    ignoreAnnotated: ['Composable']
