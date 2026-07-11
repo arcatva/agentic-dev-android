@@ -785,7 +785,7 @@ private fun NativeModelsSection() {
     var editing by remember { mutableStateOf<NativeFamily?>(null) }
 
     SectionCard(
-        title = "Claude Code official models",
+        title = "Claude models",
         trailing = {
             IconButton(onClick = { expanded = !expanded }) {
                 Icon(
@@ -844,48 +844,98 @@ private fun NativeModelsSection() {
 
 @Composable
 private fun NativeFamilyCard(fam: NativeFamily, busy: Boolean, onEdit: () -> Unit) {
+    // Same visual language as the sub-agent ProviderCard: blue tonal container, circular avatar,
+    // titleLarge label, tinted metric rows. Native models are never the router, so always blue.
+    val container = AccentBlueContainer
+    val onContainer = OnAccentBlueContainer
+    val muted = onContainer.copy(alpha = 0.75f)
+    val capColor = AccentBlue
+    val prioColor = onContainer
+    val costColor = onContainer.copy(alpha = 0.85f)
+    val track = onContainer.copy(alpha = 0.22f)
+
     Surface(
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        shape = MaterialTheme.shapes.medium,
+        color = container,
+        shape = MaterialTheme.shapes.large,
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    Modifier.size(56.dp).clip(CircleShape).background(AccentBlue),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        fam.label.firstOrNull()?.uppercase() ?: "?",
+                        color = OnAccentBlue,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+                Spacer(Modifier.width(16.dp))
                 Column(Modifier.weight(1f)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Text(fam.label, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            fam.label,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = onContainer,
+                            maxLines = 1,
+                        )
                         if (fam.customized) {
-                            Text(
-                                "Customized",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Bold,
-                            )
+                            Spacer(Modifier.width(8.dp))
+                            Row(
+                                Modifier.clip(RoundedCornerShape(8.dp)).background(AccentBlue).padding(horizontal = 8.dp, vertical = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(Icons.Rounded.Star, contentDescription = null, tint = OnAccentBlue, modifier = Modifier.size(12.dp))
+                                Spacer(Modifier.width(4.dp))
+                                Text(
+                                    "Customized",
+                                    color = OnAccentBlue,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                )
+                            }
                         }
                     }
                     if (fam.models.isNotEmpty()) {
                         Text(
                             fam.models.joinToString(", ") { it.id },
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = muted,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
                         )
                     }
                 }
                 if (fam.editable) {
-                    IconButton(onClick = onEdit, enabled = !busy) {
-                        Icon(Icons.Rounded.Edit, contentDescription = "Edit ${fam.label}")
+                    IconButton(onClick = onEdit, enabled = !busy, modifier = Modifier.size(48.dp)) {
+                        Icon(Icons.Rounded.Edit, contentDescription = "Edit ${fam.label}", tint = onContainer)
                     }
                 }
             }
-            val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-            val barColor = MaterialTheme.colorScheme.primary
-            val trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
-            MetricRow("Capability", fam.capability, barColor, trackColor, labelColor)
-            MetricRow("Priority", fam.priority, barColor, trackColor, labelColor)
-            MetricRow("Cost", fam.cost, barColor, trackColor, labelColor)
+
+            val desc = fam.description
+            if (desc.isNotBlank()) {
+                Surface(
+                    color = onContainer.copy(alpha = 0.12f),
+                    shape = RoundedCornerShape(12.dp),
+                ) {
+                    Text(
+                        desc,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = onContainer,
+                        modifier = Modifier.padding(12.dp),
+                    )
+                }
+            }
+
+            MetricRow("Capability", fam.capability, capColor, track, muted, showLabel = true)
+            MetricRow("Priority", fam.priority, prioColor, track, muted, showLabel = true)
+            MetricRow("Cost", fam.cost, costColor, track, muted, showLabel = true)
         }
     }
 }
