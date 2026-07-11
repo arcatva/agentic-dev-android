@@ -91,6 +91,8 @@ import dev.agentic.domain.AnswerNode
 import dev.agentic.domain.AskNode
 import dev.agentic.domain.AskQuestion
 import dev.agentic.domain.AttachmentNode
+import dev.agentic.domain.DownloadUi
+import dev.agentic.domain.formatBytesPerSec
 import dev.agentic.domain.Node
 import dev.agentic.domain.agentChipLabel
 import dev.agentic.domain.PermNode
@@ -156,7 +158,7 @@ fun Transcript(
     onAnswerAsk: (AskNode, String) -> Unit,
     onRespondPermission: (id: String, decision: String, feedback: String?) -> Unit,
     onDownloadAttachment: (AttachmentNode) -> Unit,
-    downloadProgress: Map<String, Float?>,
+    downloadProgress: Map<String, DownloadUi>,
     canAnswer: Boolean,
     onOpenWorkflow: (WorkflowNode) -> Unit = {},
     loadImageBytes: suspend (AttachmentNode) -> ByteArray? = { null },
@@ -442,8 +444,7 @@ fun Transcript(
                         node,
                         onPrimary = { if (isImageFile(node.path)) previewImage = node else onDownloadAttachment(node) },
                         onDownload = { onDownloadAttachment(node) },
-                        downloading = node.path in downloadProgress,
-                        fraction = downloadProgress[node.path],
+                        progress = downloadProgress[node.path],
                         loadImageBytes = loadImageBytes,
                     )
                 }
@@ -1074,10 +1075,12 @@ private fun AttachmentCard(
     node: AttachmentNode,
     onPrimary: () -> Unit,
     onDownload: () -> Unit,
-    downloading: Boolean,
-    fraction: Float?,
+    /** Non-null while this file is downloading — fraction + live speed + stall flag. */
+    progress: DownloadUi?,
     loadImageBytes: suspend (AttachmentNode) -> ByteArray? = { null },
 ) {
+    val downloading = progress != null
+    val fraction = progress?.fraction
     val name = node.path.substringAfterLast('/')
     Surface(
         onClick = onPrimary,
@@ -1138,7 +1141,7 @@ private fun AttachmentCard(
                     )
                 }
             }
-            if (downloading) {
+            if (progress != null) {
                 Spacer(Modifier.height(6.dp))
                 if (fraction != null) {
                     LinearProgressIndicator(
@@ -1148,6 +1151,22 @@ private fun AttachmentCard(
                 } else {
                     // Size unknown — indeterminate bar until bytes start arriving.
                     LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                }
+                // Live pace under the bar: a frozen bar with no words reads as a hang; "stalled —
+                // auto-resuming" is what is actually happening (the downloader retries with Range).
+                val hint = when {
+                    progress.stalled -> "Stalled — auto-resuming…"
+                    progress.bytesPerSec != null -> formatBytesPerSec(progress.bytesPerSec)
+                    else -> null
+                }
+                if (hint != null) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        hint,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (progress.stalled) MaterialTheme.colorScheme.error
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
         }

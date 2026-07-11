@@ -44,6 +44,15 @@ interface AgenticApi {
      *  the staging token, sanitized name, and the uploads/<name> path for the prompt marker. */
     suspend fun uploadStaging(bytes: ByteArray, filename: String): StagedUpload
     suspend fun fileBytes(id: String, path: String, onProgress: ((Float?) -> Unit)? = null): ByteArray
+    /** Streams the file at [path] into [dest] (no whole-file buffering), automatically RESUMING
+     *  over transient mid-transfer failures via HTTP Range. [onProgress] reports cumulative
+     *  (bytesReceived, totalBytes-or-null). Throws when the transfer is unrecoverable. */
+    suspend fun downloadFileTo(
+        id: String,
+        path: String,
+        dest: java.io.File,
+        onProgress: ((received: Long, total: Long?) -> Unit)? = null,
+    )
     suspend fun outbox(id: String): List<SharedFile>
     suspend fun kill(id: String)
     /** Interrupt the current turn but keep the session alive (idle, ready for the next message). */

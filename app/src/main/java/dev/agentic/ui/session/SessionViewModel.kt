@@ -17,8 +17,12 @@ import dev.agentic.data.repo.FilesRepository
 import dev.agentic.data.repo.SessionsRepository
 import dev.agentic.data.repo.TranscriptState
 import dev.agentic.data.repo.WorkflowsRepository
+import android.os.SystemClock
 import dev.agentic.domain.AskNode
 import dev.agentic.domain.AttachmentNode
+import dev.agentic.domain.DownloadPace
+import dev.agentic.domain.DownloadUi
+import java.io.File
 import dev.agentic.domain.Node
 import dev.agentic.domain.PendingAttachment
 import dev.agentic.domain.PermNode
@@ -581,16 +585,16 @@ class SessionViewModel(
     val downloads: Flow<DownloadEffect> = _downloads.receiveAsFlow()
 
     /** Per-attachment download progress, keyed by [AttachmentNode.path]. A present key means that file is
-     *  downloading — its value is the 0f..1f fraction, or null when the size is unknown (indeterminate bar);
-     *  an absent key means idle. The map's keys ALSO serve as the set of in-flight paths, so it does double
-     *  duty:
+     *  downloading — its value carries the 0f..1f fraction (null while the size is unknown), the current
+     *  transfer speed, and a stall flag; an absent key means idle. The map's keys ALSO serve as the set of
+     *  in-flight paths, so it does double duty:
      *   - a repeat tap on a file already downloading is ignored (no double save), and
      *   - two DIFFERENT files can download at once, each with its own bar, instead of sharing — and tearing
      *     down — one slot.
      *  A single shared slot used to flicker: two coroutines interleaved their writes, and whichever finished
      *  first nulled the slot out from under the other. */
-    private val _downloadProgress = MutableStateFlow<Map<String, Float?>>(emptyMap())
-    val downloadProgress: StateFlow<Map<String, Float?>> = _downloadProgress
+    private val _downloadProgress = MutableStateFlow<Map<String, DownloadUi>>(emptyMap())
+    val downloadProgress: StateFlow<Map<String, DownloadUi>> = _downloadProgress
 
     /** State of the fork action. Idle/InFlight/Success/Failed — observed by SessionScreen to drive the
      *  Fork button's enabled/disabled state and an inline error. */
@@ -658,9 +662,11 @@ class SessionViewModel(
     suspend fun attachmentBytes(node: AttachmentNode): ByteArray? =
         runCatching { filesRepo.fileBytes(id, node.path) }.getOrNull()
 
-    /** Download the outbox file [node] points at, then hand the bytes to the View to save. Routed
-     *  through the VM (not called from the composable) per the stateless-screen rule. The repo's
-     *  per-request timeout means a stalled transfer surfaces as [DownloadEffect.Failed], not a hang. */
+    /** Download the outbox file [node] points at — STREAMED to a temp file (never a whole-file
+     *  ByteArray) with automatic mid-transfer resume — then hand the file to the View to save.
+     *  Routed through the VM (not called from the composable) per the stateless-screen rule.
+     *  A 500ms ticker samples [DownloadPace] so the card can show live speed and call out a stall
+     *  (frozen bar + "stalled" is honest; a frozen bar alone looks like a hang). */
     fun downloadAttachment(node: AttachmentNode) {
         AppLog.d("VM", "downloadAttachment id=${id.take(8)} path=${node.path}")
         // Ignore a repeat tap while this exact file is already downloading (its path is already a key in the
@@ -668,24 +674,48 @@ class SessionViewModel(
         // the main thread can't both get past: the second sees the key already present. Covers both
         // affordances (the trailing icon AND the card-body onPrimary both call downloadAttachment).
         if (node.path in _downloadProgress.value) return
-        _downloadProgress.update { it + (node.path to null) }
+        _downloadProgress.update { it + (node.path to DownloadUi()) }
         val name = node.path.substringAfterLast('/')
         viewModelScope.launch {
             _downloads.send(DownloadEffect.Started(name))
+            val pace = DownloadPace().apply { start(SystemClock.elapsedRealtime()) }
+            // Speed/stall sampler — a child job so the `finally` below always tears it down.
+            val ticker = launch {
+                while (true) {
+                    delay(500)
+                    val p = pace.sample(SystemClock.elapsedRealtime())
+                    _downloadProgress.update { m ->
+                        m[node.path]?.let { cur ->
+                            m + (node.path to cur.copy(bytesPerSec = p.bytesPerSec, stalled = p.stalled))
+                        } ?: m
+                    }
+                }
+            }
+            // Temp file in the app cache; ownership passes to the View on Ready (it deletes after
+            // saving). Deleted here on failure/cancellation.
+            val dest = withContext(Dispatchers.IO) { File.createTempFile("download-", ".part") }
             try {
-                val bytes = filesRepo.fileBytes(id, node.path) { fraction ->
-                    // update {} is an atomic CAS, so this is safe even though the callback can fire off the
+                filesRepo.downloadTo(id, node.path, dest) { received, total ->
+                    pace.onProgress(received, SystemClock.elapsedRealtime())
+                    val fraction = total?.takeIf { it > 0 }
+                        ?.let { (received.toFloat() / it).coerceIn(0f, 1f) }
+                    // update {} is an atomic CAS, so this is safe even though the callback fires off the
                     // main thread and a concurrent download of another file may touch the same map.
-                    _downloadProgress.update { it + (node.path to fraction) }
+                    _downloadProgress.update { m ->
+                        m[node.path]?.let { cur -> m + (node.path to cur.copy(fraction = fraction)) } ?: m
+                    }
                 }
                 AppLog.d("VM", "downloadAttachment id=${id.take(8)} path=${node.path} => OK")
-                _downloads.send(DownloadEffect.Ready(name, bytes))
+                _downloads.send(DownloadEffect.Ready(name, dest))
             } catch (e: CancellationException) {
+                dest.delete()
                 throw e
             } catch (e: Exception) {
                 AppLog.w("VM", "downloadAttachment id=${id.take(8)} path=${node.path} => FAILED: ${e.message ?: "download failed"}")
+                dest.delete()
                 _downloads.send(DownloadEffect.Failed(name, e.message ?: "download failed"))
             } finally {
+                ticker.cancel()
                 // Clear ONLY this file's entry (runs on normal completion, failure, and cancellation), so a
                 // concurrent download of another file keeps its own bar and this file can be fetched again.
                 _downloadProgress.update { it - node.path }
@@ -982,15 +1012,16 @@ class SessionViewModel(
 
 }
 
-/** One-shot effects from [SessionViewModel.downloadAttachment]. The VM fetches the bytes; the View
- *  (which owns a platform Context) saves them and shows the outcome. */
+/** One-shot effects from [SessionViewModel.downloadAttachment]. The VM streams the payload into a
+ *  temp file; the View (which owns a platform Context) copies it into Downloads and shows the
+ *  outcome. */
 sealed interface DownloadEffect {
     val name: String
     /** Fetch started — the View may show a "downloading…" hint. */
     data class Started(override val name: String) : DownloadEffect
-    /** Bytes fetched, ready for the View to write to storage. (Plain class: ByteArray identity is
-     *  fine — effects are consumed once, never compared.) */
-    class Ready(override val name: String, val bytes: ByteArray) : DownloadEffect
+    /** Payload fully streamed into [file] (an app-cache temp), ready for the View to copy into
+     *  Downloads. The View OWNS the temp from here: it must delete it after the save attempt. */
+    data class Ready(override val name: String, val file: java.io.File) : DownloadEffect
     /** Fetch failed; [message] is a short human-readable reason. */
     data class Failed(override val name: String, val message: String) : DownloadEffect
 }

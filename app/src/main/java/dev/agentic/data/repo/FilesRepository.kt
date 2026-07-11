@@ -44,6 +44,24 @@ class FilesRepository(private val api: AgenticApi) {
         }
     }
 
+    /** Stream the file at [path] into [dest] with automatic mid-transfer resume (HTTP Range).
+     *  [onProgress] reports cumulative (bytesReceived, totalBytes-or-null). Throws on final failure —
+     *  the caller owns progress + error UX. */
+    suspend fun downloadTo(
+        id: String,
+        path: String,
+        dest: java.io.File,
+        onProgress: ((Long, Long?) -> Unit)? = null,
+    ) {
+        AppLog.d("File", "download (stream): $path")
+        try {
+            api.downloadFileTo(id, path, dest, onProgress)
+        } catch (e: Exception) {
+            AppLog.w("File", "download (stream) $path: ${e.message}", e)
+            throw e
+        }
+    }
+
     /** Returns the per-repo commit history for session [id], or [Outcome.Failure] on error. */
     suspend fun commits(id: String): Outcome<List<RepoCommits>> =
         runCatchingOutcome { api.commits(id) }.also {

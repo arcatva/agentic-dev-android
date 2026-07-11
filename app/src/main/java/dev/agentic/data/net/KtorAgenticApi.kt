@@ -33,6 +33,8 @@ import io.ktor.serialization.kotlinx.json.json
 import io.ktor.websocket.Frame
 import io.ktor.websocket.readText
 import dev.agentic.data.log.AppLog
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -363,27 +365,59 @@ class KtorAgenticApi(
         }
     }
 
-    /** Raw bytes of a file in the session worktree (for image preview / download).
+    /** Raw bytes of a file in the session worktree (inline image previews — small payloads).
+     *  Runs on Dispatchers.IO so body accumulation never competes with UI work on Main.
      *  onProgress, when given, reports download fraction 0f..1f (null when length is unknown). */
     override suspend fun fileBytes(id: String, path: String, onProgress: ((Float?) -> Unit)?): ByteArray {
         return try {
-            val r: ByteArray = client.get("$baseUrl/api/sessions/$id/file") {
-                auth(); parameter("path", path)
-                // Request-scoped timeouts (do NOT touch the client-level config that deliberately leaves the
-                // long-lived WS stream without a request timeout). socketTimeoutMillis is an IDLE cap (max
-                // gap between bytes): a large APK over a slow link keeps downloading as long as bytes keep
-                // arriving, while a truly stalled body still fails. requestTimeoutMillis stays only as a
-                // generous absolute upper bound (the old 120s whole-transfer cap killed big-but-progressing
-                // downloads).
-                timeout { socketTimeoutMillis = 60_000; requestTimeoutMillis = 600_000 }
-                if (onProgress != null) onDownload { sent, total ->
-                    onProgress(if (total != null && total > 0L) (sent.toFloat() / total).coerceIn(0f, 1f) else null)
-                }
-            }.readBytes()
+            val r: ByteArray = withContext(Dispatchers.IO) {
+                client.get("$baseUrl/api/sessions/$id/file") {
+                    auth(); parameter("path", path)
+                    // Request-scoped timeouts (do NOT touch the client-level config that deliberately
+                    // leaves the long-lived WS stream without a request timeout).
+                    timeout { socketTimeoutMillis = 60_000; requestTimeoutMillis = 600_000 }
+                    if (onProgress != null) onDownload { sent, total ->
+                        onProgress(if (total != null && total > 0L) (sent.toFloat() / total).coerceIn(0f, 1f) else null)
+                    }
+                }.readBytes()
+            }
             AppLog.d("API", "GET sessions/${id.take(8)}/file -> OK")
             r
         } catch (e: Exception) {
             AppLog.w("API", "GET sessions/${id.take(8)}/file -> FAILED: ${e.message}")
+            throw e
+        }
+    }
+
+    /** Streaming download with automatic Range/If-Range resume — the save path for outbox files.
+     *  Bytes go straight to [dest] (never a whole-file ByteArray), on Dispatchers.IO. */
+    override suspend fun downloadFileTo(
+        id: String,
+        path: String,
+        dest: java.io.File,
+        onProgress: ((Long, Long?) -> Unit)?,
+    ) {
+        try {
+            withContext(Dispatchers.IO) {
+                ResumableDownloader(client).download(
+                    url = "$baseUrl/api/sessions/$id/file",
+                    dest = dest,
+                    configure = {
+                        auth(); parameter("path", path)
+                        // Per-ATTEMPT timeouts: a short idle cap (15s vs the old 60s) is safe now —
+                        // a stalled attempt is cheap because the next attempt RESUMES where this one
+                        // stopped instead of redownloading everything. It also keeps the UI's
+                        // "stalled — auto-resuming" label honest: the resume follows within seconds.
+                        // 600s bounds one attempt, not the whole transfer (each resume gets a fresh
+                        // budget).
+                        timeout { socketTimeoutMillis = 15_000; requestTimeoutMillis = 600_000 }
+                    },
+                    onProgress = onProgress,
+                )
+            }
+            AppLog.d("API", "GET sessions/${id.take(8)}/file (stream) -> OK")
+        } catch (e: Exception) {
+            AppLog.w("API", "GET sessions/${id.take(8)}/file (stream) -> FAILED: ${e.message}")
             throw e
         }
     }
