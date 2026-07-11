@@ -7,6 +7,8 @@ import dev.agentic.data.net.CatalogSkill
 import dev.agentic.data.net.ComponentInfo
 import dev.agentic.data.net.McpServerDef
 import dev.agentic.ui.newrequest.McpDraft
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -186,8 +188,12 @@ class GlobalSettingsViewModel(
         _uiState.update { it.copy(catalogLoading = true, catalogError = null) }
         viewModelScope.launch {
             try {
-                val resp = api.getSkillCatalog(refresh = force)
-                val sources = api.getSkillSources()
+                // Independent requests — fetch concurrently.
+                val (resp, sources) = coroutineScope {
+                    val respDeferred = async { api.getSkillCatalog(refresh = force) }
+                    val sourcesDeferred = async { api.getSkillSources() }
+                    respDeferred.await() to sourcesDeferred.await()
+                }
                 _uiState.update {
                     it.copy(
                         catalog = resp.skills,

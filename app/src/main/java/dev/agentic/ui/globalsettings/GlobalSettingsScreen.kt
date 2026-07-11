@@ -582,6 +582,13 @@ private fun InstallSkillPane(
                     }
                 }
                 var newSource by remember { mutableStateOf("") }
+                // Clear the field only once the source actually lands in the list — a failed
+                // add keeps the (possibly long) input for retry.
+                LaunchedEffect(sources) {
+                    if (newSource.isNotBlank() && sources?.contains(newSource.trim().trimEnd('/')) == true) {
+                        newSource = ""
+                    }
+                }
                 AppTextField(
                     value = newSource,
                     onValueChange = { newSource = it },
@@ -593,7 +600,7 @@ private fun InstallSkillPane(
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Button(
-                    onClick = { onAddSource(newSource.trim()); newSource = "" },
+                    onClick = { onAddSource(newSource.trim()) },
                     enabled = !busy && newSource.isNotBlank(),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
