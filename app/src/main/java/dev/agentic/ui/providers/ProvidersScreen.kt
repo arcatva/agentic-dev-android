@@ -834,9 +834,10 @@ private fun NativeModelsSection() {
         NativeOverrideDialog(
             family = target,
             busy = ui.busy,
+            error = ui.error,
             onDismiss = { editing = null },
             onSave = { req -> vm.save(target.family, req) { e -> if (e == null) editing = null } },
-            onReset = { vm.reset(target.family); editing = null },
+            onReset = { vm.reset(target.family) { e -> if (e == null) editing = null } },
         )
     }
 }
@@ -893,6 +894,7 @@ private fun NativeFamilyCard(fam: NativeFamily, busy: Boolean, onEdit: () -> Uni
 private fun NativeOverrideDialog(
     family: NativeFamily,
     busy: Boolean,
+    error: String?,
     onDismiss: () -> Unit,
     onSave: (NativeOverrideReq) -> Unit,
     onReset: () -> Unit,
@@ -903,10 +905,14 @@ private fun NativeOverrideDialog(
     var description by remember(family.family) { mutableStateOf(family.description) }
 
     AlertDialog(
-        onDismissRequest = onDismiss,
+        // Don't let a tap-outside dismiss mid-request (would lose the in-flight save/reset feedback).
+        onDismissRequest = { if (!busy) onDismiss() },
         title = { Text("${family.label} routing") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                if (error != null) {
+                    Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                }
                 FloatSliderField(label = "Capability", value = { capability }, onValueChange = { capability = it })
                 FloatSliderField(label = "Scheduling priority", value = { priority }, onValueChange = { priority = it })
                 FloatSliderField(label = "Relative cost (0 = cheapest)", value = { cost }, onValueChange = { cost = it })
@@ -932,6 +938,6 @@ private fun NativeOverrideDialog(
                 },
             ) { Text("Save") }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { TextButton(onClick = onDismiss, enabled = !busy) { Text("Cancel") } },
     )
 }
