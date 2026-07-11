@@ -37,6 +37,7 @@ import dev.agentic.di.appContainer
 import dev.agentic.ui.adopt.AdoptPickerSheet
 import dev.agentic.ui.diagnostics.DiagnosticsScreen
 import dev.agentic.ui.globalsettings.GlobalSettingsScreen
+import dev.agentic.ui.globalsettings.SkillStoreScreen
 import dev.agentic.ui.home.HomeAdaptive
 import dev.agentic.ui.home.isWideHome
 import dev.agentic.ui.login.LoginScreen
@@ -64,6 +65,7 @@ import kotlinx.serialization.Serializable
 @Serializable data class SessionSettings(val id: String)
 @Serializable object Diagnostics
 @Serializable object GlobalSettings
+@Serializable object SkillStore
 
 // ── NavHost ──────────────────────────────────────────────────────────────────
 
@@ -438,7 +440,14 @@ fun AppNav() {
         }
 
         composable<GlobalSettings> {
-            GlobalSettingsScreen(onBack = { nav.popBackStack() })
+            GlobalSettingsScreen(
+                onBack = { nav.popBackStack() },
+                onOpenSkillStore = { nav.navigate(SkillStore) },
+            )
+        }
+
+        composable<SkillStore> {
+            SkillStoreScreen(onBack = { nav.popBackStack() })
         }
     }
 
