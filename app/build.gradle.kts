@@ -123,4 +123,6 @@ dependencies {
     // Unit testing (JVM) — pure domain transforms, repositories (fake Api), ViewModels.
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
+    // Drives ResumableDownloader through scripted responses (mid-stream cuts, 206 resumes).
+    testImplementation("io.ktor:ktor-client-mock:$ktor")
 }

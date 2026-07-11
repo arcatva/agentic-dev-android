@@ -212,7 +212,10 @@ onFork: () -> Unit,
                 is DownloadEffect.Started ->
                     Toast.makeText(context, "Downloading ${eff.name}…", Toast.LENGTH_SHORT).show()
                 is DownloadEffect.Ready -> {
-                    val ok = withContext(Dispatchers.IO) { saveToDownloads(context, eff.name, eff.bytes) }
+                    // The VM streamed into a temp file; copy it into Downloads and ALWAYS drop the temp.
+                    val ok = withContext(Dispatchers.IO) {
+                        try { saveToDownloads(context, eff.name, eff.file) } finally { eff.file.delete() }
+                    }
                     Toast.makeText(
                         context,
                         if (ok) "Saved to Downloads: ${eff.name}" else "Couldn't save ${eff.name}",
@@ -798,11 +801,13 @@ private fun InputBar(
 }
 
 /**
- * Save [bytes] as [name] into the device's public Downloads. API 29+ uses MediaStore (no runtime
+ * Save [file]'s contents as [name] into the device's public Downloads — a streamed 64 KB-chunk
+ * copy, so a 44 MB APK never materializes as one ByteArray. API 29+ uses MediaStore (no runtime
  * permission needed); older devices fall back to the app-specific external Downloads dir (also no
- * permission). Returns true on success. Call off the main thread (it does blocking IO).
+ * permission). Returns true on success. Call off the main thread (it does blocking IO). The caller
+ * owns [file]'s lifetime (delete it after this returns).
  */
-internal fun saveToDownloads(context: Context, name: String, bytes: ByteArray): Boolean {
+internal fun saveToDownloads(context: Context, name: String, file: File): Boolean {
     return try {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val resolver = context.contentResolver
@@ -812,7 +817,9 @@ internal fun saveToDownloads(context: Context, name: String, bytes: ByteArray): 
                 put(MediaStore.Downloads.IS_PENDING, 1)
             }
             val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, pending) ?: return false
-            resolver.openOutputStream(uri)?.use { it.write(bytes) } ?: return false
+            resolver.openOutputStream(uri)?.use { out ->
+                file.inputStream().use { it.copyTo(out, 64 * 1024) }
+            } ?: return false
             resolver.update(
                 uri,
                 ContentValues().apply { put(MediaStore.Downloads.IS_PENDING, 0) },
@@ -821,7 +828,9 @@ internal fun saveToDownloads(context: Context, name: String, bytes: ByteArray): 
             true
         } else {
             val dir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) ?: return false
-            File(dir, name).writeBytes(bytes)
+            file.inputStream().use { input ->
+                File(dir, name).outputStream().use { input.copyTo(it, 64 * 1024) }
+            }
             true
         }
     } catch (e: Exception) {

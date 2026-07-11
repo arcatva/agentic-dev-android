@@ -523,7 +523,10 @@ fun WideThreePaneHome(
                                         is DownloadEffect.Started ->
                                             Toast.makeText(context, "Downloading ${eff.name}…", Toast.LENGTH_SHORT).show()
                                         is DownloadEffect.Ready -> {
-                                            val ok = withContext(Dispatchers.IO) { saveToDownloads(context, eff.name, eff.bytes) }
+                                            // Streamed temp file from the VM: copy to Downloads, always drop the temp.
+                                            val ok = withContext(Dispatchers.IO) {
+                                                try { saveToDownloads(context, eff.name, eff.file) } finally { eff.file.delete() }
+                                            }
                                             Toast.makeText(
                                                 context,
                                                 if (ok) "Saved to Downloads: ${eff.name}" else "Couldn't save ${eff.name}",

@@ -379,6 +379,23 @@ override suspend fun fork(id: String): String {
         fileBytesException?.let { throw it }
         return fileBytesResult
     }
+    /** [downloadFileTo] writes [downloadFileResult] into dest (or throws [downloadFileException]);
+     *  [downloadFileCalls] records each (id, path). Progress replays (received, total) pairs. */
+    var downloadFileResult: ByteArray = ByteArray(0)
+    var downloadFileException: Throwable? = null
+    val downloadFileCalls = mutableListOf<Pair<String, String>>()
+    var downloadFileProgress: List<Pair<Long, Long?>> = emptyList()
+    override suspend fun downloadFileTo(
+        id: String,
+        path: String,
+        dest: java.io.File,
+        onProgress: ((Long, Long?) -> Unit)?,
+    ) {
+        downloadFileCalls.add(id to path)
+        downloadFileProgress.forEach { (r, t) -> onProgress?.invoke(r, t) }
+        downloadFileException?.let { throw it }
+        dest.writeBytes(downloadFileResult)
+    }
     override suspend fun outbox(id: String): List<SharedFile> {
         if (outboxScript.isNotEmpty()) return outboxScript.removeAt(0).getOrThrow()
         return outboxResult
