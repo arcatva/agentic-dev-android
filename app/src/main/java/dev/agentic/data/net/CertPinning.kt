@@ -12,19 +12,12 @@ import javax.net.ssl.TrustManagerFactory
 import javax.net.ssl.X509TrustManager
 
 /**
- * Trust-on-first-use (TOFU) certificate pinning for the self-signed cert the backend serves by
- * default. A server cert is trusted when EITHER the platform trust store already accepts it (a real
- * CA / operator "bring-your-own" cert — no prompt) OR its leaf SHA-256 matches the fingerprint the
- * user previously pinned for that host. Otherwise [TofuTrustManager] throws [NeedsTrustException],
- * which surfaces to the UI so the user can verify the fingerprint and pin it.
- *
- * Pinning is by cert identity, not hostname, so it keeps working when the app connects by a bare IP
- * (or the IP changes) — exactly the "connect to https://<ip>:7420" case.
+ * TOFU TLS pinning for the self-signed cert. Trust = platform CA-accepted OR leaf SHA-256 matches a
+ * user-pinned fingerprint for this hostKey; otherwise [TofuTrustManager] throws [NeedsTrustException]
+ * for the UI to confirm and pin. Pins by cert identity (not hostname) so a bare-IP URL keeps working.
  */
 
-/** Normalise a base URL to a stable "host:port" pin key (lowercased; scheme/path stripped).
- *  Tolerates a scheme-less input (e.g. a manually-typed "10.0.0.5:7420") by assuming https, so the
- *  explicit port is preserved rather than collapsing to the default. */
+/** Normalise to "host:port" pin key; scheme-less input ("10.0.0.5:7420") is assumed https so the explicit port is preserved over the default. */
 fun certHostKey(baseUrl: String): String {
     val trimmed = baseUrl.trim()
     val withScheme = if (trimmed.contains("://")) trimmed else "https://$trimmed"
@@ -39,14 +32,11 @@ fun certHostKey(baseUrl: String): String {
     return "${host.lowercase()}:$port"
 }
 
-/** Lowercase, colon-free SHA-256 hex of the given bytes (a certificate's DER encoding). */
 fun sha256Hex(bytes: ByteArray): String =
     MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
 
-/** Group a colon-free hex fingerprint into `AA:BB:CC…` (uppercase) for display. */
 fun formatFingerprint(hex: String): String = hex.uppercase().chunked(2).joinToString(":")
 
-/** Walk the cause chain (cycle-safe) for the first throwable of type [T]. */
 inline fun <reified T : Throwable> Throwable.findCause(): T? {
     var cur: Throwable? = this
     val seen = HashSet<Throwable>()
@@ -58,9 +48,8 @@ inline fun <reified T : Throwable> Throwable.findCause(): T? {
 }
 
 /**
- * Thrown by [TofuTrustManager] when the server's cert is not yet trusted (or changed). Carries what
- * the UI needs to prompt the user. Subclasses [CertificateException] so it propagates out of the TLS
- * handshake (OkHttp wraps it in an SSLHandshakeException, i.e. an IOException).
+ * Thrown when the server's cert is untrusted (or changed). Subclasses [CertificateException] so OkHttp
+ * wraps it as an IOException out of the handshake; carries what the UI needs to prompt the user.
  */
 class NeedsTrustException(
     val hostKey: String,
@@ -68,7 +57,6 @@ class NeedsTrustException(
     val fingerprint: String,
 ) : CertificateException("untrusted certificate for $hostKey (sha256=$fingerprint)")
 
-/** The platform's default X509 trust manager (validates against the system CA store). */
 private fun systemTrustManager(): X509TrustManager {
     val tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm())
     tmf.init(null as KeyStore?)
@@ -83,14 +71,13 @@ class TofuTrustManager(
 
     override fun checkServerTrusted(chain: Array<out X509Certificate>?, authType: String?) {
         val certs = chain ?: throw CertificateException("empty certificate chain")
-        // 1) A cert the platform already trusts (real CA / BYO public cert) → accept, no prompt.
+        // 1) Platform-trusted (real CA / BYO cert) → accept, no prompt.
         try {
             system.checkServerTrusted(certs.toList().toTypedArray(), authType ?: "RSA")
             return
         } catch (_: CertificateException) {
-            // Not chain-trusted → fall through to TOFU pinning below.
+            // 2) Fall through: self-signed → trust only if leaf matches pinned fingerprint.
         }
-        // 2) Self-signed → trust only if the leaf matches the pinned fingerprint for this host.
         val leaf = certs.firstOrNull() ?: throw CertificateException("empty certificate chain")
         val fp = sha256Hex(leaf.encoded)
         val pinned = pinnedFingerprintFor(currentHostKey())
@@ -101,11 +88,7 @@ class TofuTrustManager(
     override fun checkClientTrusted(chain: Array<out X509Certificate>?, authType: String?) {}
     override fun getAcceptedIssuers(): Array<X509Certificate> = emptyArray()
 
-    /**
-     * A HostnameVerifier that accepts when the presented leaf is the pinned cert — so a pinned
-     * self-signed cert works even if the URL host isn't in the cert's SANs (e.g. a changed IP).
-     * Falls back to [default] (normal SAN/hostname matching) otherwise.
-     */
+    /** Accepts when the presented leaf matches the pin — so a pinned self-signed cert works even if the URL host isn't in the cert's SANs (e.g. a changed IP). Falls back to SAN matching otherwise. */
     fun hostnameVerifier(default: HostnameVerifier = HttpsURLConnection.getDefaultHostnameVerifier()): HostnameVerifier =
         HostnameVerifier { hostname, session ->
             val leaf = runCatching { session.peerCertificates.firstOrNull() as? X509Certificate }.getOrNull()
@@ -116,8 +99,7 @@ class TofuTrustManager(
         }
 }
 
-/** Bundles the OkHttp-facing TLS pieces for TOFU: an SSLSocketFactory + its X509TrustManager + a
- *  pin-aware HostnameVerifier. Reused by both the REST and WebSocket OkHttp clients. */
+/** OkHttp-facing TLS bundle (SSLSocketFactory + X509TrustManager + pin-aware HostnameVerifier), shared by REST and WS clients. */
 class TofuTls(
     currentHostKey: () -> String,
     pinnedFingerprintFor: (hostKey: String) -> String?,

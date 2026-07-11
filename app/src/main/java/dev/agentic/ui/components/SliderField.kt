@@ -21,12 +21,10 @@ import dev.agentic.ui.rememberUltracodeRipplePhase
 import kotlin.math.roundToInt
 
 /**
- * MD3 Expressive discrete slider for a small ordered option set.
- * Snaps to each option; label shows current pick above the slider.
+ * MD3 Expressive discrete slider for a small ordered option set — snaps to each option; label shows
+ * current pick above.
  */
-// @OptIn: the accent path uses the value-based full-slot Slider overload (the one with a `track` slot)
-// and SliderDefaults.Track, both @ExperimentalMaterial3Api in material3 1.4.0-alpha18. Without this the
-// `track =` argument binds to the experimental overload and fails to compile.
+// @OptIn: value-based full-slot Slider overload + SliderDefaults.Track are @ExperimentalMaterial3Api on 1.4.0-alpha18.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun SliderField(
@@ -34,27 +32,19 @@ internal fun SliderField(
     options: List<Pair<String, String>>,
     value: String,
     onSelect: (String) -> Unit,
-    // When true, the label + slider recolor into the workflow/ultracode violet (a smooth tween on
-    // entry/exit) AND the track carries the looping ultracode ripple — the same wave as the session
-    // pill. Defaults off so other sliders (e.g. the Model slider) keep the plain primary look and run
-    // no animation.
+    // When true, label + slider recolor into workflow/ultracode violet (tween) AND the track
+    // carries the looping ultracode ripple. Defaults off so non-accent sliders keep plain primary.
     accentActive: Boolean = false,
-    // When true, the label + slider recolor into the theme error red to flag a dangerous selection
-    // (the Permissions "Dangerous" notch). Takes precedence over accentActive, and is tweened the same
-    // way so sliding onto/off the notch animates instead of snapping. Defaults off.
+    // When true, label + slider recolor into theme error red (Permissions "Dangerous" notch).
+    // Takes precedence over accentActive; tweened so sliding on/off animates instead of snapping.
     dangerActive: Boolean = false,
 ) {
     val idx = options.indexOfFirst { it.first == value }.coerceAtLeast(0)
-    // Ripple clock — composed ONLY while accentActive, so the looping animation never runs for the
-    // non-accent sliders. Shared with the session pill via UltracodeRipple. It is a State<Float> read
-    // (.value) inside the draw lambda below, so frames are a redraw, not a recomposition of SliderField.
+    // Composed ONLY while accentActive so the looping animation never runs for non-accent sliders.
+    // Shared with the session pill via UltracodeRipple; read (.value) INSIDE draw lambda = redraw-only.
     val ripplePhase = if (accentActive) rememberUltracodeRipplePhase() else null
 
-    // Entry/exit recolor: primary (blue) ⇆ accent violet ⇆ error red, tweened so sliding on/off a notch
-    // animates the color change instead of snapping. animateColorAsState only animates during the
-    // transition and then settles, so it is free at rest. Precedence: danger (red) > accent (violet) >
-    // default. When neither flag is set these resolve to the prior look (default primary track /
-    // inherited content color for the label), leaving plain sliders — e.g. the Model slider — unchanged.
+    // Entry/exit recolor primary ⇆ accent violet ⇆ error red, tweened. Precedence: danger > accent > default.
     val trackColor by animateColorAsState(
         targetValue = when {
             dangerActive -> MaterialTheme.colorScheme.error
@@ -91,13 +81,10 @@ internal fun SliderField(
             valueRange = 0f..options.lastIndex.toFloat(),
             steps = (options.size - 2).coerceAtLeast(0),
             colors = sliderColors,
-            // While ultracode is selected, the same ripple as the session pill travels across the
-            // slider. It is drawn INSIDE A CUSTOM TRACK SLOT (not on the whole Slider) so the draw
-            // surface — and clipToBounds — are the thin ~16dp track box, keeping the bloom inside the
-            // visible progress bar instead of flooding the ~44dp touch target (the thumb, not the track,
-            // is what makes the Slider 44dp tall). The overlay is the default track's OWN modifier, which
-            // sits outside Track's internal fillMaxWidth().height(TrackHeight) chain, so it sizes/clips to
-            // the track. Non-accent sliders (Model, Permissions) render the plain default track unchanged.
+            // Ripple drawn INSIDE A CUSTOM TRACK SLOT (not the whole Slider) so the draw surface
+            // + clipToBounds = the thin ~16dp track box; bloom stays inside the visible progress
+            // bar instead of flooding the ~44dp touch target. Non-accent sliders render the plain
+            // default track unchanged.
             track = { state ->
                 if (accentActive) {
                     SliderDefaults.Track(
@@ -127,19 +114,17 @@ internal fun SliderField(
 }
 
 /**
- * Continuous ("无极") slider for a raw 0..1 Float knob — capability / priority / cost in the
- * provider form. Unlike [SliderField] (which snaps to a discrete option set), this passes
- * `steps = 0`, so the thumb moves freely and ANY value in [valueRange] is selectable — no notch
- * snapping. The label shows the live value to two decimals.
+ * Continuous ("无极") slider for a raw 0..1 Float knob — capability/priority/cost in provider form.
+ * Unlike [SliderField] (snaps), this passes `steps = 0` so the thumb moves freely; ANY value in
+ * [valueRange] is selectable. Label shows live value to two decimals.
  *
- * [value] is a lambda, not a raw Float, so the state read is DEFERRED into this composable: the
- * caller passes `{ form.capability }` and the `form.capability` read happens inside [value]`()`
- * here — subscribing only THIS scope. A raw-Float arg would read the state in the caller's scope
- * instead, recomposing the whole parent form on every drag frame; the lambda keeps per-frame
- * recomposition to just this small slider.
+ * [value] is a lambda so the state read is DEFERRED: caller passes `{ form.capability }` and the
+ * read happens INSIDE [value]`()` here — subscribing only THIS scope. Raw-Float arg would read in
+ * the caller's scope and recompose the whole parent form on every drag frame; the lambda limits
+ * per-frame recomposition to this slider.
  *
- * Uses the classic value-based [Slider] overload WITHOUT a custom thumb/track slot, which is the
- * stable (non-experimental) one — so, unlike [SliderField], this needs no @OptIn.
+ * Uses the classic value-based [Slider] overload WITHOUT a custom thumb/track slot — the stable
+ * (non-experimental) one — so unlike [SliderField], this needs no @OptIn.
  */
 @Composable
 internal fun FloatSliderField(

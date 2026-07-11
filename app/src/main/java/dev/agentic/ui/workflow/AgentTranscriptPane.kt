@@ -38,10 +38,9 @@ import androidx.compose.ui.unit.dp
 import dev.agentic.ui.MarkdownText
 
 /**
- * The two sections an agent transcript carries. The server ([readWorkflowAgent]) emits a single
- * markdown string of the form `**Task**\n\n<task>\n\n---\n\n**Output**\n\n<output>` (either section
- * may be absent). [splitAgentTranscript] turns that back into structured parts so the UI can show
- * the Output as the focus and tuck the Task away — instead of one undifferentiated wall of text.
+ * The two sections an agent transcript carries. Server emits one markdown string of the form
+ * `**Task**\n\n<task>\n\n---\n\n**Output**\n\n<output>` (either section may be absent).
+ * [splitAgentTranscript] turns it back into structured parts.
  */
 data class AgentTranscriptParts(val task: String?, val output: String?)
 
@@ -50,10 +49,8 @@ private const val TASK_MARKER = "**Task**"
 private const val OUTPUT_MARKER = "**Output**"
 private const val SECTION_SEP = "\n\n---\n\n$OUTPUT_MARKER\n\n"
 
-/**
- * Split the server's combined transcript markdown into its Task / Output parts. Deterministic and
- * pure (unit-tested). Falls back to treating an unrecognised blob as Output so nothing is ever lost.
- */
+/** Split the server's combined transcript markdown into its Task/Output parts. Deterministic, pure
+ *  (unit-tested). Unknown shape → treat whole blob as Output (nothing lost). */
 fun splitAgentTranscript(raw: String): AgentTranscriptParts {
     val s = raw.trim()
     if (s.isEmpty()) return AgentTranscriptParts(null, null)
@@ -67,21 +64,16 @@ fun splitAgentTranscript(raw: String): AgentTranscriptParts {
     return when {
         s.startsWith(TASK_MARKER) -> AgentTranscriptParts(s.removePrefix(TASK_MARKER).trim().ifBlank { null }, null)
         s.startsWith(OUTPUT_MARKER) -> AgentTranscriptParts(null, s.removePrefix(OUTPUT_MARKER).trim().ifBlank { null })
-        // Unknown shape (older/odd payload): show the whole thing as Output rather than drop it.
         else -> AgentTranscriptParts(null, s)
     }
 }
 
 /**
  * Pure-display composable for an agent's transcript.
- *
- * States:
- *  - [loading] = true (or [transcript] == null)  → centred [LoadingIndicator]
- *  - [transcript] is blank                        → "(no transcript captured)" placeholder
- *  - otherwise                                    → a collapsed **Task** disclosure (you open an
- *    agent to see what it produced, not to re-read its prompt) above the agent's **Output**.
- *
- * Stateless: no network/repo calls. The [WorkflowViewModel] owns the fetch.
+ *   [loading] = true OR [transcript] == null → centred [LoadingIndicator]
+ *   [transcript] blank → "(no transcript captured)" placeholder
+ *   otherwise → collapsed **Task** disclosure above the agent's **Output**.
+ * Stateless: no network/repo calls. [WorkflowViewModel] owns the fetch.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -122,15 +114,11 @@ fun AgentTranscriptPane(
     }
 }
 
-/**
- * Collapsed-by-default "Task" disclosure: a tap-to-expand header showing the prompt the agent ran.
- * Reset per agent via [transcriptKey] so switching agents starts collapsed again.
- */
+/** Collapsed-by-default "Task" disclosure: tap-to-expand header showing the agent's prompt.
+ *  Reset per agent via [transcriptKey] so switching agents starts collapsed. */
 @Composable
 private fun TaskDisclosure(task: String, transcriptKey: String) {
     var expanded by rememberSaveable(transcriptKey) { mutableStateOf(false) }
-    // Same inline-card style as the session transcript's tool/notes chips (Transcript.Collapsible):
-    // a rounded Surface header — leading icon, label, trailing chevron — that expands to the prompt.
     Column(Modifier.animateContentHeight()) {
         Surface(
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -165,8 +153,7 @@ private fun TaskDisclosure(task: String, transcriptKey: String) {
                 )
             }
         }
-        // Expanded body — indented like the inline card's content block, kept selectable since it's
-        // the agent's prompt (worth copying).
+        // Expanded body — selectable since it's the agent's prompt (worth copying).
         if (expanded) Box(Modifier.fillMaxWidth().padding(start = 8.dp, top = 4.dp)) {
             SelectionContainer { MarkdownText(task) }
         }

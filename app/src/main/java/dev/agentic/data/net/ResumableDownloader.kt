@@ -19,14 +19,14 @@ import kotlinx.coroutines.delay
 /** Thrown for non-2xx download responses; [code] drives retry classification (only 5xx retries). */
 class DownloadHttpException(val code: Int) : Exception("HTTP $code")
 
-/** Parses the total from `Content-Range: bytes 5-9/10` → 10 (null when the total is `*`/absent). */
+/** `Content-Range: bytes 5-9/10` → 10 (null when total is `*`/absent). */
 internal fun contentRangeTotal(header: String?): Long? {
     val h = header ?: return null
     if (!h.startsWith("bytes ")) return null
     return h.substringAfterLast('/', "").toLongOrNull()
 }
 
-/** Parses the start offset from `Content-Range: bytes 5-9/10` → 5 (null when the start is `*`). */
+/** `Content-Range: bytes 5-9/10` → 5 (null when start is `*`). */
 internal fun contentRangeStart(header: String?): Long? {
     val h = header ?: return null
     if (!h.startsWith("bytes ")) return null
@@ -34,19 +34,14 @@ internal fun contentRangeStart(header: String?): Long? {
 }
 
 /**
- * Streams a GET response into a file, transparently RESUMING over transient mid-stream failures
- * (flaky Wi-Fi, backend deploy restarts) with `Range` + `If-Range` instead of failing the whole
- * transfer or restarting from byte 0.
- *
- * Behavior contract (mirrored by the server's `/file` route):
- * - A fresh 200 captures the ETag + Accept-Ranges; a mid-stream failure retries from the current
- *   offset with `Range: bytes=<received>-` and `If-Range: <etag>`.
- * - A 206 continuation must start exactly at the requested offset (anything else is a server bug
- *   and aborts rather than corrupt the file). A 200 answer to a resume means "file changed or
- *   ranges unsupported" — the partial temp is discarded and the transfer restarts cleanly.
- * - Retry budget: [maxRetries] CONSECUTIVE zero-progress failures give up; any attempt that
- *   advances the byte count resets the budget, so a long flaky window keeps inching forward while
- *   a hard-down server still fails promptly. Only transport errors and 5xx retry — 4xx fail fast.
+ * Streams a GET into a file, transparently RESUMING over transient mid-stream failures (flaky Wi-Fi,
+ * server restart) with `Range` + `If-Range` instead of restarting from byte 0.
+ * Contract: fresh 200 captures ETag + Accept-Ranges; mid-stream failure retries from current offset
+ * with `Range: bytes=<received>-` and `If-Range: <etag>`. A 206 must start at the requested offset
+ * (else server bug — abort, don't corrupt). A 200 on a resume means "file changed / ranges unsupported"
+ * — discard partial and restart clean. Retry budget: [maxRetries] CONSECUTIVE ZERO-progress failures
+ * give up; any attempt that advances bytes resets the budget (long flaky window keeps inching forward,
+ * hard-down server fails promptly). Only transport errors and 5xx retry — 4xx fail fast.
  */
 class ResumableDownloader(
     private val client: HttpClient,
@@ -70,10 +65,9 @@ class ResumableDownloader(
             try {
                 client.prepareGet(url) {
                     configure()
-                    // The production client sets expectSuccess=true, whose validator would throw
-                    // ResponseException (an IllegalStateException, NOT an IOException) before this
-                    // downloader ever saw the status — killing the 5xx-retry classification below.
-                    // Opt this request out; WE own status handling here.
+                    // expectSuccess=true on the production client would throw ResponseException
+                    // (IllegalStateException, NOT IOException) before we saw the status — killing
+                    // 5xx-retry classification. Opt out; WE own status handling here.
                     expectSuccess = false
                     if (received > 0 && resumable && etag != null) {
                         header(HttpHeaders.Range, "bytes=$received-")
@@ -94,10 +88,10 @@ class ResumableDownloader(
                         resumable = resp.headers[HttpHeaders.AcceptRanges]?.contains("bytes") == true
                         total = resp.contentLength()
                     }
-                    // RandomAccessFile pinned to the known-good offset — NOT append mode. A failed
-                    // attempt can leave a short-written tail past `received` (e.g. ENOSPC mid-write);
-                    // append would resume AFTER that garbage. setLength(received) truncates any such
-                    // tail so on-disk length always equals the resume offset.
+                    // RandomAccessFile pinned to the known-good offset — NOT append. A failed
+                    // attempt can leave a short-written tail past `received` (e.g. ENOSPC
+                    // mid-write); append would resume AFTER that garbage. setLength(truncates
+                    // any such tail so on-disk length always equals the resume offset.
                     java.io.RandomAccessFile(dest, "rw").use { raf ->
                         raf.setLength(received)
                         raf.seek(received)
@@ -116,16 +110,14 @@ class ResumableDownloader(
                 }
                 val expected = total
                 if (expected != null && received < expected) {
-                    // Clean EOF but short body (e.g. server killed mid-flush) — treat as transient.
                     throw IOException("body ended early at $received/$expected")
                 }
                 return
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                // Only ZERO-progress failures consume a strike; a progress-making failure resets
-                // the budget and does not count itself (Codex review: reset-then-increment made a
-                // progressing cut eat one strike, giving up an attempt early on flaky links).
+                // Only ZERO-progress failures consume a strike; a progress-making failure resets the
+                // budget without counting itself (reset-then-increment made a progressing cut eat one strike).
                 if (received > before) failures = 0 else failures++
                 val transient = e is IOException || e is HttpRequestTimeoutException ||
                     (e is DownloadHttpException && e.code >= 500)

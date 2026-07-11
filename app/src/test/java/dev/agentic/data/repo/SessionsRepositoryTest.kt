@@ -42,22 +42,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
-/**
- * Unit tests for [SessionsRepository].
- *
- * We inject a [CoroutineScope] backed by a [StandardTestDispatcher] tied to the test's scheduler so
- * the repo's `scope.launch { load(id) }` is queued (not run eagerly). That lets us observe the
- * synchronous `connecting=true` first emission BEFORE `runCurrent()`/`advanceUntilIdle()` drives the
- * load. The [FakeAgenticApi.stream] replays scripted frames synchronously into onLine, so once the
- * load coroutine runs the whole stream is applied deterministically (no real WS, no wall-clock).
- *
- * The stream engine is a RECONNECT LOOP: after each `api.stream` returns it re-fetches `api.session`
- * and breaks only when the refreshed status is terminal. So every test that drives a NON-terminal
- * session with `advanceUntilIdle()` must make the post-stream `session()` converge to terminal (via
- * [FakeAgenticApi.sessionScript] or a terminal [FakeAgenticApi.sessionDetails] entry) — otherwise the
- * loop would retry forever. Reconnect timing is stepped with `advanceTimeBy`, never `advanceUntilIdle`
- * on a still-looping session.
- */
 @OptIn(ExperimentalCoroutinesApi::class)
 class SessionsRepositoryTest {
 
@@ -81,7 +65,6 @@ class SessionsRepositoryTest {
         """{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Read","input":{"file_path":"/a/B.kt"}}]}}"""
     private val answerLogEntry = """{"type":"result","result":"done"}"""
 
-    // ── sessionEvents() migration helpers ────────────────────────────────────────
     // The repo migrated its load/refetch/refresh paths from api.session(id) (SessionDetail + raw JSONL
     // `log`) to api.sessionEvents(id, …) (SessionEventsResponse + structured `events`). These are the
     // events-surface equivalents of [seedLog]/[toolLogEntry]/[answerLogEntry]: kind-tagged wire objects
@@ -89,19 +72,17 @@ class SessionsRepositoryTest {
     // reducer-equivalence assertions (e.g. `nodes == seedFromLog(seedLog).display()`) still hold.
     private fun ev(json: String): JsonElement = Json.parseToJsonElement(json)
 
-    /** Structured-event twin of [seedLog]: prompt "go" @1 + result "ok" → PromptNode + AnswerNode. */
+    // Structured-event twin of [seedLog]: prompt "go" @1 + result "ok" → PromptNode + AnswerNode.
     private val seedEvents: List<JsonElement> = listOf(
         ev("""{"kind":"prompt","text":"go","at":1}"""),
         ev("""{"kind":"result","text":"ok"}"""),
     )
-    /** Structured-event twin of [toolLogEntry]: a Read ToolNode. */
+    // Structured-event twin of [toolLogEntry]: a Read ToolNode.
     private val toolEvent: JsonElement = ev("""{"kind":"tool","name":"Read","input":{"file_path":"/a/B.kt"}}""")
-    /** Structured-event twin of [answerLogEntry]: an AnswerNode("done"). */
+    // Structured-event twin of [answerLogEntry]: an AnswerNode("done").
     private val answerEvent: JsonElement = ev("""{"kind":"result","text":"done"}""")
 
-    /** Build a [SessionEventsResponse] the migrated load/refetch/refresh paths consume. `latestEventId`
-     *  defaults to the event count (the live-stream resume cursor the repo opens `since` from); override
-     *  it (with `firstEventLine`) to model a windowed load whose cursor is an offset into the FULL log. */
+    // Build a [SessionEventsResponse] the migrated load/refetch/refresh paths consume.
     private fun eventsResponse(
         session: Session,
         events: List<JsonElement> = seedEvents,
@@ -116,8 +97,7 @@ class SessionsRepositoryTest {
         hasMore = hasMore,
     )
 
-    /** How many times the migrated load/refetch/refresh paths hit api.sessionEvents for [id] — the
-     *  events-surface twin of the old `api.sessionCalls[id]` counter. */
+    // How many times the migrated load/refetch/refresh paths hit api.sessionEvents for [id] — the
     private fun FakeAgenticApi.sessionEventsCallCount(id: String): Int = sessionEventsCalls.count { it == id }
 
     @Before fun setUp() {
@@ -128,21 +108,17 @@ class SessionsRepositoryTest {
         if (::repoScope.isInitialized) repoScope.cancel()
     }
 
-    // ── 0. composer draft persistence ───────────────────────────────────────────
 
     @Test fun `draftFor falls back to the persisted disk draft after the in-memory cache is gone`() {
         repoScope = CoroutineScope(StandardTestDispatcher())
         val settings = FakeSettingsStore()
-        // Type a draft, then simulate process death: a fresh repo has an empty in-memory map but
         // shares the same persisted store, so the draft is recovered from disk.
         SessionsRepository(api, repoScope, settings).setDraft("s1", "half-typed message")
         assertEquals("half-typed message", SessionsRepository(api, repoScope, settings).draftFor("s1"))
-        // Sending / removing the session clears the draft from disk too.
         SessionsRepository(api, repoScope, settings).clearDraft("s1")
         assertEquals("", SessionsRepository(api, repoScope, settings).draftFor("s1"))
     }
 
-    // ── 1. connecting → loaded ──────────────────────────────────────────────────
 
     @Test fun `transcript first emits connecting then a loaded state matching reducer display`() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
@@ -151,7 +127,6 @@ class SessionsRepositoryTest {
         val repo = SessionsRepository(api, repoScope)
 
         val flow = repo.transcript("s1")
-        // Before the launched load runs, the flow holds the initial connecting state.
         assertTrue("expected connecting=true initially", flow.value.connecting)
 
         advanceUntilIdle()
@@ -160,7 +135,6 @@ class SessionsRepositoryTest {
         assertFalse(loaded.connecting)
         assertNotNull(loaded.session)
         assertEquals("s1", loaded.session?.id)
-        // nodes equal what a reducer seeded with the same log would display.
         val expected = TranscriptReducer().apply { seedFromLog(seedLog) }.display()
         assertEquals(expected, loaded.nodes)
     }
@@ -168,15 +142,13 @@ class SessionsRepositoryTest {
     @Test fun `first-load failure sets loadError (no permanent blank) and reload recovers`() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         repoScope = CoroutineScope(dispatcher)
-        api.sessionEventsException = java.io.IOException("server down")   // the initial load fails
+        api.sessionEventsException = java.io.IOException("server down")
         val repo = SessionsRepository(api, repoScope)
         val flow = repo.transcript("s1")
         advanceUntilIdle()
-        // A failed first load must NOT leave the screen stuck connecting/blank — it flags a retryable error.
         assertFalse("must not be stuck connecting", flow.value.connecting)
         assertTrue("first-load failure must set loadError", flow.value.loadError)
         assertTrue("no session yet", flow.value.session == null)
-        // Server recovers; reload() re-runs the load on the SAME cached flow.
         api.sessionEventsException = null
         api.sessionEventsResult = eventsResponse(terminalSession())
         repo.reload("s1")
@@ -186,12 +158,10 @@ class SessionsRepositoryTest {
         assertEquals("s1", flow.value.session?.id)
     }
 
-    // ── 2. non-terminal opens stream; frames append + flip busy ─────────────────
 
     @Test fun `non-terminal session opens stream and frames append nodes and flip busy`() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         repoScope = CoroutineScope(dispatcher)
-        // load() sees a running session and opens the stream; after the stream returns the loop
         // re-fetches a TERMINAL session whose log persisted the streamed tool+result, so the loop
         // reseeds, sees terminal and stops (bounded).
         api.sessionEventsScript["s1"] = mutableListOf(
@@ -209,7 +179,7 @@ class SessionsRepositoryTest {
 
         val st = flow.value
         assertEquals(1, api.streamCallCount)
-        assertEquals(seedEvents.size, api.streamSinceArgs.first())  // streamed from since=latestEventId (== log size)
+        assertEquals(seedEvents.size, api.streamSinceArgs.first())
         assertTrue("tool frame should add a ToolNode", st.nodes.any { it is ToolNode })
         assertTrue("result frame should add an AnswerNode", st.nodes.any { it is AnswerNode })
         assertFalse("result frame sets busy=false", st.busy)
@@ -218,12 +188,10 @@ class SessionsRepositoryTest {
     @Test fun `windowed load opens the stream from total, not the tail size`() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         repoScope = CoroutineScope(dispatcher)
-        // The server returned only the LAST `seedLog.size` rendered lines of a longer transcript
         // (windowed ?limit path): start=17, total=seedLog.size+17. The reducer seeds from the tail, but
         // the live cursor is a rendered-offset into the FULL log — so the stream must resume at `total`,
         // NOT `log.size`, or it would re-stream 17 lines of already-shown history.
         val total = seedEvents.size + 17
-        // The events response carries only the LAST `seedEvents.size` events (the tail window), but its
         // latestEventId is the FULL-log rendered offset (`total`) and firstEventLine the window start (17):
         // the live cursor must resume at `total`, not the tail size, or it would re-stream shown history.
         api.sessionEventsScript["s1"] = mutableListOf(
@@ -236,15 +204,14 @@ class SessionsRepositoryTest {
         repo.transcript("s1")
         advanceUntilIdle()
 
-        assertEquals(total, api.streamSinceArgs.first())                     // resumes at total, not tail size
-        assertEquals(SessionsRepository.INITIAL_LOG_LIMIT, api.sessionEventsLimitArgs.first())  // load passed the window limit
+        assertEquals(total, api.streamSinceArgs.first())
+        assertEquals(SessionsRepository.INITIAL_LOG_LIMIT, api.sessionEventsLimitArgs.first())
     }
 
     @Test fun `busy is true while a tool turn is generating before result`() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         repoScope = CoroutineScope(dispatcher)
         api.sessionEventsResult = eventsResponse(runningSession())
-        // Only a tool frame, no result. The stream then keeps the socket open (never returns) so the
         // loop does NOT advance to the refetch — busy stays true. We step the stream open via
         // runCurrent (load + open) without ever closing it.
         api.streamFrames = listOf("""{"kind":"tool","name":"Read","input":{}}""")
@@ -252,13 +219,12 @@ class SessionsRepositoryTest {
         val repo = SessionsRepository(api, repoScope)
 
         val flow = repo.transcript("s1")
-        runCurrent()  // run load() + open the stream (which replays the tool frame then suspends open)
+        runCurrent()
 
         assertTrue("a generating turn keeps busy=true", flow.value.busy)
-        repoScope.cancel()  // stop the held-open stream so the test ends bounded
+        repoScope.cancel()
     }
 
-    // ── 3. terminal session does NOT open a stream ──────────────────────────────
 
     @Test fun `terminal session does not open a stream`() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
@@ -272,7 +238,6 @@ class SessionsRepositoryTest {
         assertEquals(0, api.streamCallCount)
     }
 
-    // ── 4. transcript(id) cache: same StateFlow instance ────────────────────────
 
     @Test fun `transcript called twice returns the same StateFlow instance`() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
@@ -285,11 +250,9 @@ class SessionsRepositoryTest {
         advanceUntilIdle()
 
         assertSame(first, second)
-        // Reopening did not trigger a second load.
         assertEquals(1, api.sessionEventsCallCount("s1"))
     }
 
-    // ── 5. followUp returns since and opens a stream when none is active ─────────
 
     @Test fun `followUp returns the since`() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
@@ -309,22 +272,20 @@ class SessionsRepositoryTest {
     @Test fun `followUp opens a stream when no stream job is active`() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         repoScope = CoroutineScope(dispatcher)
-        // Terminal session: load() does NOT open a stream, so there's no active job.
         api.sessionEventsResult = eventsResponse(terminalSession())
         val repo = SessionsRepository(api, repoScope)
 
         val flow = repo.transcript("s1")
         advanceUntilIdle()
-        assertEquals(0, api.streamCallCount)  // no stream from load
+        assertEquals(0, api.streamCallCount)
 
-        // The follow-up turn streams in place. followUp polls sessionEvents() until non-terminal, so
         // script a running response for that poll, then a terminal response for the loop's post-stream
         // refetch (whose events persist the streamed answer) so the loop converges.
         api.followUpSince = 7
         api.streamFrames = listOf("""{"kind":"result","text":"followup-answer"}""")
         api.sessionEventsScript["s1"] = mutableListOf(
-            Result.success(eventsResponse(runningSession())),                              // followUp poll
-            Result.success(eventsResponse(terminalSession(), events = seedEvents + answerEvent)), // post-stream
+            Result.success(eventsResponse(runningSession())),
+            Result.success(eventsResponse(terminalSession(), events = seedEvents + answerEvent)),
         )
         repo.followUp("s1", "more", setTitle = false)
         advanceUntilIdle()
@@ -334,7 +295,6 @@ class SessionsRepositoryTest {
         assertTrue(flow.value.nodes.any { it is AnswerNode })
     }
 
-    // ── 6. sessionsStream keeps last-good list when a tick throws ────────────────
 
     @Test fun `sessionsStream keeps last good list when api sessions throws on a tick`() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
@@ -355,7 +315,6 @@ class SessionsRepositoryTest {
         assertEquals(newer, emissions[2])
     }
 
-    // ── 6b. sessionsStreamWithState: PR-9 first-load error flag ────────────────────
 
     @Test fun `sessionsStreamWithState emits FirstLoadError when first tick fails`() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
@@ -365,7 +324,6 @@ class SessionsRepositoryTest {
         )
         val repo = SessionsRepository(api, repoScope)
 
-        // take(1): the very first emission should be FirstLoadError.
         val emissions = repo.sessionsStreamWithState().take(1).toList()
 
         assertEquals(1, emissions.size)
@@ -394,15 +352,13 @@ class SessionsRepositoryTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         repoScope = CoroutineScope(dispatcher)
         val good = listOf(runningSession("a"))
-        // First tick succeeds, second tick fails (blip).
         api.sessionsScript = mutableListOf(
             Result.success(good),
             Result.failure(java.io.IOException("blip")),
-            Result.success(good),  // third tick recovers
+            Result.success(good),
         )
         val repo = SessionsRepository(api, repoScope)
 
-        // Collect 2 Loaded emissions (ticks 1 and 3); the blip (tick 2) should be swallowed
         // as a null → no FirstLoadError emitted since lastGood is already non-null.
         val loadedEmissions = repo.sessionsStreamWithState()
             .filterIsInstance<SessionsLoadState.Loaded>()
@@ -414,12 +370,10 @@ class SessionsRepositoryTest {
         assertEquals(good, loadedEmissions[1].sessions)
     }
 
-    // ── 7. live stream ends → loop re-fetches a terminal session (Bugs 1+2+3) ────
 
     @Test fun `live stream end refreshes session to terminal clears busy and stops`() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         repoScope = CoroutineScope(dispatcher)
-        // Initial load: a running session (so stream opens) that is busy (awaitingInput=false).
         // After the stream returns the loop re-fetches a TERMINAL session whose log persisted the
         // streamed answer → session refreshed, busy cleared, ended set, loop breaks.
         api.sessionEventsScript["s1"] = mutableListOf(
@@ -430,7 +384,7 @@ class SessionsRepositoryTest {
         val repo = SessionsRepository(api, repoScope)
 
         val flow = repo.transcript("s1")
-        advanceUntilIdle()  // bounded: post-stream session is terminal, so the loop stops
+        advanceUntilIdle()
 
         val st = flow.value
         assertEquals("stream opened exactly once (terminal after first end)", 1, api.streamCallCount)
@@ -443,13 +397,12 @@ class SessionsRepositoryTest {
     @Test fun `busy is cleared on terminal even when stream closed with no result frame`() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         repoScope = CoroutineScope(dispatcher)
-        // Bug 3: a turn that was busy, then the stream drops (engine crash / Stop) with NO result.
         // The loop's terminal refetch must still clear busy.
         api.sessionEventsScript["s1"] = mutableListOf(
             Result.success(eventsResponse(runningSession().copy(awaitingInput = false))),
             Result.success(eventsResponse(terminalSession(id = "s1").copy(status = "killed"))),
         )
-        api.streamFrames = listOf("""{"kind":"tool","name":"Read","input":{}}""")  // busy, no result
+        api.streamFrames = listOf("""{"kind":"tool","name":"Read","input":{}}""")
         val repo = SessionsRepository(api, repoScope)
 
         val flow = repo.transcript("s1")
@@ -460,12 +413,10 @@ class SessionsRepositoryTest {
         assertEquals("killed", flow.value.session?.status)
     }
 
-    // ── 8. reconnect: stream drops on a still-live session, loop reopens ─────────
 
     @Test fun `dropped stream on a live session reconnects then converges`() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         repoScope = CoroutineScope(dispatcher)
-        // First stream connection throws (transport drop). After it, session() is STILL running, so
         // the loop backs off and reconnects. The second connection returns; session() is then
         // terminal, so the loop stops. Asserts stream was called >1x then converged.
         api.streamScript.addAll(
@@ -475,18 +426,18 @@ class SessionsRepositoryTest {
             )
         )
         api.sessionEventsScript["s1"] = mutableListOf(
-            Result.success(eventsResponse(runningSession())),                                 // load
-            Result.success(eventsResponse(runningSession())),                                 // after drop: still live
-            Result.success(eventsResponse(terminalSession(), events = seedEvents + answerEvent)),// after reopen: terminal
+            Result.success(eventsResponse(runningSession())),
+            Result.success(eventsResponse(runningSession())),
+            Result.success(eventsResponse(terminalSession(), events = seedEvents + answerEvent)),
         )
         val repo = SessionsRepository(api, repoScope)
 
         val flow = repo.transcript("s1")
-        runCurrent()  // load + first stream attempt (throws) + first refetch (still running)
+        runCurrent()
         assertEquals("first stream attempt happened", 1, api.streamCallCount)
         assertFalse("not terminal yet", flow.value.ended)
 
-        advanceTimeBy(2_000L)  // step past the 1s backoff so the loop reconnects
+        advanceTimeBy(2_000L)
         runCurrent()
 
         assertTrue("stream reopened after the drop", api.streamCallCount >= 2)
@@ -498,7 +449,6 @@ class SessionsRepositoryTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         repoScope = CoroutineScope(dispatcher)
         val network = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
-        // First stream drops; still-live → the loop enters backoff. A network-available signal must
         // reconnect immediately, WITHOUT advancing the backoff timer; the 2nd stream then converges.
         api.streamScript.addAll(
             listOf(
@@ -507,49 +457,45 @@ class SessionsRepositoryTest {
             )
         )
         api.sessionEventsScript["s1"] = mutableListOf(
-            Result.success(eventsResponse(runningSession())),                                 // load
-            Result.success(eventsResponse(runningSession())),                                 // after drop: still live
-            Result.success(eventsResponse(terminalSession(), events = seedEvents + answerEvent)),// after wake: terminal
+            Result.success(eventsResponse(runningSession())),
+            Result.success(eventsResponse(runningSession())),
+            Result.success(eventsResponse(terminalSession(), events = seedEvents + answerEvent)),
         )
         val repo = SessionsRepository(api, repoScope, networkAvailable = network)
 
         val flow = repo.transcript("s1")
-        runCurrent()  // load + first stream (drops) + refetch (still live) → now waiting in backoff
+        runCurrent()
         assertEquals("first stream attempt happened", 1, api.streamCallCount)
         assertFalse("not terminal yet", flow.value.ended)
 
-        network.emit(Unit)   // device regained a network — wake the loop without advancing the backoff timer
+        network.emit(Unit)
         runCurrent()
 
         assertTrue("network signal reconnected the stream", api.streamCallCount >= 2)
         assertTrue("session converged to terminal", flow.value.ended)
     }
 
-    // ── 9. kill evicts and cancels the stream job ───────────────────────────────
 
     @Test fun `kill cancels the stream job and evicts the entry`() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         repoScope = CoroutineScope(dispatcher)
-        // A live session whose stream holds open, so a reconnect job is alive when we kill.
         api.sessionEventsResult = eventsResponse(runningSession())
         api.streamFrames = emptyList()
         api.streamHoldsOpen = true
         val repo = SessionsRepository(api, repoScope)
 
         val first = repo.transcript("s1")
-        runCurrent()  // load opens the (held-open) stream loop
+        runCurrent()
         assertEquals("load ran once", 1, api.sessionEventsCallCount("s1"))
         assertEquals("stream opened and is held open", 1, api.streamCallCount)
 
         repo.kill("s1")
-        advanceUntilIdle()  // bounded: with the job cancelled there is no reconnect loop left to run
+        advanceUntilIdle()
 
         assertEquals(listOf("s1"), api.killCalls)
-        // Job was cancelled: the held-open stream never returned, so no refetch/reconnect happened.
         assertEquals("no reconnect after kill", 1, api.streamCallCount)
         assertEquals("no extra session refetch after kill", 1, api.sessionEventsCallCount("s1"))
 
-        // Entry was evicted: transcript("s1") now creates a FRESH flow (connecting=true) and a NEW
         // load — proving the old view/reducer/job were dropped (not the cached instance). Make the
         // fresh load terminal so it opens no stream (keeps the assertion bounded).
         api.streamHoldsOpen = false
@@ -561,7 +507,6 @@ class SessionsRepositoryTest {
         assertEquals("kill evicted the entry, so a second load ran", 2, api.sessionEventsCallCount("s1"))
     }
 
-    // ── 9b. refresh() forces a reconnect: cancel a stuck/zombie stream, open a fresh one ─────────
     // The reported bug: a running session goes silent after the app is backgrounded and returns, and
     // ONLY a force-kill + reopen of the whole app restores it. Root cause: a stream coroutine blocked
     // reading a half-open socket stays Job.isActive==true, and the OLD refresh() merely re-ran load(),
@@ -574,20 +519,20 @@ class SessionsRepositoryTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         repoScope = CoroutineScope(dispatcher)
         api.sessionEventsResult = eventsResponse(runningSession())
-        api.streamHoldsOpen = true              // stream #1 holds open forever (the stuck/live socket)
+        api.streamHoldsOpen = true
         val repo = SessionsRepository(api, repoScope)
 
         repo.transcript("s1")
-        advanceUntilIdle()                      // load + open stream #1 (parked open)
+        advanceUntilIdle()
         assertEquals(1, api.streamCallCount)
 
-        repo.refresh("s1")                      // forced reconnect: cancel job #1, reseed, open stream #2
+        repo.refresh("s1")
         advanceUntilIdle()
 
         assertEquals("forced reconnect opened a fresh stream (old job was cancelled)", 2, api.streamCallCount)
         assertEquals("the fresh stream resumes from the reseeded cursor", seedEvents.size, api.streamSinceArgs.last())
         assertEquals("refresh refetched the authoritative session", 2, api.sessionEventsCallCount("s1"))
-        repoScope.cancel()                      // stop the held-open stream #2 so the test ends bounded
+        repoScope.cancel()
     }
 
     @Test fun `refresh coalesces concurrent triggers into a single reconnect`() = runTest {
@@ -601,7 +546,6 @@ class SessionsRepositoryTest {
         advanceUntilIdle()
         assertEquals(1, api.streamCallCount)
 
-        // Two triggers fire before the dispatcher runs either launch body (StandardTestDispatcher queues
         // them). The second must coalesce into the first via `reconnecting`, so exactly ONE fresh stream
         // opens — not two reconnects fighting over the same job (which would reach 3).
         repo.refresh("s1")
@@ -612,7 +556,6 @@ class SessionsRepositoryTest {
         repoScope.cancel()
     }
 
-    // ── 9c. idle-stream reaper: release a session's stream after its last subscriber leaves ───────
     // Stops the per-session WebSocket leak: every opened session used to keep a persistent stream +
     // reconnect loop forever (released only on kill/delete). With idleReleaseMs set, a session whose UI
     // has had ZERO subscribers for that long is released; re-opening just re-creates + reseeds. The
@@ -628,16 +571,14 @@ class SessionsRepositoryTest {
         val first = repo.transcript("s1")
         val sub = backgroundScope.launch { first.collect {} }  // a live subscriber (mirrors the detail screen)
         runCurrent()                                           // establish the subscription → reaper idle-timer cancelled
-        advanceUntilIdle()                                     // load + open the held-open stream
+        advanceUntilIdle()
         assertEquals("stream opened while observed", 1, api.streamCallCount)
 
-        // Leave the session: drop the subscriber. Before the idle window elapses it is still warm.
         sub.cancel()
         runCurrent()                                           // let the unsubscribe propagate → reaper starts its timer
         advanceTimeBy(29_000L); runCurrent()
         assertSame("not reaped before the idle window", first, repo.transcript("s1"))
 
-        // Past the idle window with no subscriber → released (flow evicted, stream cancelled).
         advanceTimeBy(2_000L); runCurrent()
         api.streamHoldsOpen = false
         api.sessionEventsResult = eventsResponse(terminalSession())
@@ -658,19 +599,16 @@ class SessionsRepositoryTest {
         val first = repo.transcript("s1")
         val sub1 = backgroundScope.launch { first.collect {} }
         runCurrent(); advanceUntilIdle()
-        // Leave, wait part of the window, then return (re-subscribe) — a quick navigate-away-and-back.
         sub1.cancel(); runCurrent()
         advanceTimeBy(20_000L); runCurrent()
         val sub2 = backgroundScope.launch { first.collect {} }
         runCurrent()
-        // Even well past the original deadline, the session is NOT released (the return reset the timer).
         advanceTimeBy(60_000L); runCurrent()
         assertSame("a returning subscriber keeps the session warm", first, repo.transcript("s1"))
         assertEquals("no extra load — the same warm flow was reused", 1, api.sessionEventsCallCount("s1"))
         sub2.cancel(); repoScope.cancel()
     }
 
-    // ── 9d. reconnectLiveSessions: the app-foreground (ProcessLifecycle) backstop ─────────────────
 
     // reconnectLiveSessions only reconnects sessions with a LIVE UI subscriber (an off-screen/idle one
     // would just be reaped 30s later), so these tests keep a subscriber attached — which also makes the
@@ -712,7 +650,6 @@ class SessionsRepositoryTest {
         sub.cancel()
     }
 
-    // ── refreshSession / sessionRefreshStream: keep the detail-screen session fresh ──────────────
     // Root fix for the stale error banner (and the ~18 sibling stale-session surfaces): TranscriptState
     // .session was refreshed ONLY on load/reseed, so it stayed frozen for a whole live turn. refreshSession
     // swaps in the authoritative server row (session field only — never nodes); sessionRefreshStream polls
@@ -773,7 +710,6 @@ class SessionsRepositoryTest {
         assertEquals("failed", flow.value.session?.status)
         assertEquals("usage_limit", flow.value.session?.errorKind)
 
-        // Server's queued follow_up branch patched the row: errored terminal → clean running.
         val pendingSession = Session(
             id = "s1", prompt = "go", status = "running",
             claudeSessionId = "claude-1", awaitingInput = false,
@@ -826,8 +762,6 @@ class SessionsRepositoryTest {
         job.cancel(); repoScope.cancel()
     }
 
-    // ── contentSearch: debounced content search across sessions ───────────────────
-    // Per plan Task 5: 250ms debounce, length<2 short-circuit, last-write-wins via mapLatest.
 
     @Test fun `contentSearch emits response for non blank query`() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)

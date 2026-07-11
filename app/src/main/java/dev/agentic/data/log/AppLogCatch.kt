@@ -1,21 +1,6 @@
 package dev.agentic.data.log
 
-/**
- * Log the caught exception at [level] then return [fallback].
- *
- * Call sites of silent catches that currently swallow everything should use this so the exception
- * is recorded in the log, making failures visible in logcat captures.
- *
- * Default level is 'w' (warning) — use 'd' only for truly expected failures (e.g. "model catalog
- * not available = show empty list"), and 'e' for fatal-but-caught errors.
- *
- * Example:
- * ```kotlin
- * val data = logCatch("Store", "decode ReadState failed", fallback = emptyMap()) {
- *     json.decodeFromString<Map<String, Long>>(raw)
- * }
- * ```
- */
+/** Run [block], log the caught exception at [level] ('w' default, 'e' or 'd'), and return [fallback]. For silent catches that should still record into the captured log. */
 inline fun <T> logCatch(
     tag: String,
     msg: String,

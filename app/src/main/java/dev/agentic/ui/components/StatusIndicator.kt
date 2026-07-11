@@ -48,27 +48,15 @@ import dev.agentic.ui.appEffectsSpec
 import dev.agentic.ui.appSpatialSpec
 import kotlinx.coroutines.delay
 
-// The footprint is fixed at [size] for every state (the AnimatedContent is size(size)), so the
-// surrounding row never reflows on a transition — including the blank done/idle states. The painted
-// glyphs are sized by their fill ratio so they look the same size:
-//   pending dot → fills 100% of its box → box = dotBox
-//   status icon → check/failed/killed filled icons paint ~0.84 of their box → box = dotBox / 0.84
-//   running     → the M3 Expressive circular wavy spinner, sized to SPINNER_FILL of the footprint
-//   idle / done → nothing at rest (a transient completion check is the only thing that ever shows)
-/** Visible glyph size as a fraction of the footprint. */
+// Footprint fixed at [size] across all states (AnimatedContent size) so surrounding row never
+// reflows on transition, including blank done/idle. Glyphs sized by fill ratio so they look
+// the same size: pending dot 100%, status icon ~84%, M3 Expressive circular wavy spinner SPINNER_FILL.
 private const val TARGET_FILL = 0.70f
 private const val ICON_FILL = 0.84f
-/** The running wavy spinner's diameter as a fraction of the footprint — smaller than the full box so
- *  the ring isn't oversized next to the dot/icon glyphs. */
 private const val SPINNER_FILL = 0.7f
-
-/** How long the transient completion check holds before it shrinks away. */
 private const val CHECK_HOLD_MS = 2000L
-
-/** What the indicator actually draws — decouples the transient completion check from [StatusVisual]. */
 private enum class Glyph { SPINNER, CHECK, DOT, FAILED, KILLED, NONE }
 
-/** The glyph shown at rest for a visual. Idle and done are blank — completion is shown transiently. */
 private fun StatusVisual.steadyGlyph(unread: Boolean = false): Glyph = when (this) {
     StatusVisual.RUNNING -> Glyph.SPINNER
     StatusVisual.PENDING -> Glyph.DOT
@@ -77,32 +65,26 @@ private fun StatusVisual.steadyGlyph(unread: Boolean = false): Glyph = when (thi
     StatusVisual.DONE, StatusVisual.IDLE -> if (unread) Glyph.DOT else Glyph.NONE
 }
 
-/**
- * Accent color for a raw backend [status] string — sourced entirely from the app's MD3E
- * ColorScheme (no device dynamic color, no hardcoded hex) so status dots stay on-brand: the teal
- * accent for live work, brand blue for done, semantic red for failures, muted tones otherwise.
- */
+/** Accent for raw backend [status] — fully from MD3E ColorScheme (no dynamic color, no hex):
+ *  tertiary for running (accent override violet in workflows), primary for done, error, secondary for killed,
+ *  outline otherwise. */
 @Composable
 fun statusColor(status: String, accent: Color? = null): Color = when (status.trim().lowercase()) {
-    in RUNNING_STATES -> accent ?: MaterialTheme.colorScheme.tertiary  // live spinner — accent override (violet in workflows)
-    in DONE_STATES    -> accent ?: MaterialTheme.colorScheme.primary   // completed OK — accent (violet) in workflows, else brand blue
-    in FAILED_STATES  -> MaterialTheme.colorScheme.error      // semantic red
-    in KILLED_STATES  -> MaterialTheme.colorScheme.secondary  // user-stopped / cancelled — muted
-    else              -> MaterialTheme.colorScheme.outline    // pending / unknown
+    in RUNNING_STATES -> accent ?: MaterialTheme.colorScheme.tertiary
+    in DONE_STATES    -> accent ?: MaterialTheme.colorScheme.primary
+    in FAILED_STATES  -> MaterialTheme.colorScheme.error
+    in KILLED_STATES  -> MaterialTheme.colorScheme.secondary
+    else              -> MaterialTheme.colorScheme.outline
 }
 
 /**
- * MD3 Expressive status indicator. Driven by [dev.agentic.domain.statusVisual] so the domain
- * enum is the single source of truth for status → visual mapping.
- *
- * - running              → CircularWavyProgressIndicator (Expressive circular spinner)
- * - running → idle/done  → the spinner gives way to a check that pops in, holds ~2s, then shrinks
- *                          away — a transient "turn finished" confirmation
- * - idle / done (at rest)→ nothing
- * - failed/killed        → filled state icon
- * - else (pending/…)     → static dot
- *
- * Footprint is fixed at [size] across all states so no reflow on transition.
+ * MD3 Expressive status indicator. State → visual driven by [statusVisual] (single source of truth).
+ *   running              → CircularWavyProgressIndicator
+ *   running → idle/done  → spinner gives way to a check that pops in, holds ~2s, then shrinks away
+ *   idle / done at rest  → nothing
+ *   failed/killed        → filled state icon
+ *   else (pending/…)     → static dot
+ * Footprint fixed at [size] so no reflow on transition.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -119,16 +101,10 @@ fun StatusIndicator(
     val color = statusColor(status, accent)
     val density = LocalDensity.current
 
-    // Transient completion check: the moment a running turn finishes (running → idle or done) flash a
-    // check for CHECK_HOLD_MS, then clear it so it shrinks away. At rest, idle/done show nothing.
-    //
-    // flashOnComplete gates the flash for call sites whose data stream can CATCH UP on old
-    // transitions: the home list's uiState freezes while the app is backgrounded (WhileSubscribed),
-    // and the composition is retained — so on resume the first fresh poll replays a running→idle
-    // flip that actually happened minutes ago, flashing a completion the user already opened and
-    // read. The list passes flashOnComplete = unread (Discord-style server read state): a genuinely
-    // new completion still flashes (the same poll tick that flips the visual also sets unread=true),
-    // while an already-acked one stays quiet. Live-view call sites keep the default (always flash).
+    // Transient completion check: flash a check for CHECK_HOLD_MS on running→idle/done, then clear.
+    // flashOnComplete gates the flash for home-list call sites whose data stream can CATCH UP on old
+    // transitions while backgrounded (Discord-style unread: genuinely new completion flashes; ack'd
+    // stays quiet). Live-view sites keep the default.
     var checking by remember { mutableStateOf(false) }
     var prev by remember { mutableStateOf(visual) }
     LaunchedEffect(visual) {
@@ -142,31 +118,24 @@ fun StatusIndicator(
                     checking = false
                 }
             }
-            visual == StatusVisual.RUNNING -> checking = false // a fresh turn cancels a lingering check
+            visual == StatusVisual.RUNNING -> checking = false
         }
     }
 
     val glyph = if (checking) Glyph.CHECK else visual.steadyGlyph(unread)
 
-    // Route the glyph pop through the central motion scheme — no hardcoded spring, one source of
-    // truth. Both specs are critically damped (the app-wide no-overshoot policy): spatial drives the
-    // scale, effects the fade. This scaleIn used to be the LAST bouncy spring in the app (the residual
-    // "回弹" on the status glyph); the scheme's NoBouncy spatial spec keeps a lively pop without overshoot.
-    // Hoisted out of transitionSpec because that lambda is not a @Composable scope.
+    // Route through central motion scheme — critically damped (no-overshoot policy); spatial drives
+    // the scale, effects the fade. Hoisted because transitionSpec isn't a @Composable scope.
     val popScaleSpec = appSpatialSpec<Float>()
     val popFadeSpec = appEffectsSpec<Float>()
     AnimatedContent(
         targetState = glyph,
         transitionSpec = {
-            // Pop in (scale + fade); shrink + fade on exit — so the spinner gives way to a check
-            // that then shrinks out.
             (fadeIn(popFadeSpec) +
                 scaleIn(initialScale = 0.6f, animationSpec = popScaleSpec)) togetherWith (
-                // Exit = fade-led, gentle shrink. The check is a FILLED disc (CheckCircle); scaling it
-                // all the way to 0 makes it pass through sub-pixel sizes that the GPU rasterizes as a
-                // tiny square blob — the "square layer" artifact on disappear. So we fade it fully out
-                // early (~200ms) while only shrinking to 0.6f: it is already invisible long before it
-                // reaches the size where the square shows, and it still reads as a soft "shrink away".
+                // Exit = fade-led. CheckCircle is a FILLED disc; scaling it to 0 passes through
+                // sub-pixel sizes that the GPU rasterizes as a tiny square blob ("square layer"
+                // artifact on disappear). Fade fully out early (~200ms) while only shrinking to 0.6.
                 fadeOut(tween(durationMillis = 200)) +
                     scaleOut(targetScale = 0.6f, animationSpec = tween(durationMillis = 320))
                 )
@@ -175,17 +144,14 @@ fun StatusIndicator(
         label = "status",
         modifier = modifier.size(size),
     ) { g ->
-        // Every painted glyph uses requiredSize so AnimatedContent doesn't coerce it back up to the
-        // fixed footprint constraints (modifier.size(size) above) — the spinner included, or its
-        // spinnerBox is ignored and it fills the full footprint. idle/done (NONE) paint nothing.
+        // requiredSize so AnimatedContent doesn't coerce glyphs back up to fixed footprint.
         val dotBox = size * TARGET_FILL
         val iconBox = size * (TARGET_FILL / ICON_FILL)
         val spinnerBox = size * SPINNER_FILL
         when (g) {
             Glyph.SPINNER -> {
-                // One stroke for BOTH the wavy active arc and the flat background track. The track
-                // (trackStroke) defaults to the library's thicker circular weight, so without this it
-                // stays chunky even after the wave is thinned — the "non-wave circle looks thick" case.
+                // One stroke for BOTH arc + track — track's default is the library's thicker circular
+                // weight, so without this the wave thinned but the track stayed chunky.
                 val ringStroke = Stroke(width = with(density) { 2.dp.toPx() }, cap = StrokeCap.Round)
                 CircularWavyProgressIndicator(
                     modifier = Modifier.requiredSize(spinnerBox),
@@ -207,9 +173,9 @@ fun StatusIndicator(
 @Composable
 private fun StatusIndicatorUnreadPreview() {
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        StatusIndicator(status = "done", unread = true)    // unread dot
-        StatusIndicator(status = "done", unread = false)   // blank (read)
-        StatusIndicator(status = "running")                // spinner
-        StatusIndicator(status = "failed")                 // error icon
+        StatusIndicator(status = "done", unread = true)
+        StatusIndicator(status = "done", unread = false)
+        StatusIndicator(status = "running")
+        StatusIndicator(status = "failed")
     }
 }

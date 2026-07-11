@@ -18,29 +18,21 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.VisualTransformation
 
 /**
- * The app's one outlined text field. Every form-style input — login host, the password field, the
- * new-request template-variable dialog, the transcript answer / deny-reason / plan-feedback cards,
- * and the voice-dictation prompt — routes through this so they share a single shape, color set,
- * error / supporting-text contract, and accessibility wiring instead of each call site re-deriving
- * ~25 `OutlinedTextField` parameters and drifting apart.
+ * App-wide outlined text field. Every form input (login, password, template-variable dialog,
+ * transcript answer/deny/plan cards, voice dictation) routes through this so shape, colors, and
+ * a11y contract stay identical.
  *
- * Focus dismissal is deliberately NOT this component's concern: tapping outside any field is handled
- * once per screen by [Modifier.clearFocusOnTap] on the screen root (a field can't observe taps that
- * miss it). Keep that split — don't add tap-to-blur logic here.
+ * Tap-outside-to-dismiss is NOT this concern — the screen root uses [clearFocusOnTap] (a field can't
+ * observe taps that miss it). Keep that split.
  *
- * Two overloads:
- *  - the plain `value` / `onValueChange` [String] one below — for form fields edited ONLY by the IME
- *    (login host/password, template-variable dialog, transcript answer/deny/plan cards). It also
- *    keeps `visualTransformation` (password masking) and `keyboardActions`, which the state API drops.
- *  - a `state: TextFieldState` one (further down) — for fields whose text is ALSO written from outside
- *    the IME (voice dictation, prefill) and/or recomposed by unrelated async emits, where the String
- *    overload would strand the caret behind appended text. Pair it with [rememberSyncedTextFieldState]
- *    to bridge a ViewModel `StateFlow<String>`. This opts into the Material3 `TextFieldState` overload
- *    (still `@ExperimentalMaterial3Api` on material3 1.4.0-alpha18).
+ * Two overloads: the [String] `value`/`onValueChange` one below keeps `visualTransformation` (password
+ * masking) and `keyboardActions`; a [TextFieldState] one further down is for fields written from
+ * outside the IME (voice dictation, prefill), often paired with [rememberSyncedTextFieldState] to
+ * bridge a ViewModel `StateFlow<String>`. The state overload is `@ExperimentalMaterial3Api` on
+ * material3 1.4.0-alpha18.
  *
- * Accessibility: pass a real [label] whenever the design shows one (TalkBack reads it; a [placeholder]
- * disappears on input and is hint-only). A non-null [errorMessage] both flips `isError` and is mapped
- * to a spoken `semantics { error(..) }` so the failure is announced, not just colored red.
+ * A11y: pass a real [label] whenever the design shows one; a non-null [errorMessage] flips isError
+ * AND maps to `semantics { error(..) }` so TalkBack announces it.
  */
 @Composable
 fun AppTextField(
@@ -61,8 +53,7 @@ fun AppTextField(
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
     visualTransformation: VisualTransformation = VisualTransformation.None,
-    // extraSmall is exactly OutlinedTextField's own default shape — pinned here so every field shares
-    // one source of truth without depending on OutlinedTextFieldDefaults.shape's API surface.
+    // extraSmall matches OutlinedTextField's own default shape — pinned here so every field shares one source.
     shape: Shape = MaterialTheme.shapes.extraSmall,
     colors: TextFieldColors = OutlinedTextFieldDefaults.colors(),
 ) {
@@ -71,7 +62,7 @@ fun AppTextField(
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
-        // Announce the error reason to TalkBack — isError alone only changes the color.
+        // Announce error reason to TalkBack — isError alone only changes the color.
         modifier = if (isError) modifier.semantics { error(errorMessage!!) } else modifier,
         enabled = enabled,
         readOnly = readOnly,
@@ -93,14 +84,11 @@ fun AppTextField(
 }
 
 /**
- * [TextFieldState]-backed twin of [AppTextField]. The state owns text + caret + composing region
- * together, so an external (non-IME) text change can place the caret at the end of the new text
- * instead of stranding it — see [rememberSyncedTextFieldState], which most call sites use to bridge
- * a ViewModel `StateFlow<String>` into the `state`.
- *
- * Drops `visualTransformation` and `keyboardActions` (no equivalent on the Material3 state overload).
- * Password masking still belongs on the String overload above. `label` / `labelPosition` and the
- * other newer parameters are left at their defaults via named arguments.
+ * [TextFieldState]-backed twin of [AppTextField]. State owns text + caret + composing region together,
+ * so an external (non-IME) text change can place the caret at the END of the new text instead of
+ * stranding it — see [rememberSyncedTextFieldState]. Drops `visualTransformation` and
+ * `keyboardActions` (no equivalent on the Material3 state overload); password masking stays on the
+ * String overload.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -131,7 +119,7 @@ fun AppTextField(
     }
     OutlinedTextField(
         state = state,
-        // Announce the error reason to TalkBack — isError alone only changes the color.
+        // Announce error reason to TalkBack.
         modifier = if (isError) modifier.semantics { error(errorMessage!!) } else modifier,
         enabled = enabled,
         readOnly = readOnly,

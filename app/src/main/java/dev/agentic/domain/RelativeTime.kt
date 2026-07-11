@@ -1,12 +1,6 @@
 package dev.agentic.domain
 
-/**
- * A readable, single-unit relative age for an epoch-ms timestamp — e.g. "just now",
- * "34 minutes ago", "2 hours ago", "8 days ago", "3 weeks ago", "5 months ago", "2 years ago".
- *
- * Deliberately avoids the terse compact ("34m") and compound ("8d7h") styles. Pure + unit-testable.
- * [nowMs] is injectable so a caller's periodic tick can refresh the label and tests can pin "now".
- */
+/** Human single-unit relative age — e.g. "34 minutes ago". [nowMs] injectable for ticks/tests. */
 fun relativeAge(ts: Long, nowMs: Long = System.currentTimeMillis()): String {
     val s = ((nowMs - ts) / 1000).coerceAtLeast(0)
     fun ago(n: Long, unit: String) = "$n $unit${if (n == 1L) "" else "s"} ago"

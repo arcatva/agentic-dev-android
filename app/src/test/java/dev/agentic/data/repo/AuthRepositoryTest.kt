@@ -16,13 +16,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
-/**
- * Unit tests for [AuthRepository].
- *
- * We pass a [CoroutineScope] backed by [UnconfinedTestDispatcher] to the repo so the internal
- * `scope.launch { settings.token.collect { ... } }` runs eagerly (no virtual-time advancing
- * needed) without leaking into [runTest]'s uncompleted-coroutine check.
- */
+// UnconfinedTestDispatcher lets the internal scope.launch run eagerly (no virtual-time advancing needed) without leaking into runTest's uncompleted-coroutine check.
 @OptIn(ExperimentalCoroutinesApi::class)
 class AuthRepositoryTest {
 
@@ -43,7 +37,6 @@ class AuthRepositoryTest {
 
     private fun repo() = AuthRepository(api, settings, repoScope)
 
-    // ── initial state ──────────────────────────────────────────────────────────
 
     @Test fun `initial state is logged out`() = runTest(dispatcher) {
         val r = repo()
@@ -51,7 +44,6 @@ class AuthRepositoryTest {
         assertFalse(r.isLoggedIn.value)
     }
 
-    // ── login success ──────────────────────────────────────────────────────────
 
     @Test fun `login success sets token in StateFlow and api token`() = runTest(dispatcher) {
         api.loginTokenResult = "server-token"
@@ -78,7 +70,6 @@ class AuthRepositoryTest {
         assertEquals("saved-token", settings.token.value)
     }
 
-    // ── login failure ──────────────────────────────────────────────────────────
 
     @Test fun `login failure returns Failure and leaves token null`() = runTest(dispatcher) {
         api.loginException = java.io.IOException("network down")
@@ -91,7 +82,6 @@ class AuthRepositoryTest {
         assertFalse(r.isLoggedIn.value)
     }
 
-    // ── logout ─────────────────────────────────────────────────────────────────
 
     @Test fun `logout clears token in StateFlow and settings and api`() = runTest(dispatcher) {
         api.loginTokenResult = "tok"
@@ -106,13 +96,11 @@ class AuthRepositoryTest {
         assertFalse(r.isLoggedIn.value)
     }
 
-    // ── onUnauthorized callback ────────────────────────────────────────────────
 
     @Test fun `onUnauthorized callback triggers logout`() = runTest(dispatcher) {
         api.loginTokenResult = "tok"
         val r = repo()
         r.login("http://myhost", "secret")
-        // Simulate the API firing a 401 callback (e.g. from KtorAgenticApi's HttpResponseValidator)
         api.onUnauthorized?.invoke()
 
         assertNull(r.token.value)

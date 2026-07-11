@@ -4,14 +4,7 @@ import android.os.Process
 import dev.agentic.data.log.AppLog
 import kotlin.system.exitProcess
 
-/**
- * Catches any uncaught exception on any thread, writes a standalone crash report via [LogStore],
- * then delegates to the previously-installed handler so the OS still does its normal thing (shows
- * the "app stopped" dialog, lets the process die, restarts if configured).
- *
- * Install once, as early as possible, from [dev.agentic.AgenticApp.onCreate] — before the rest of
- * the app is wired up — so a crash during start-up is still captured.
- */
+/** Catches uncaught exceptions on any thread, writes a crash report via [LogStore], then chains to the previous handler so the OS still shows its dialog / kills the process. Install once, as early as possible (from [dev.agentic.AgenticApp.onCreate]). */
 class CrashHandler private constructor(
     private val store: LogStore,
     private val previous: Thread.UncaughtExceptionHandler?,
@@ -31,7 +24,7 @@ class CrashHandler private constructor(
     }
 
     companion object {
-        /** Installs the handler unless one is already installed (idempotent). */
+        /** Idempotent install. */
         fun install(store: LogStore) {
             val current = Thread.getDefaultUncaughtExceptionHandler()
             if (current is CrashHandler) return

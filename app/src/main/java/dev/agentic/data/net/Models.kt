@@ -14,10 +14,8 @@ data class Session(
     val prompt: String = "",
     val status: String = "pending",
     val error: String? = null,
-    // Structured stop reason set by the backend (auth_error, usage_limit, wall_timeout, idle_timeout,
-    // crashed, interrupted, claude_error). null = clean turn, or an older backend that predates the field —
-    // stopReason() then falls back to the legacy error-text heuristic. Default keeps deserialization
-    // backward-compatible.
+    // Structured stop reason (auth_error/usage_limit/wall_timeout/idle_timeout/crashed/interrupted/claude_error).
+    // null = clean turn or older backend that predates the field; default keeps deserialization backward-compatible.
     val errorKind: String? = null,
     val repos: List<String> = emptyList(),
     val skills: List<String> = emptyList(),
@@ -34,49 +32,27 @@ data class Session(
     val branch: String? = null,
     val worktreeState: String? = null,
     val activity: Activity? = null,
-    // true = turn finished, session idle and accepting a new message even while a background workflow
-    // runs; false = busy mid-turn. null only before the session's first turn has started.
+    // true = turn finished, idle accepting new message even if a background workflow runs; false = busy mid-turn; null = before first turn.
     val awaitingInput: Boolean? = null,
-    // Runtime-only flag from the backend: true when the turn is done/idle but a background workflow is
-    // still running, so the list shows the session as running. Defaults false for older servers.
+    // true when turn is done/idle but a background workflow is still running (list shows it as running).
     val workflowRunning: Boolean = false,
-    // Authoritative: the wire payload of the prompt this session is currently PARKED on (an
-    // AskUserQuestion / perm / plan awaiting the user), or null. Lets the client render the awaiting
-    // card from the server's source of truth instead of inferring it from the warm-reseed-fragile log.
+    // Authoritative wire payload of the prompt session is PARKED on (AskUserQuestion/perm/plan awaiting user), else null. Lets the client render the awaiting card from source-of-truth instead of inferring from fragile log.
     val pendingPrompt: JsonElement? = null,
-    /** Server-side: id of the session this one was forked from, or null. Used by SessionScreen
-     *  to render a "Forked from …" chip. Null for sessions created from scratch or by older
-     *  backends that predate the field. */
+    /** Server-side: id of the session this one was forked from (SessionScreen "Forked from …" chip), or null. */
     val parentSessionId: String? = null,
-    /** Session group assignment (DB-backed folder). null = uncategorized. */
+    /** Session group id (DB-backed folder); null = uncategorized. */
     val groupId: String? = null,
-    /** Discord-style: monotonic counter incremented server-side at each "your turn" point (IDLE / DONE).
-     *  A session is unread when its unreadEventId is strictly greater than the client's last-acked id.
-     *  Eliminates timestamp comparison, clock-skew issues, and client-side idle detection loops. */
+    /** Discord-style monotonic counter incremented server-side at each "your turn" point. Unread = unreadEventId > client's ackedEventId; eliminates timestamp comparison / clock-skew / client-side idle loops. */
     val unreadEventId: Long = 0,
-    /** Server-authoritative: the highest unreadEventId the user has acknowledged.
-     *  Set by `PUT /api/sessions/:id/ack`. Discord-style: unread = unreadEventId > ackedEventId.
-     *  Both fields are server-side — no client-side read-state persistence needed. */
+    /** Server-authoritative: highest unreadEventId the user has acknowledged (via PUT /api/sessions/:id/ack). */
     val ackedEventId: Long = 0,
-    /** When true, the server auto-resumes this session after a usage-limit stop (5h/7d token
-     *  limit). Default true when absent — older backends won't send the field, and the
-     *  auto-resume feature defaults ON for safety (a missed resume is worse than a retry). */
+    /** When true, the server auto-resumes after a usage-limit stop (5h/7d). Defaults true so older backends default-on safely (a missed resume is worse than a retry). */
     val autoResume: Boolean = true,
-    /** Epoch ms when an automatic resume is scheduled, or null when none is pending.
-     *  Absent on older backends → defaults null. The settings screen formats it for display. */
+    /** Epoch ms of scheduled auto-resume, or null. */
     val autoResumeAt: Long? = null,
-    /** Origin of this session row, as set server-side. One of:
-     *    "native"   — created via POST /api/sessions (the default for new requests).
-     *    "fork"     — created via POST /api/sessions/:id/fork (a fork of an existing session).
-     *    "adopted"  — imported via POST /api/sessions/adopt from a Claude Code CLI session log.
-     *  Default "native" so older backends (or wire payloads that predate the field) still parse.
-     *  Used by the home list to render a small "adopted" badge on imported rows. */
+    /** "native" (POST /api/sessions), "fork" (POST /api/sessions/:id/fork), or "adopted" (POST /api/sessions/adopt). */
     val origin: String = "native",
-    /** True when the session has been handed off to an external Claude Code CLI process via
-     *  POST /api/sessions/:id/detach. A detached session freezes its stream watermark and stops
-     *  accepting live follow-ups; the detail screen surfaces a "handed off to a terminal" banner
-     *  and exposes the `resumeCmd` returned by detach so the user can reconnect from the CLI.
-     *  Default false for older backends and for any non-detached session. */
+    /** True when handed off to an external Claude Code CLI via POST /api/sessions/:id/detach; frozen stream watermark, no live follow-ups; detail screen shows the "handed off" banner with the `resumeCmd`. */
     val detached: Boolean = false,
 )
 
@@ -91,17 +67,14 @@ data class SessionList(val sessions: List<Session> = emptyList())
 data class SessionDetail(
     val session: Session,
     val log: List<String> = emptyList(),
-    // Windowed-load coordinates (server's GET ?limit path). `log` may be only the LAST `total-start`
-    // rendered lines; `total` is the full rendered-line count. Absent (null) on the legacy full
-    // response, in which case the whole log is present and `log.size == total`. The live-stream cursor
-    // (`since`) is a rendered-offset into the FULL log, so it must advance to `total`, NOT `log.size`.
+    // Windowed-load coords (server's GET ?limit path): `log` may be only the LAST `total-start` rendered
+    // lines. Live-stream cursor `since` is a rendered-offset into the FULL log, so it must advance to
+    // `total`, NOT `log.size`.
     val start: Int = 0,
     val total: Int? = null,
 )
 
-/** Discord-style cursor-paginated structured events from GET /api/sessions/{id}/events.
- *  `events` are pre-parsed ClaudeEvent::to_wire() output — kind-tagged JSON objects
- *  matching the WebSocket wire format. No raw JSONL re-parsing needed on the client. */
+/** Discord-style cursor-paginated structured events (pre-parsed ClaudeEvent::to_wire() — no raw JSONL re-parsing on the client). */
 @Serializable
 data class SessionEventsResponse(
     val session: Session,
@@ -115,9 +88,7 @@ data class SessionEventsResponse(
 @Serializable
 data class SkillInfo(val name: String, val description: String = "")
 
-/** One installed Claude Code plugin. [name] is the full `<plugin>@<marketplace>` id — the exact
- *  key claude's `enabledPlugins` settings map expects, echoed back verbatim in
- *  [NewSessionReq.hiddenPlugins] when the user toggles the plugin off. */
+/** [name] is the full `<plugin>@<marketplace>` id (the exact key claude's `enabledPlugins` map expects, echoed verbatim in [NewSessionReq.hiddenPlugins]). */
 @Serializable
 data class PluginInfo(val name: String)
 
@@ -134,36 +105,28 @@ data class LoginResp(val token: String)
 data class NewSessionReq(
     val repos: List<String>,
     val skills: List<String>,
-    /** Blacklist: skills to HIDE from this session. Backend maps these to claude
-     *  `skillOverrides:{<name>:"off"}` in the per-session `--settings`. */
+    /** Skills to HIDE — backend maps to `skillOverrides:{<name>:"off"}` in per-session `--settings`. */
     val hiddenSkills: List<String> = emptyList(),
-    /** Blacklist: plugins (`<plugin>@<marketplace>` ids) to DISABLE for this session. Backend maps
-     *  these to claude `enabledPlugins:{<id>:false}` in the per-session `--settings`. */
+    /** Plugins (`<plugin>@<marketplace>` ids) to DISABLE — backend maps to `enabledPlugins:{<id>:false}`. */
     val hiddenPlugins: List<String> = emptyList(),
-    // ── S5b: tri-state per-session overrides ─────────────────────────────────
     /** Skills to FORCE ON for this session (override global-off). */
     val forcedOnSkills: List<String> = emptyList(),
     /** Plugins to FORCE ON for this session (override global-off). */
     val forcedOnPlugins: List<String> = emptyList(),
     /** MCP servers to FORCE ON for this session (override global-off). */
     val forcedOnMcpServers: List<String> = emptyList(),
-    /** MCP servers to HIDE from this session (override global-on). */
+    /** MCP servers to HIDE for this session (override global-on). */
     val hiddenMcpServers: List<String> = emptyList(),
     /** Extra MCP servers to ADD for this session only (ad-hoc, not globally configured). */
     val extraMcpServers: List<McpServerDef> = emptyList(),
-    // ─────────────────────────────────────────────────────────────────────────
     val prompt: String,
     val model: String? = null,
     val effort: String? = null,
     val mode: String? = null,
     val permissionMode: String? = null,
-    /** Optional session-scoped CLAUDE.md content. The backend writes it into the session dir so
-     *  Claude Code loads it as project memory for this session, layered on top of each repo's own
-     *  CLAUDE.md. null/blank = no extra guidance. */
+    /** Session-scoped CLAUDE.md content — backend writes it into the session dir so Claude Code loads it as project memory, layered on top of each repo's own CLAUDE.md. null/blank = no extra guidance. */
     val claudeMd: String? = null,
-    /** Files staged via POST /api/uploads before this session existed (New-request attachments). The
-     *  backend moves each into the new session's uploads/ dir before the prompt runs, so the agent can
-     *  read the `[attached: uploads/<name>]` paths in the very first prompt. Empty = none. */
+    /** Files staged via POST /api/uploads before this session existed; backend moves each into the new session's uploads/ dir before the prompt runs. Empty = none. */
     val stagedUploads: List<StagedUpload> = emptyList(),
 )
 
@@ -173,29 +136,25 @@ data class IdResp(val id: String)
 @Serializable
 data class PromptReq(val prompt: String, val setTitle: Boolean = true, val model: String? = null, val effort: String? = null, val permissionMode: String? = null)
 
-/** Body for PATCH /api/sessions/:id — partial session settings update. All fields optional;
- *  null = leave that column as-is. Mirrors the server's SessionPatch column set. */
+/** Body for PATCH /api/sessions/:id — partial session settings update (null = leave that column unchanged). */
 @Serializable
 data class PatchSessionReq(
     val model: String? = null,
     val effort: String? = null,
     val mode: String? = null,
     val permissionMode: String? = null,
-    /** Assign session to a group. Empty string = remove from group. null = leave unchanged. */
+    /** "" = remove from group; null = leave unchanged. */
     val groupId: String? = null,
-    /** Toggle auto-resume after usage limit. null = leave unchanged.
-     *  false also cancels a scheduled resume server-side. */
+    /** null = leave unchanged; false also cancels a scheduled resume server-side. */
     val autoResume: Boolean? = null,
 )
 
-/** Body for POST /api/sessions/:id/permission — answer a parked allow/deny or plan-approval prompt.
- *  feedback is the deny reason or plan-revision note (ignored on allow). */
+/** Body for POST /api/sessions/:id/permission — feedback is the deny reason or plan-revision note (ignored on allow). */
 @Serializable
 data class PermDecisionReq(val decision: String, val feedback: String? = null)
 
-// ── Feature: Session grouping (folders) ────────────────────────────────────────
+// ── Session grouping (folders) ──
 
-/** A user-created folder that groups sessions together. */
 @Immutable
 @Serializable
 data class Group(
@@ -224,41 +183,32 @@ data class FollowUpResp(val ok: Boolean = true, val since: Int = 0)
 @Serializable
 data class UploadResp(val path: String)
 
-/** Response from POST /api/uploads (pre-session staging) and the per-attachment payload echoed back
- *  in [NewSessionReq.stagedUploads]. [token]+[name] identify the staged file server-side; [path]
- *  ("uploads/<name>") is what the prompt's `[attached: ...]` marker references once the backend
- *  adopts the file into the new session's uploads/ dir. */
+/** Response from POST /api/uploads (pre-session staging) + per-attachment payload echoed in [NewSessionReq.stagedUploads]. [path] is `uploads/<name>` — what the `[attached: ...]` marker references once the backend adopts the file. */
 @Serializable
 data class StagedUpload(val token: String, val name: String, val path: String)
 
-/** One MCP server to add for this session only (ad-hoc, not globally configured).
- *  Exactly one transport must be supplied:
- *  - stdio: set [command] (required), optionally [args] and [env].
- *  - http/sse: set [url] (required), [type] ("http" or "sse"), optionally [headers].
- *  [name] must be non-empty and must not be "agentic". Null fields are omitted from JSON. */
+/** Exactly one transport must be supplied: stdio (set [command], optionally [args]/[env]) or http/sse (set [url], [type], optionally [headers]). [name] non-empty and != "agentic". Null fields omitted from JSON. */
 @OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class McpServerDef(
     val name: String,
-    // stdio transport
     @EncodeDefault(EncodeDefault.Mode.NEVER)
     val command: String? = null,
     @EncodeDefault(EncodeDefault.Mode.NEVER)
     val args: List<String>? = null,
     @EncodeDefault(EncodeDefault.Mode.NEVER)
     val env: Map<String, String>? = null,
-    // http/sse transport
     @EncodeDefault(EncodeDefault.Mode.NEVER)
-    val type: String? = null,      // "http" or "sse"
+    val type: String? = null,
     @EncodeDefault(EncodeDefault.Mode.NEVER)
     val url: String? = null,
     @EncodeDefault(EncodeDefault.Mode.NEVER)
     val headers: Map<String, String>? = null,
 )
 
+// mtime is Double, not Long: the server sends fractional ms (statSync mtimeMs); a Long would fail to
+// deserialize a JSON float and silently drop the whole list. Convert with .toLong() at use.
 @Serializable
-// mtime is Double, not Long: the server sends fractional milliseconds (statSync mtimeMs); a Long field
-// would fail to deserialize a JSON float and silently drop the whole list. Convert with .toLong() at use.
 data class SharedFile(val path: String, val name: String, val mtime: Double = 0.0)
 
 @Serializable
@@ -288,8 +238,7 @@ data class WorkflowRun(
     val status: String = "",
     val summary: String? = null,
     val agentCount: Int? = null,
-    /** Creation time (epoch ms) from the backend; 0 if the backend predates the field (degrades to
-     *  insertion-order sort + a hidden time line). */
+    /** Creation time (epoch ms); 0 if backend predates the field (degrades to insertion-order sort). */
     val createdAt: Long = 0,
     val phases: List<WorkflowPhase> = emptyList(),
     val agents: List<WorkflowAgent> = emptyList(),
@@ -308,11 +257,11 @@ data class UsageWindow(val utilization: Double = 0.0, val resets_at: String? = n
 @Serializable
 data class Usage(val five_hour: UsageWindow? = null, val seven_day: UsageWindow? = null)
 
-// ── Feature: Push notifications ───────────────────────────────────────────────
+// ── Push notifications ──
 @Serializable
 data class DeviceReq(val token: String)
 
-// ── Feature: Templates ────────────────────────────────────────────────────────
+// ── Templates ──
 @Serializable
 data class Template(
     val name: String,
@@ -323,16 +272,15 @@ data class Template(
     val effort: String? = null,
     val mode: String? = null,
     val permissionMode: String? = null,
-    /** Variable names that appear as {{name}} in promptBody */
+    /** Variable names that appear as {{name}} in promptBody. */
     val vars: List<String> = emptyList(),
 )
 
 @Serializable
 data class TemplateList(val templates: List<Template> = emptyList())
 
-// ── Feature: Commit-graph view ────────────────────────────────────────────────
-/** One commit in the session branch's recent history. `at` is epoch-ms (backend converts %at*1000).
- *  `isSession` marks commits in `baseSha..HEAD` (work done in this session). */
+// ── Commit-graph view ──
+/** One commit in the session branch's recent history. `at` = epoch-ms (backend converts %at*1000); `isSession` marks commits in `baseSha..HEAD` (work done in this session). */
 @Serializable
 data class CommitNode(
     val sha: String,
@@ -346,15 +294,13 @@ data class CommitNode(
     val refs: List<GitRef> = emptyList(),
 )
 
-/** A ref label on a commit. [kind] is one of "head" | "branch" | "tag" | "remote". */
+/** A ref label on a commit ([kind]: "head" | "branch" | "tag" | "remote"). */
 @Serializable
 data class GitRef(val name: String, val kind: String = "branch")
 
-/** Working-tree change counts for the per-repo "Uncommitted changes" node; null when clean. */
 @Serializable
 data class Uncommitted(val added: Int = 0, val modified: Int = 0, val deleted: Int = 0)
 
-/** Commit history for one repo in the session, plus its uncommitted-changes node (null when clean). */
 @Serializable
 data class RepoCommits(
     val repo: String,
@@ -362,12 +308,10 @@ data class RepoCommits(
     val uncommitted: Uncommitted? = null,
 )
 
-/** GET /api/sessions/:id/commits wraps the per-repo list under "repos". */
 @Serializable
 data class CommitsResp(val repos: List<RepoCommits> = emptyList())
 
-/** One changed file for a commit (or the working tree). `status` is a full word
- *  ("added"/"modified"/"deleted"/"renamed"/"unknown"). */
+/** One changed file for a commit (or working tree); `status` = full word ("added"/"modified"/"deleted"/"renamed"/"unknown"). */
 @Serializable
 data class CommitFile(
     val path: String,
@@ -376,14 +320,11 @@ data class CommitFile(
     val deletions: Int = 0,
 )
 
-/** GET /api/sessions/:id/commits/:sha/files wraps the list under "files". */
 @Serializable
 data class CommitFilesResp(val files: List<CommitFile> = emptyList())
 
-// ── Feature: Line-level diff (single file) ─────────────────────────────────────
-/** One physical line of a hunk. [kind] is "context" | "add" | "del". [oldLine]/[newLine] are
- *  1-based and present only on the side(s) the line exists in (context = both, add = new only,
- *  del = old only). */
+// ── Line-level diff ──
+/** [kind]: "context" | "add" | "del". [oldLine]/[newLine] are 1-based and present only on the side(s) the line exists in (context = both, add = new only, del = old only). */
 @Serializable
 data class DiffLine(
     val kind: String = "context",
@@ -392,7 +333,7 @@ data class DiffLine(
     val content: String = "",
 )
 
-/** A contiguous block of changes (one `@@ … @@` section). */
+/** One `@@ … @@` hunk. */
 @Serializable
 data class DiffHunk(
     val oldStart: Int = 0,
@@ -404,8 +345,7 @@ data class DiffHunk(
     val lines: List<DiffLine> = emptyList(),
 )
 
-/** Parsed line-level diff for ONE file. [binary] true → no hunks; [truncated] true → the raw diff
- *  exceeded the server cap and was cut short. */
+/** [binary] = no hunks; [truncated] = raw diff exceeded server cap and was cut. */
 @Serializable
 data class FileDiff(
     val path: String = "",
@@ -415,20 +355,16 @@ data class FileDiff(
     val hunks: List<DiffHunk> = emptyList(),
 )
 
-/** GET /api/sessions/:id/commits/:sha/diff wraps the file diff under "diff". */
 @Serializable
 data class DiffResp(val diff: FileDiff = FileDiff())
 
-// ── Feature: Rewind (code-only restore) ────────────────────────────────────────
-/** POST /api/sessions/:id/rewind body — the 0-based user-turn index to restore the code state to. */
+// ── Rewind (code-only restore) ──
+/** 0-based user-turn index to restore code state to. */
 @Serializable
 data class RewindReq(val turnIndex: Int)
 
-// ── Feature: Session content search ───────────────────────────────────────────
+// ── Session content search ──
 
-/** Where in a session a search hit came from. Wire format matches the backend's
- *  `engine::search::SearchField` (Task 2 of the session-search plan). kotlinx-serialization
- *  serializes enum constants by name, so JSON `"Notes"` maps to `SearchField.Notes`. */
 @Serializable
 enum class SearchField {
     Title, Repo, Branch, SessionId, Status, Error,
@@ -440,9 +376,6 @@ enum class SearchField {
     Attachment,
 }
 
-/** One match within a session: which field matched, a short text snippet, and the
- *  rendered-log line index (matches backend `SearchMatch.line_index`, wire field
- *  `lineIndex` per Task 3). */
 @Serializable
 data class SearchMatch(
     val field: SearchField,
@@ -450,8 +383,6 @@ data class SearchMatch(
     val lineIndex: Int,
 )
 
-/** A session that matched the query, with a relevance score and the list of
- *  field-level matches that contributed to the score. */
 @Serializable
 data class SearchHit(
     val session: Session,
@@ -459,34 +390,32 @@ data class SearchHit(
     val matches: List<SearchMatch>,
 )
 
-/** Response shape for `GET /api/sessions/search?q=<text>&limit=<n>` (backend Task 3).
- *  `query` echoes the (trimmed) query the server actually searched for. */
+/** Response shape for `GET /api/sessions/search?q=<text>&limit=<n>`; `query` echoes the trimmed query the server actually searched for. */
 @Serializable
 data class SearchResponse(
     val query: String,
     val results: List<SearchHit> = emptyList(),
 )
 
-// ── Provider registry (BYOK cheap models for delegate fan-out) ────────────────
+// ── Provider registry (BYOK cheap models for delegate fan-out) ──
 
-/** A registered provider as returned by GET /api/providers. The API key is masked — never returned;
- *  [hasKey] reflects whether one is stored. Field names map to the backend's snake_case JSON. */
+/** API key is masked (never returned); [hasKey] reflects whether one is stored. Field names map to backend snake_case JSON. */
 @Serializable
 data class Provider(
     val name: String,
     @SerialName("base_url") val baseUrl: String,
     val model: String,
-    /** "anthropic" (called directly) or "openai" (reached through the LiteLLM proxy). */
+    /** "anthropic" (called directly) or "openai" (through the LiteLLM proxy). */
     val protocol: String = "anthropic",
-    /** 0..1 capability axis: the router only sends a task to a model capable enough for it. */
+    /** 0..1 capability axis: router only sends a task to a model capable enough for it. */
     val capability: Float = 0.5f,
     /** What the model is good at — the router reads this. */
     val description: String? = null,
-    /** 0..1 scheduling priority: among models capable enough, the router prefers higher priority. */
+    /** 0..1 scheduling priority: among capable models, the router prefers higher priority. */
     val priority: Float = 0.5f,
-    /** 0..1 relative cost: among equally-prioritized models, the router prefers lower cost. */
+    /** 0..1 relative cost: among equally prioritized models, the router prefers lower cost. */
     val cost: Float = 0.5f,
-    /** True if this provider is the model that MAKES the routing decisions (the LLM-as-router). */
+    /** True if this provider MAKES the routing decisions (the LLM-as-router). */
     val router: Boolean = false,
     @SerialName("has_key") val hasKey: Boolean = false,
 )
@@ -494,7 +423,7 @@ data class Provider(
 @Serializable
 data class ProviderList(val providers: List<Provider> = emptyList())
 
-// ── Native Claude model per-family routing overrides (GET/POST/DELETE /api/native-models) ──
+// ── Native Claude per-family routing overrides ──
 
 /** One native Claude model as discovered by the Anthropic Models API. */
 @Serializable
@@ -503,8 +432,7 @@ data class NativeModelRef(
     @SerialName("display_name") val displayName: String,
 )
 
-/** A native Claude model family with its effective routing metrics (GET /api/native-models).
- *  [editable] is false for the `other` catch-all; [customized] means an override row exists. */
+/** [editable] is false for the `other` catch-all; [customized] means an override row exists. */
 @Serializable
 data class NativeFamily(
     val family: String,
@@ -530,10 +458,8 @@ data class NativeOverrideReq(
     val description: String = "",
 )
 
-/** Body for POST /api/providers (add or replace by name). Carries the API key. */
-// ── Model catalog (GET /api/models) ─────────────────────────────────────
+// ── Model catalog ──
 
-/** A single entry in the model catalog returned by GET /api/models. */
 @Serializable
 data class ModelEntry(
     val key: String,         // "claude-opus-4-8"
@@ -585,13 +511,8 @@ data class NewProviderReq(
     val router: Boolean = false,
 )
 
-// ── Feature: Adopt a Claude Code CLI session into this server ──────────────────
-/** One candidate in GET /api/adoptable — a discoverable Claude Code session log file on disk that
- *  this server could import as a native session. [resumable]=false means the JSONL ended without a
- *  terminal status, so it cannot be resumed — only imported read-only. [lineCount] is the JSONL's
- *  line count (used for ordering / "size" hints in the picker). mtimeMs is a fractional ms
- *  timestamp from statSync(2); a Long field would drop it from the list when the server sends an
- *  integer — keep Double (same caveat as SharedFile.mtime). */
+// ── Adopt a Claude Code CLI session into this server ──
+/** One candidate in GET /api/adoptable — discoverable Claude Code session log on disk. [resumable]=false means the JSONL ended without terminal status (read-only import only). mtimeMs is fractional ms from statSync(2); Double to avoid dropping when server sends integer. */
 @Serializable
 data class Adoptable(
     val sessionId: String,
@@ -603,26 +524,18 @@ data class Adoptable(
     val lineCount: Long = 0,
 )
 
-/** Body for POST /api/sessions/adopt — choose which Claude Code session (by `sessionId`) and in
- *  which working directory to import it. The cwd the user picked at adopt time MUST match the cwd
- *  the discoverable was scanned under (the server pins imports to the scan root). */
+/** Body for POST /api/sessions/adopt — pick which Claude Code session (by sessionId) + which cwd to import it under. The cwd MUST match what the discoverable was scanned under (server pins to scan root). */
 @Serializable
 data class AdoptSessionReq(
     val claudeSessionId: String,
     val cwd: String,
 )
 
-/** Response from POST /api/sessions/adopt — the new server session id. The picker navigates to
- *  this id (mirrors NewRequestScreen.onCreated → openSessionAdaptive). */
+/** Picker navigates to this id on success. */
 @Serializable
 data class AdoptSessionResp(val id: String)
 
-/** Response from POST /api/sessions/:id/detach — the server hands the session back to a local
- *  Claude Code CLI process and returns the exact resumeCmd the user can paste into a terminal.
- *  [claudeSessionId] is the upstream Claude Code session id (matches NewSessionReq.claudeSessionId
- *  on adopted rows); [cwd] is the directory the terminal must be inside before running the resume
- *  command. The detail screen shows `resumeCmd` copyable next to a "handed off to a terminal"
- *  banner when `Session.detached == true`. */
+/** Server hands the session back to a local Claude Code CLI and returns the exact resumeCmd the user pastes in a terminal. [cwd] is where the terminal must be before running resume; detail screen shows resumeCmd copyable when `Session.detached == true`. */
 @Serializable
 data class DetachResp(
     val cwd: String,
@@ -630,36 +543,29 @@ data class DetachResp(
     val resumeCmd: String,
 )
 
-// ── Feature: Global Settings CRUD (S5c) ─────────────────────────────────────
+// ── Global Settings CRUD (S5c) ──
 
-/** Body for POST /api/plugins (install a plugin globally). */
 @Serializable
 data class AddPluginReq(val id: String)
 
-/** One entry of the external skill store (GET /api/skills/catalog). [source] is the
- *  ready-to-install reference to POST back to /api/skills/install; [sourceRepo] is the
- *  configured store source it came from (display/grouping). */
+/** [source] is the ready-to-install reference to POST to /api/skills/install; [sourceRepo] is the configured store source it came from (display/grouping). */
 @Serializable
 data class CatalogSkill(
     val name: String,
     val description: String = "",
     val source: String,
     val sourceRepo: String = "",
-    /** Whether the store version differs from the installed one. null = unknown (not
-     *  installed, or installed without provenance metadata — pre-metadata installs and
-     *  hand-authored skills). */
+    /** true = store version differs; null = unknown (not installed or installed without provenance metadata). */
     val updateAvailable: Boolean? = null,
 )
 
-/** Response wrapper for GET /api/skills/catalog. [errors] carries per-source scan failures —
- *  one broken source degrades instead of failing the whole store. */
+/** [errors] carries per-source scan failures — one broken source degrades instead of failing the whole store. */
 @Serializable
 data class SkillCatalogResp(
     val skills: List<CatalogSkill> = emptyList(),
     val errors: List<String> = emptyList(),
 )
 
-/** Response wrapper for the /api/skills/sources CRUD (GET/POST/DELETE all return the list). */
 @Serializable
 data class SkillSourcesResp(val sources: List<String> = emptyList())
 
@@ -667,8 +573,7 @@ data class SkillSourcesResp(val sources: List<String> = emptyList())
 @Serializable
 data class AddSkillSourceReq(val source: String)
 
-/** Body for POST /api/skills/install — [source] is `owner/repo[/path]` or a github.com URL;
- *  [update] replaces an existing install of the same name (atomic swap). */
+/** [source] = `owner/repo[/path]` or github.com URL; [update] replaces an existing install of the same name (atomic swap). */
 @Serializable
 data class InstallSkillReq(val source: String, val update: Boolean = false)
 

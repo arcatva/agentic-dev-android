@@ -5,14 +5,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Test
 
-/**
- * The real `GET /api/usage` body is Anthropic's usage JSON passed through verbatim by the backend:
- * `utilization` is a FLOAT (e.g. 37.0) and there are many extra fields the client doesn't model.
- *
- * The client must parse it WITHOUT throwing. If it throws, HomeViewModel's
- * `runCatching { usage() }.getOrNull()` swallows the error → usage == null → the meters never show,
- * no matter how healthy the backend is. This test pins that the real payload deserializes.
- */
+// The real `GET /api/usage` body is Anthropic's usage JSON passed through verbatim by the backend:
 class UsageParsingTest {
     // Mirrors KtorAgenticApi's client config.
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }

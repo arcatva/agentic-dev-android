@@ -60,21 +60,8 @@ import dev.agentic.ui.newrequest.McpDraft
 import dev.agentic.ui.providers.ModelsSections
 
 /**
- * Global settings screen — the app's single settings page: skills, plugins, and MCP components
- * as colored chips in FlowRow groups (same visual language as the New Request screen), plus the
- * models registry ([ModelsSections]: Router + Sub-agent models — merged from the old Models screen).
- *
- * All chips are interactive: tapping toggles the component's GLOBAL enabled state via
- * [GlobalSettingsViewModel.toggle] (skills/plugins through settings.local.json, MCP servers by
- * parking the definition in .claude.json); long-press deletes/uninstalls.
- *
- * Each section has an add affordance (collapsible inline form; the Skills card additionally
- * links to the full-screen [SkillStoreScreen] via its "Store" action) and each chip supports
- * long-press → confirm dialog → delete/uninstall.
- *
- * Components are grouped: Skills → Plugins → MCP → Models. All sections are always rendered.
- * Chip visual: see [ComponentChip] — "lit tag" (dark cyan fill + bright label) when ON,
- * muted outline when OFF.
+ * Global settings: skills / plugins / MCP as interactive chips (tap toggles via VM, long-press deletes),
+ * plus [ModelsSections]. Groups: Skills → Plugins → MCP → Models. Chip visual: see [ComponentChip].
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -92,7 +79,6 @@ fun GlobalSettingsScreen(
     val s by resolvedVm.uiState.collectAsStateWithLifecycle()
     val snackbarHost = remember { SnackbarHostState() }
 
-    // Show transient errors in a snackbar and dismiss them from the VM.
     LaunchedEffect(s.error) {
         val msg = s.error ?: return@LaunchedEffect
         snackbarHost.showSnackbar(msg)
@@ -128,8 +114,6 @@ fun GlobalSettingsScreen(
                 val plugins = s.components.filter { it.kind == "plugin" }
                 val mcps    = s.components.filter { it.kind == "mcp" }
 
-                // Same scaffold as the other form pages (NewRequest / Models / Session settings):
-                // 16dp content padding, sections in tonal SectionCards spaced 12dp apart.
                 Column(
                     Modifier
                         .fillMaxSize()
@@ -183,7 +167,7 @@ fun GlobalSettingsScreen(
 
 @Composable
 private fun AddHeaderButton(label: String, onAdd: () -> Unit) {
-    // Text-only ("no decorative icons" rule): the header context already says what gets added.
+    // Text-only — the header context already names what gets added; semantics supplies TalkBack text.
     TextButton(onClick = onAdd, modifier = Modifier.semantics { contentDescription = "Add $label" }) {
         Text("Add")
     }
@@ -204,7 +188,6 @@ private fun SkillsSection(
 ) {
     var pendingDelete by remember { mutableStateOf<ComponentInfo?>(null) }
 
-    // Confirm delete dialog
     pendingDelete?.let { comp ->
         AlertDialog(
             onDismissRequest = { pendingDelete = null },
@@ -224,8 +207,7 @@ private fun SkillsSection(
 
     SectionCard(
         title = "Skills",
-        // Everything skill-management lives in the full-screen store (browse / install /
-        // update / remove / sources) — this card is just the installed chips.
+        // Skill management lives in the full-screen store — this card is just the installed chips.
         trailing = {
             TextButton(
                 onClick = onOpenStore,
@@ -234,7 +216,6 @@ private fun SkillsSection(
         },
     ) {
         Column {
-            // Chips
             if (skills.isEmpty()) {
                 Text(
                     "No skills",
@@ -287,7 +268,6 @@ private fun PluginsSection(
         }
     }
 
-    // Confirm uninstall dialog
     pendingDelete?.let { comp ->
         AlertDialog(
             onDismissRequest = { pendingDelete = null },
@@ -309,10 +289,9 @@ private fun PluginsSection(
         title = "Plugins",
         trailing = { AddHeaderButton("Plugins") { if (!busy) addExpanded = !addExpanded } },
     ) {
-        // One Column child — see SkillsSection: keeps the collapsed add-form from doubling the
-        // header-to-content gap via the card's spacedBy(12).
+        // One Column child — keeps the collapsed add-form from doubling the card's spacedBy(12) gap.
         Column {
-            // Progress indicator while any op is in flight
+            // Progress indicator while any op is in flight.
             if (busy) {
                 LinearProgressIndicator(
                     modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
@@ -325,7 +304,7 @@ private fun PluginsSection(
                 )
             }
 
-            // Add form (the bottom padding belongs to the expanded state so it animates away).
+            // Add form (bottom padding belongs to the expanded state so it animates away).
             AnimatedVisibility(
                 visible = addExpanded,
                 enter = expandVertically() + fadeIn(),
@@ -334,15 +313,11 @@ private fun PluginsSection(
                 Column(Modifier.padding(bottom = 12.dp)) {
                     AddPluginForm(
                         busy = busy,
-                        onInstall = { id ->
-                            // Armed only when the op started; closes via LaunchedEffect on success.
-                            submitting = onInstallPlugin(id)
-                        },
+                        onInstall = { id -> submitting = onInstallPlugin(id) },
                     )
                 }
             }
 
-            // Chips
             if (plugins.isEmpty()) {
                 Text(
                     "No plugins installed",
@@ -380,7 +355,7 @@ private fun AddPluginForm(
     var id by remember { mutableStateOf("") }
     var localError by remember { mutableStateOf<String?>(null) }
 
-    // No horizontal padding of its own — the enclosing SectionCard already insets its content.
+    // No horizontal padding of its own — SectionCard already insets its content.
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         AppTextField(
             value = id,
@@ -401,9 +376,7 @@ private fun AddPluginForm(
                     trimmed.isBlank() -> localError = "Plugin id is required"
                     trimmed.startsWith("-") -> localError = "Plugin id must not start with a dash"
                     else -> {
-                        // Do NOT clear `id` here — keep it in case the API fails so the user can
-                        // retry. The parent section collapses the form (unmounting this composable)
-                        // only on success, which naturally resets the field.
+                        // Keep `id` so user can retry on API failure; parent unmounts this form on success.
                         onInstall(trimmed)
                         localError = null
                     }
@@ -443,7 +416,6 @@ private fun McpSection(
         }
     }
 
-    // Confirm delete dialog
     pendingDelete?.let { comp ->
         AlertDialog(
             onDismissRequest = { pendingDelete = null },
@@ -465,10 +437,9 @@ private fun McpSection(
         title = "MCP servers",
         trailing = { AddHeaderButton("MCP servers") { if (!busy) addExpanded = !addExpanded } },
     ) {
-        // One Column child — see SkillsSection: keeps the collapsed add-form from doubling the
-        // header-to-content gap via the card's spacedBy(12).
+        // One Column child — keeps the collapsed add-form from doubling the card's spacedBy(12) gap.
         Column {
-            // Add form (the bottom padding belongs to the expanded state so it animates away).
+            // Add form (bottom padding belongs to the expanded state so it animates away).
             AnimatedVisibility(
                 visible = addExpanded,
                 enter = expandVertically() + fadeIn(),
@@ -480,19 +451,18 @@ private fun McpSection(
                         onAdd = { draft ->
                             val validationErr = onAddMcpServer(draft)
                             if (validationErr == null) {
-                                // Validation passed; API call is enqueued. Track the submit so the
-                                // LaunchedEffect above can close the form when the op completes.
+                                // Validation passed; API call enqueued. submitting lets the
+                                // LaunchedEffect close the form when the op completes.
                                 submitting = true
                             }
-                            // Return validation error (if any) for the form to show inline.
                             validationErr
                         },
                     )
                 }
             }
 
-            // Chips — tap toggles the server globally (the backend parks the definition in
-            // .claude.json's mcpServersDisabled); long-press removes it.
+            // Tap toggles the server globally (backend parks definition in .claude.json's mcpServersDisabled);
+            // long-press removes it.
             if (mcps.isEmpty()) {
                 Text(
                     "No MCP servers",
@@ -523,10 +493,8 @@ private fun McpSection(
 }
 
 /**
- * Inline form for adding an MCP server globally.
- * Mirrors the AddMcpForm in NewRequestScreen — transport toggle (stdio | HTTP), name, fields.
- * [onAdd] receives the draft and returns a nullable validation error string (null = validation
- * passed, API call enqueued). The form stays open after a failed API call so the user can retry.
+ * Inline form for adding an MCP server globally. [onAdd] returns null when validation passes
+ * and the API call is enqueued; the form stays open on failure so the user can retry.
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -537,10 +505,9 @@ private fun AddMcpForm(
     var draft by remember { mutableStateOf(McpDraft()) }
     var localError by remember { mutableStateOf<String?>(null) }
 
-    // No horizontal padding of its own — the enclosing SectionCard already insets its content.
+    // No horizontal padding of its own — SectionCard already insets its content.
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        // Transport toggle: stdio | HTTP/SSE. icon = {} drops the default selected-checkmark —
-        // the filled segment already shows the selection ("no decorative symbols" rule).
+        // icon = {} drops the default selected-checkmark; the filled segment already shows selection.
         SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
             listOf("stdio", "http").forEachIndexed { i, t ->
                 SegmentedButton(
@@ -553,7 +520,6 @@ private fun AddMcpForm(
             }
         }
 
-        // Name field (always shown)
         AppTextField(
             value = draft.name,
             onValueChange = { draft = draft.copy(name = it); localError = null },
@@ -595,7 +561,7 @@ private fun AddMcpForm(
                 modifier = Modifier.fillMaxWidth(),
             )
         } else {
-            // HTTP/SSE type sub-toggle (icon = {} — no selected-checkmark)
+            // HTTP/SSE type sub-toggle.
             SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                 listOf("http", "sse").forEachIndexed { i, t ->
                     SegmentedButton(
@@ -637,9 +603,8 @@ private fun AddMcpForm(
             onClick = {
                 val err = onAdd(draft)
                 localError = err
-                // Do NOT reset `draft` here — keep values so the user can retry if the API fails.
-                // The parent section collapses the form (unmounting this composable) on success,
-                // which naturally resets the draft for the next open.
+                // Don't reset `draft` — keep values so user can retry on API failure; parent
+                // unmounts on success which naturally resets the draft.
             },
             enabled = !busy,
             modifier = Modifier.fillMaxWidth(),

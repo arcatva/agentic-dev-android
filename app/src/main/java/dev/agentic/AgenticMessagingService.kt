@@ -15,19 +15,7 @@ import com.google.firebase.messaging.RemoteMessage
 import dev.agentic.data.log.AppLog
 import kotlinx.coroutines.launch
 
-/**
- * Receives FCM push messages from the agentic-dev backend.
- *
- * Expected message data payload:
- *   type      = "session_finish"
- *   sessionId = "<uuid>"
- *   status    = "done" | "failed"
- *   cost      = "$0.42"   (present when status == "done")
- *   error     = "…"       (present when status == "failed")
- *
- * Tapping the notification deep-links into the session detail via the
- * agentic://session/<id> intent URI handled by MainActivity.
- */
+/** Receives FCM push messages from the agentic-dev backend. Tapping the notification deep-links into the session via agentic://session/<id>. */
 class AgenticMessagingService : FirebaseMessagingService() {
 
     companion object {
@@ -40,7 +28,7 @@ class AgenticMessagingService : FirebaseMessagingService() {
         ensureChannel()
     }
 
-    /** Called when FCM assigns a new registration token (first run or token rotation). */
+    /** Called when FCM assigns a new registration token (first run or rotation). */
     override fun onNewToken(token: String) {
         super.onNewToken(token)
         AppLog.i("FCM", "onNewToken")
@@ -57,7 +45,7 @@ class AgenticMessagingService : FirebaseMessagingService() {
         val status = data["status"] ?: "done"
 
         val title = buildString {
-            append(sessionId.take(8))   // first 8 chars of the UUID as short label
+            append(sessionId.take(8))
             append(": ")
             append(status)
         }
@@ -66,7 +54,7 @@ class AgenticMessagingService : FirebaseMessagingService() {
             else   -> data["error"] ?: "Session $status"
         }
 
-        // Deep-link intent — handled by MainActivity via the agentic://session/<id> scheme.
+        // Deep-link intent — handled by MainActivity via agentic://session/<id>.
         val deepLink = Intent(
             Intent.ACTION_VIEW,
             android.net.Uri.parse("agentic://session/$sessionId"),
@@ -81,7 +69,7 @@ class AgenticMessagingService : FirebaseMessagingService() {
         )
 
         val notif = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_popup_sync) // replace with app icon resource later
+            .setSmallIcon(android.R.drawable.ic_popup_sync)
             .setContentTitle(title)
             .setContentText(body)
             .setAutoCancel(true)

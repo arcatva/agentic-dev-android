@@ -16,29 +16,15 @@ import androidx.compose.ui.unit.dp
 import dev.agentic.data.net.Session
 import dev.agentic.ui.FadingText
 
-/**
- * Composer @-mention of another session. Typing `@` in the input box opens a candidates panel
- * (name + id per row); picking one inserts a literal `@session:<8-char-id>` token — the server
- * expands that token on the text delivered to claude with the mentioned session's identity and
- * on-disk paths, so this session can inspect the other one or act on it.
- *
- * The parsing/filtering below is pure (no Compose deps) and unit-tested in SessionMentionTest.
- */
+/** Composer @-mention: `@` opens a candidates panel; pick inserts `@session:<8-char-id>` which the server expands. */
 
-/** Number of id chars shown in the dropdown and inserted into the token — matches the id the
- *  session page shows under its title (`sessionId.take(8)`; a uuid prefix, unique in practice). */
+/** Id chars shown/inserted — matches `sessionId.take(8)` on the session page (unique in practice). */
 const val MENTION_ID_CHARS = 8
 
-/** An @-mention being typed: [start] is the index of the `@` in the text, [query] the chars
- *  between the `@` and the caret. */
+/** Active @-mention: [start] = index of `@`, [query] = chars between `@` and the caret. */
 data class MentionQuery(val start: Int, val query: String)
 
-/**
- * The active @-mention at [caret], or null. Active = the caret sits inside an `@`-word: scanning
- * back from the caret reaches an `@` before any whitespace, and that `@` starts a word (text
- * start or preceded by whitespace — so `name@host` never triggers). The caret must sit at or
- * after the `@`+1, i.e. deleting back past the `@` deactivates it.
- */
+/** Active mention at [caret]: scans back from caret, stops at `@` (only when `@` starts a word so `name@host` never triggers). */
 fun activeMentionQuery(text: String, caret: Int): MentionQuery? {
     if (caret < 1 || caret > text.length) return null
     var i = caret - 1
@@ -54,8 +40,7 @@ fun activeMentionQuery(text: String, caret: Int): MentionQuery? {
     return null
 }
 
-/** Candidates matching [query]: id prefix match or name (title) substring match, case-insensitive.
- *  An empty query keeps the full list (the panel opens on a bare `@`). */
+/** Candidates matching [query]: id prefix OR name substring, case-insensitive. Empty query keeps the full list. */
 fun filterMentionCandidates(sessions: List<Session>, query: String): List<Session> {
     if (query.isEmpty()) return sessions
     val q = query.lowercase()
@@ -64,15 +49,10 @@ fun filterMentionCandidates(sessions: List<Session>, query: String): List<Sessio
     }
 }
 
-/** The literal token inserted for a picked session, with a trailing space so typing continues
- *  naturally (and the trailing space deactivates the mention query). */
+/** Literal token inserted; trailing space deactivates the mention query. */
 fun mentionToken(id: String): String = "@session:${id.take(MENTION_ID_CHARS)} "
 
-/**
- * The candidates dropdown rendered above the composer while an @-mention is active. Each row:
- * session name (title) + short id, styled like the session page's title/id pair; both lines are
- * [FadingText], so overflowing text dissolves at the right edge instead of hard-clipping.
- */
+/** Mention dropdown panel: name + short id per row, [FadingText] to fade right-edge overflow. */
 @Composable
 internal fun MentionCandidatesPanel(
     candidates: List<Session>,
@@ -85,8 +65,7 @@ internal fun MentionCandidatesPanel(
         tonalElevation = 2.dp,
         modifier = modifier.fillMaxWidth().padding(horizontal = 12.dp),
     ) {
-        // Bounded height + lazy: the sessions list can be long; the panel shows a scrollable
-        // window instead of growing past the composer.
+        // Bounded height + lazy so a long candidate list scrolls instead of growing past the composer.
         LazyColumn(Modifier.heightIn(max = 240.dp).padding(vertical = 6.dp)) {
             items(candidates, key = { it.id }) { s ->
                 Column(

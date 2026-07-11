@@ -7,11 +7,7 @@ import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
 
-/** Parse an AskUserQuestion `questions` array into [AskQuestion]s. Tolerant of the current Claude
- *  schema ({question, header, options:[{label, description}], multiSelect}) and the older
- *  {text, options:[string]} one: the question text is `question` (fallback `text`), each option is a
- *  bare string or an object with a `label`, and `multiSelect` is captured. A question with neither
- *  text nor options is dropped (nothing to render/answer). */
+/** Parse AskUserQuestion `questions` tolerating new (`question`/`header`/object-options/`multiSelect`) and old (`text`/string-options) schemas; options accept bare strings or `{label}`; drop questions with neither text nor options. */
 fun parseAskQuestions(arr: JsonArray?): List<AskQuestion> =
     arr.orEmpty().mapNotNull { el ->
         val obj = el as? JsonObject ?: return@mapNotNull null

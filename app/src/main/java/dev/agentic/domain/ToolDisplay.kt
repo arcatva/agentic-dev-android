@@ -4,15 +4,10 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 
-/** Read input field [k] as a primitive string, tolerating a non-primitive value (object/array).
- *  `?.jsonPrimitive` THROWS IllegalArgumentException when the element is a JsonObject/JsonArray, and
- *  some tools carry a structured (object) input field (e.g. a Write whose payload is an object) — that
- *  throw used to escape buildFromLog → seedFromLog → load() uncaught on the app scope and force-close
- *  the whole app on opening such a session. `as? JsonPrimitive` returns null instead, so a structured
- *  field just renders blank rather than crashing. */
+/** Read [k] as a primitive string. `as? JsonPrimitive` avoids `?.jsonPrimitive` throwing on object/array inputs (e.g. Write with object payload), which would have force-closed the app. */
 private fun JsonObject.prim(k: String): String? = (this[k] as? JsonPrimitive)?.contentOrNull
 
-/** Short label for a tool chip — the most relevant input field per tool. */
+/** Short tool chip label (most relevant input field per tool). */
 fun toolSummary(name: String, input: JsonObject?): String {
     fun f(k: String) = input?.prim(k)
     return when (name) {
@@ -27,7 +22,7 @@ fun toolSummary(name: String, input: JsonObject?): String {
     }
 }
 
-/** Expanded detail for a tool chip. */
+/** Expanded tool chip detail. */
 fun toolDetail(name: String, input: JsonObject?): String {
     if (input == null) return ""
     fun f(k: String) = input.prim(k) ?: ""

@@ -19,13 +19,13 @@ import androidx.compose.ui.unit.dp
 import dev.agentic.ui.fadingEdgeVertical
 
 /**
- * A column capped at [maxHeight]: taller content scrolls vertically INSIDE the cap with dynamic
- * fading edges signalling the off-screen rest (bottom fades while more remains below, top fades
- * once scrolled down). Content that fits is unaffected (no scroll, no fade).
+ * Column capped at [maxHeight]: taller content scrolls vertically inside the cap with dynamic
+ * fading edges (bottom fades while more remains; top fades once scrolled down). Fitting content
+ * is unaffected.
  *
- * Scroll containment: when the content IS scrollable, the leftover delta of the inner scroll is
- * consumed so hitting the inner top/bottom never chains into scrolling the enclosing page.
- * When it fits, nothing is consumed — drags pass through to the page as plain content.
+ * Nested-scroll containment: when content IS scrollable, the leftover inner delta is consumed so
+ * hitting inner top/bottom never chains into scrolling the enclosing page. When it fits, nothing is
+ * consumed — drags pass through as plain content.
  */
 @Composable
 fun CappedScrollColumn(
@@ -46,15 +46,13 @@ fun CappedScrollColumn(
         modifier
             .fillMaxWidth()
             .heightIn(max = maxHeight)
-            // The fade masks the scroll VIEWPORT (this node's size), not the full content —
-            // it must sit above verticalScroll's clip in the modifier chain.
+            // Fade masks this node's viewport (not full content) — must sit above verticalScroll's clip.
             .fadingEdgeVertical(
                 height = 24.dp,
                 fadeTop = { scroll.value > 0 },
                 fadeBottom = { scroll.value < scroll.maxValue },
             )
-            // Ancestor of the inner verticalScroll so it intercepts the leftover deltas the
-            // inner scroll dispatches up towards the page scroll.
+            // Ancestor of the inner verticalScroll so it intercepts leftover deltas the inner scroll dispatches upward.
             .nestedScroll(blockChaining)
             .verticalScroll(scroll),
     ) {

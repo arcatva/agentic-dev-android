@@ -61,11 +61,6 @@ class OutcomeTest {
         assertEquals(404, (error as AppError.Http).code)
     }
 
-    // ResponseException requires a real HttpResponse which needs the full Ktor test stack — not
-    // viable in a pure JVM unit test. The Http branch is reachable at runtime because
-    // expectSuccess=true causes Ktor to throw ResponseException for non-2xx responses and
-    // runCatchingOutcome catches ResponseException → AppError.Http. The data-class round-trip
-    // is tested above.
     @Test
     fun `runCatchingOutcome maps multiple AppError Http codes correctly`() {
         for (code in listOf(400, 403, 404, 500, 503)) {

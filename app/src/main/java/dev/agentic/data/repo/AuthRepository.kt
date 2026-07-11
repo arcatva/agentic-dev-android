@@ -15,25 +15,19 @@ import kotlinx.coroutines.tasks.await
 
 /**
  * Single source of truth for authentication state.
- *
- * - Exposes [token] and [isLoggedIn] as hot [StateFlow]s.
- * - [login] trims the host, sets [AgenticApi.baseUrl], calls [AgenticApi.login] (which sets
- *   [AgenticApi.token] internally), then persists both to [settings].
- * - [logout] clears [settings] and [api.token].
- * - [registerFcm] registers an FCM push token with the backend; best-effort (failures ignored).
- * - On construction, wires [AgenticApi.onUnauthorized] so any 401 triggers [logout].
+ * - [login] trims host, sets api.baseUrl, calls api.login (which sets api.token), persists to [settings].
+ * - Wires api.onUnauthorized so any 401 triggers [logout].
+ * - [registerFcm] / [refreshFcm] are best-effort (failures silently swallowed).
  */
 class AuthRepository(
     private val api: AgenticApi,
     private val settings: SettingsStore,
     scope: CoroutineScope,
 ) {
-    /** Current auth token; mirrors [SettingsStore.token] exactly. */
     val token: StateFlow<String?> = settings.token
 
     private val _isLoggedIn = MutableStateFlow(settings.token.value != null)
 
-    /** True when a non-null token is present. */
     val isLoggedIn: StateFlow<Boolean> = _isLoggedIn.asStateFlow()
 
     init {
@@ -41,30 +35,21 @@ class AuthRepository(
             AppLog.w("Auth", "got 401 from server — logging out")
             logout()
         }
-        // Keep isLoggedIn in sync with settings.token reactively.
         scope.launch {
             settings.token.collect { _isLoggedIn.value = it != null }
         }
     }
 
-    /**
-     * Attempt login against [host] with [password].
-     * On success the token is stored in [settings] and [api.token]; [token] and [isLoggedIn]
-     * update reactively. On failure the current auth state is unchanged.
-     * After a successful login, [refreshFcm] is called best-effort to register the FCM token
-     * with the backend (FCM is not available in unit tests — failures are silently swallowed).
-     */
+    /** On success the token is in [settings] + [api.token]; [token]/[isLoggedIn] update reactively; FCM is re-registered best-effort (FCM unavailable in unit tests — swallowed). */
     suspend fun login(host: String, password: String): Outcome<Unit> {
         val trimmedHost = host.trim()
         val outcome = runCatchingOutcome {
             api.baseUrl = trimmedHost
-            api.login(password)          // sets api.token internally
+            api.login(password)
             settings.setHost(trimmedHost)
-            settings.setToken(api.token) // persist what the server returned
+            settings.setToken(api.token)
         }
         if (outcome is Outcome.Success) {
-            // Best-effort: FCM token re-registration after login. Failures silently ignored so
-            // push registration never blocks or breaks the login flow.
             runCatching { refreshFcm() }
         }
         return when (outcome) {
@@ -79,11 +64,7 @@ class AuthRepository(
         }
     }
 
-    /**
-     * Pin a self-signed server cert (trust-on-first-use): after the user verifies the fingerprint,
-     * persist it so subsequent TLS handshakes to [hostKey] trust that exact cert; the next login
-     * attempt then succeeds. [hostKey] + [fingerprint] come from [dev.agentic.data.net.AppError.CertUntrusted].
-     */
+    /** Pin a self-signed server cert (TOFU). [hostKey] + [fingerprint] come from [dev.agentic.data.net.AppError.CertUntrusted]. */
     fun trustCert(hostKey: String, fingerprint: String) {
         AppLog.i("Auth", "pinning server cert for $hostKey ($fingerprint)")
         settings.setPinnedCert(hostKey, fingerprint)
@@ -96,24 +77,14 @@ class AuthRepository(
         api.token = null
     }
 
-    /**
-     * Register an FCM device token with the backend. Best-effort: failures are silently swallowed
-     * so a push-registration problem never prevents the user from using the app.
-     */
+    /** Register an FCM device token with the backend. Best-effort. */
     suspend fun registerFcm(fcmToken: String) {
         runCatchingOutcome { api.registerDevice(fcmToken) }.also {
             if (it is Outcome.Failure) AppLog.w("Auth", "registerFcm failed: ${it.error}")
         }
     }
 
-    /**
-     * Fetch the current FCM registration token from Firebase and register it with the backend.
-     * Call this after a successful login and on app start when already logged in, so the backend
-     * always has a valid FCM token even if [onNewToken] fired before login completed.
-     *
-     * Best-effort: [FirebaseMessaging] is unavailable in JVM unit tests; any exception (including
-     * "Default FirebaseApp is not initialized") is silently swallowed.
-     */
+    /** Fetch the current FCM token from Firebase and register it with the backend. Best-effort: FCM unavailable in unit tests — exceptions silently swallowed. */
     suspend fun refreshFcm() {
         runCatching {
             val fcmToken = FirebaseMessaging.getInstance().token.await()

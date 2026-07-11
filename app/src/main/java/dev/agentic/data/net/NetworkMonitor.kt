@@ -8,14 +8,12 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 
 /**
- * Emits [Unit] whenever the device gains a default network (e.g. Wi-Fi reconnects after a blip), so the
- * long-lived stream reconnect loop in [dev.agentic.data.repo.SessionsRepository] can wake from its backoff
- * and retry immediately instead of waiting out the timer. App-lifetime; [close] unregisters the callback.
- *
- * Requires the ACCESS_NETWORK_STATE permission (declared in the manifest).
+ * Emits [Unit] when the device gains a default network so long-lived stream reconnect loops can
+ * wake from backoff and retry immediately instead of waiting out the timer. App-lifetime.
+ * Requires ACCESS_NETWORK_STATE.
  */
 class NetworkMonitor(context: Context) {
-    // replay = 0, buffer = 1 + DROP_OLDEST: tryEmit never suspends, and a regain that lands just before the
+    // replay = 0, buffer = 1 + DROP_OLDEST: tryEmit never suspends, and a regain landing just before the
     // loop starts collecting is still picked up on the next collect (no missed-edge stall).
     private val _available = MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
 

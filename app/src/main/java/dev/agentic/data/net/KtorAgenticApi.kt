@@ -43,43 +43,39 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
 import okhttp3.OkHttpClient
 
-/** Ktor-based implementation of [AgenticApi]. Behaviour is identical to the original
- *  [dev.agentic.net.Api]; the class is renamed and placed in the data layer so repositories
- *  depend on the interface, not the concrete transport. */
+/** Ktor-based [AgenticApi] implementation. */
 class KtorAgenticApi(
     override var baseUrl: String,
     override var token: String? = null,
-    // Looks up the pinned server-cert fingerprint for a host key (see [certHostKey]); default never
-    // pins (used by tests / callers that don't need TLS trust-on-first-use).
+    /** Look up the pinned server-cert fingerprint for a host key (see [certHostKey]); default never pins (tests / callers that don't need TOFU). */
     private val pinnedFingerprintFor: (hostKey: String) -> String? = { null },
 ) : AgenticApi {
 
-    // Set by the app: invoked on any 401 so it can drop the stale token and route to the login screen.
     override var onUnauthorized: (() -> Unit)? = null
 
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 
-    // Trust-on-first-use TLS, keyed off the CURRENT baseUrl (read live, since baseUrl is mutable).
-    // Shared by both OkHttp clients below so REST and WebSocket connections trust the same cert.
+    // TOFU TLS keyed off the CURRENT baseUrl (read live — baseUrl is mutable). Shared by both OkHttp
+    // clients below so REST and WS trust the same cert.
     private val tofuTls = TofuTls(
         currentHostKey = { certHostKey(baseUrl) },
         pinnedFingerprintFor = pinnedFingerprintFor,
     )
 
-    // Shared OkHttp behind the REST client, kept so [evictConnections] can drop its pooled sockets on
-    // app-foreground (a connection that went half-open while backgrounded must not be reused).
+    // Kept so [evictConnections] can drop pooled sockets on app-foreground (a half-open backgrounded
+    // socket must not be reused or the next call hangs).
     private val rpcOkHttp = OkHttpClient.Builder()
         .retryOnConnectionFailure(true)
         .sslSocketFactory(tofuTls.socketFactory, tofuTls.trustManager)
         .hostnameVerifier(tofuTls.hostnameVerifier)
         .build()
 
-    // REST client. Now that the long-lived WS lives on [streamClient] below, we can give every REST
-    // call REAL socket/request timeouts. This is the fix for "frozen until app restart": a poll or
-    // refetch on a half-open pooled connection used to hang forever (only connectTimeout was set), so
-    // every self-heal path that begins with an HTTP GET wedged. socketTimeoutMillis bounds the gap
-    // between bytes (breaks a half-open read); requestTimeoutMillis is a generous overall cap that
-    // large fetches (session log, file download) override per-request.
+    // REST client. Now that the long-lived WS lives on streamClient below we can give every REST
+    // call REAL socket/request timeouts (the "frozen until app restart" fix: a poll/refetch on a
+    // half-open pooled connection used to hang forever — only connectTimeout was set, so every
+    // HTTP-GET self-heal wedged). socketTimeoutMillis bounds the gap between bytes (breaks a
+    // half-open read); requestTimeoutMillis is a generous overall cap, overridden per-request by
+    // large fetches (session log, file download).
     private val client = HttpClient(OkHttp) {
         engine { preconfigured = rpcOkHttp }
         install(ContentNegotiation) { json(json) }
@@ -88,20 +84,17 @@ class KtorAgenticApi(
             socketTimeoutMillis = 20_000
             requestTimeoutMillis = 60_000
         }
-        // Prevents deserialize-crash on error bodies: with expectSuccess=true Ktor throws
-        // ResponseException for any non-2xx, which runCatchingOutcome maps to AppError.Http.
-        // The 401 validateResponse below still fires first (headers phase), so UnauthorizedException
-        // is raised before ResponseException for 401 — the priority order is intentional.
+        // expectSuccess=true → Ktor throws ResponseException for non-2xx (mapped to AppError.Http);
+        // the 401 validateResponse below fires first (headers phase), so UnauthorizedException is
+        // raised before ResponseException for 401 — priority is intentional. A 401 would otherwise
+        // parse as empty data (e.g. SessionList{sessions=[]}) and the user just sees a blank screen.
         expectSuccess = true
-        // A 401 otherwise parses as empty data (e.g. SessionList{sessions=[]}) and the user just sees a
-        // blank screen with no hint to re-auth. Surface it: fire onUnauthorized + throw so callers fail.
         HttpResponseValidator {
             validateResponse { resp ->
                 if (resp.status == HttpStatusCode.Unauthorized) {
-                    // A 401 on /api/login means "wrong password", NOT an expired session — don't fire the
-                    // app-wide logout (it would bounce the user out of the login screen mid-attempt).
-                    // expectSuccess=true still raises ResponseException → AppError.Http(401), which the
-                    // login screen maps to a "wrong password" message.
+                    // /api/login 401 = "wrong password", NOT expired session — don't fire app-wide
+                    // logout (would bounce user out mid-attempt). expectSuccess=true still raises
+                    // ResponseException → AppError.Http(401), which the login screen maps to "wrong password".
                     if (!resp.call.request.url.encodedPath.endsWith("/api/login")) {
                         onUnauthorized?.invoke(); throw UnauthorizedException()
                     }
@@ -110,11 +103,9 @@ class KtorAgenticApi(
         }
     }
 
-    // Dedicated client for the long-lived session WS ONLY. A 20s ping keeps NAT mappings open; we
-    // deliberately set NO socket/request timeout here so a legitimately idle (awaiting-input) stream
-    // is never torn down by a timer. Liveness is enforced at the app layer in [stream] instead: the
-    // server sends a HEARTBEAT every ~10s, so a gap beyond ~2.5x that means the socket is dead.
-    // Dedicated OkHttp for the WS stream, with the same TOFU TLS trust as the REST client.
+    // Dedicated client for the long-lived session WS ONLY. Deliberately NO socket/request timeout
+    // (a legitimately idle stream must never be torn down by a timer). 20s ping keeps NAT mappings
+    // open; liveness is enforced at the app layer in stream() instead via HEARTBEAT (no gap > 2.5x).
     private val streamOkHttp = OkHttpClient.Builder()
         .pingInterval(20, java.util.concurrent.TimeUnit.SECONDS)
         .sslSocketFactory(tofuTls.socketFactory, tofuTls.trustManager)
@@ -158,6 +149,7 @@ class KtorAgenticApi(
      *  SearchResponse { query, results }. We decode via the configured [json] instance (handles
      *  unknown fields leniently, matches the ContentNegotiation plugin) rather than a fresh
      *  Json{}, so behaviour stays consistent with the rest of the API surface. */
+    /** Decoded via the shared `json` instance (lenient + matches ContentNegotiation plugin) rather than a fresh Json{}, to stay consistent with the rest of the API surface. */
     override suspend fun searchSessions(q: String): SearchResponse {
         return try {
             val r: SearchResponse = client.get("$baseUrl/api/sessions/search") { auth(); parameter("q", q) }
@@ -194,8 +186,7 @@ class KtorAgenticApi(
         }
     }
 
-    /** GET /api/sessions/:id returns `{ session, log }`; we only need the row here (settings screen), so
-     *  call with limit=0 (empty log) and unwrap [SessionDetail.session] to avoid deserializing a 200MB log. */
+    /** `limit=0` returns an empty log; unwrap [SessionDetail.session] to avoid deserializing a 200MB log. */
     override suspend fun get(id: String): Session {
         return try {
             val r: Session = client.get("$baseUrl/api/sessions/$id") { auth(); parameter("limit", 0) }.body<SessionDetail>().session
@@ -323,7 +314,7 @@ class KtorAgenticApi(
         }
     }
 
-    /** Upload a file into the session worktree's uploads/; returns the path the agent can read. */
+    /** Upload a file into the session worktree's uploads/. */
     override suspend fun uploadFile(id: String, bytes: ByteArray, filename: String): String {
         return try {
             val r: String = client.post("$baseUrl/api/sessions/$id/upload") {
@@ -343,9 +334,7 @@ class KtorAgenticApi(
         }
     }
 
-    /** Stage a file before a session exists (New-request attachments). POST /api/uploads with the
-     *  same multipart shape as [uploadFile] but no session id; returns the token + sanitized name +
-     *  uploads/<name> path the client embeds in the create prompt's [attached: ...] marker. */
+    /** Stage a file before a session exists (New-request attachments). Returns token + sanitized name + uploads/<name> path the client embeds in `[attached: ...]`. */
     override suspend fun uploadStaging(bytes: ByteArray, filename: String): StagedUpload {
         return try {
             val r: StagedUpload = client.post("$baseUrl/api/uploads") {
@@ -365,9 +354,7 @@ class KtorAgenticApi(
         }
     }
 
-    /** Raw bytes of a file in the session worktree (inline image previews — small payloads).
-     *  Runs on Dispatchers.IO so body accumulation never competes with UI work on Main.
-     *  onProgress, when given, reports download fraction 0f..1f (null when length is unknown). */
+    /** Raw bytes of a file in the session worktree (inline image previews — small). Dispatchers.IO so body accumulation never competes with UI on Main. */
     override suspend fun fileBytes(id: String, path: String, onProgress: ((Float?) -> Unit)?): ByteArray {
         return try {
             val r: ByteArray = withContext(Dispatchers.IO) {
@@ -389,8 +376,7 @@ class KtorAgenticApi(
         }
     }
 
-    /** Streaming download with automatic Range/If-Range resume — the save path for outbox files.
-     *  Bytes go straight to [dest] (never a whole-file ByteArray), on Dispatchers.IO. */
+    /** Stream download with automatic Range/If-Range resume (outbox save path). Bytes go straight to [dest] (never a whole-file ByteArray), on Dispatchers.IO. */
     override suspend fun downloadFileTo(
         id: String,
         path: String,
@@ -404,12 +390,11 @@ class KtorAgenticApi(
                     dest = dest,
                     configure = {
                         auth(); parameter("path", path)
-                        // Per-ATTEMPT timeouts: a short idle cap (15s vs the old 60s) is safe now —
-                        // a stalled attempt is cheap because the next attempt RESUMES where this one
-                        // stopped instead of redownloading everything. It also keeps the UI's
-                        // "stalled — auto-resuming" label honest: the resume follows within seconds.
-                        // 600s bounds one attempt, not the whole transfer (each resume gets a fresh
-                        // budget).
+                        // Per-ATTEMPT timeouts: short 15s idle is safe now — a stalled attempt is
+                        // cheap because the next attempt RESUMES where this one stopped rather than
+                        // restarting. Keeps the UI's "stalled — auto-resuming" label honest (resume
+                        // follows within seconds). 600s caps ONE attempt, not the whole transfer —
+                        // each resume gets a fresh budget.
                         timeout { socketTimeoutMillis = 15_000; requestTimeoutMillis = 600_000 }
                     },
                     onProgress = onProgress,
@@ -490,11 +475,7 @@ class KtorAgenticApi(
         }
     }
 
-    /** Open the session stream; calls [onLine] for each event frame (a JSON ClaudeEvent). Returns when closed.
-     *
-     *  Token is appended to the query only when non-null (sending "token=null" would be rejected).
-     *  If the WS handshake is rejected with 401/Unauthorized the [onUnauthorized] callback is fired
-     *  (matching the same logout behaviour as HTTP 401) before rethrowing. */
+    /** Open the session stream; [onLine] per event frame. Token goes in the query only when non-null ("token=null" would be rejected). A WS upgrade rejected with 401 fires [onUnauthorized] (matches HTTP 401) before rethrow. */
     override suspend fun stream(id: String, since: Int?, onLine: suspend (String) -> Unit) {
         val wsBase = baseUrl.replaceFirst("http", "ws")
         val parts = buildList {
@@ -506,15 +487,14 @@ class KtorAgenticApi(
         try {
             AppLog.v("WS", "open id=$id since=$since")
             streamClient.webSocket(url) {
-                // Liveness watchdog (Discord-gateway style): the server HEARTBEATs every ~N ms even
-                // when idle, so any gap longer than ~2.5x N means the socket is dead (half-open) even
-                // if TCP/OkHttp's ping hasn't noticed. Returning ends the WS so the caller's reconnect
-                // loop RESUMEs from the last seq. Default cap (before HELLO / against an old server) 30s.
+                // Liveness watchdog (Discord-gateway): server HEARTBEATs every ~N ms even when idle;
+                // any gap > 2.5x N = socket dead (half-open) even if TCP/OkHttp's ping hasn't noticed.
+                // Returning ends the WS so the reconnect loop RESUMEs from last seq. Default 30s.
                 var idleCapMs = 30_000L
-                // Parse the cap from HELLO exactly once. A flag (not `idleCapMs == default`) because a
-                // 10s heartbeat yields a 30s cap == the default, which would otherwise re-parse every
-                // frame's JSON on the network thread. A cheap substring pre-check avoids parsing
-                // non-HELLO frames; the first frame against an old server (no HELLO) just marks it done.
+                // Parse the cap from HELLO exactly ONCE. Flag (not `idleCapMs == default`) because a
+                // 10s heartbeat yields a 30s cap == default — re-parsing every frame's JSON would
+                // tax the network thread. Substring pre-check avoids parsing non-HELLO frames; first
+                // frame against an old server (no HELLO) just marks it done.
                 var watchdogConfigured = false
                 var nFrames = 0
                 var lastAt = System.currentTimeMillis()
@@ -527,8 +507,8 @@ class KtorAgenticApi(
                         val now = System.currentTimeMillis()
                         val gap = now - lastAt; lastAt = now
                         nFrames++
-                        // Surface stalls: a gap longer than ~1.5 heartbeats means frames stopped flowing
-                        // even though the socket is open — the signature of the live-lag bug.
+                        // Surface stalls: a gap > ~1.5 heartbeats = frames stopped even though socket
+                        // is open — the live-lag signature.
                         if (gap > 5_000) AppLog.v("WS", "gap ${gap}ms before frame#$nFrames id=$id")
                         val text = frame.readText()
                         if (!watchdogConfigured) {
@@ -544,9 +524,9 @@ class KtorAgenticApi(
             }
         } catch (e: Exception) {
             AppLog.w("WS", "stream exception id=$id: ${e.message}")
-            // OkHttp throws ProtocolException (extends IOException) with a message like
-            // "Expected HTTP 101 response but was '401 Unauthorized'" when the WS upgrade is
-            // rejected. We surface this as the same onUnauthorized signal used by HTTP 401.
+            // OkHttp throws ProtocolException (extends IOException) on a rejected WS upgrade
+            // ("Expected HTTP 101 response but was '401 Unauthorized'"). Surface as the same
+            // onUnauthorized signal used by HTTP 401.
             val msg = e.message ?: ""
             if (msg.contains("401") || msg.contains("Unauthorized", ignoreCase = true)) {
                 onUnauthorized?.invoke()
@@ -555,7 +535,6 @@ class KtorAgenticApi(
         }
     }
 
-    // ── Feature: Push notifications ───────────────────────────────────────────
     /** Register an FCM push token with the backend so it can send finish-line notifications. */
     override suspend fun registerDevice(token: String) {
         try {
@@ -569,7 +548,7 @@ class KtorAgenticApi(
         }
     }
 
-    // ── Feature: Templates ────────────────────────────────────────────────────
+    // ── Templates ──
     override suspend fun getTemplates(): List<Template> {
         return try {
             val r: List<Template> = client.get("$baseUrl/api/templates") { auth() }.body<TemplateList>().templates
@@ -593,7 +572,7 @@ class KtorAgenticApi(
         }
     }
 
-    // ── Model catalog ──────────────────────────────────────────────────────────
+    // ── Model catalog ──
     override suspend fun models(): List<ModelEntry> {
         return try {
             val r: List<ModelEntry> = client.get("$baseUrl/api/models") { auth() }.body<ModelsResponse>().models
@@ -618,7 +597,7 @@ class KtorAgenticApi(
         }
     }
 
-    // ── Feature: Session groups (folders) ─────────────────────────────────────
+    // ── Session groups (folders) ──
     override suspend fun listGroups(): List<Group> {
         return try {
             val r: List<Group> = client.get("$baseUrl/api/groups") { auth() }.body<GroupList>().groups
@@ -666,7 +645,7 @@ class KtorAgenticApi(
         }
     }
 
-    // ── Feature: Provider registry (BYOK cheap models) ────────────────────────
+    // ── Provider registry (BYOK) ──
     override suspend fun providers(): List<Provider> {
         return try {
             val r: List<Provider> = client.get("$baseUrl/api/providers") { auth() }.body<ProviderList>().providers
@@ -700,7 +679,7 @@ class KtorAgenticApi(
         }
     }
 
-    // ── Feature: Native Claude model per-family routing overrides ──────────────
+    // ── Native Claude per-family routing overrides ──
     override suspend fun nativeModels(): List<NativeFamily> {
         return try {
             val r: List<NativeFamily> = client.get("$baseUrl/api/native-models") { auth() }
@@ -735,7 +714,7 @@ class KtorAgenticApi(
         }
     }
 
-    // ── Feature: Global Settings (S5a) ────────────────────────────────────────
+    // ── Global Settings (S5a) ──
     override suspend fun getGlobalSettings(): List<ComponentInfo> {
         return try {
             val r: List<ComponentInfo> = client.get("$baseUrl/api/global-settings") { auth() }.body()
@@ -760,7 +739,7 @@ class KtorAgenticApi(
         }
     }
 
-    // ── Feature: Global Settings CRUD (S5c) ─────────────────────────────────────
+    // ── Global Settings CRUD (S5c) ──
     override suspend fun getSkillCatalog(refresh: Boolean): SkillCatalogResp {
         return try {
             val r: SkillCatalogResp = client.get("$baseUrl/api/skills/catalog") {
@@ -838,8 +817,8 @@ class KtorAgenticApi(
     override suspend fun installPlugin(id: String): List<ComponentInfo> {
         return try {
             // Plugin install shells out to the claude CLI — can stay quiet for well over the
-            // client-level socketTimeoutMillis (20 s idle cap) while still working. Override
-            // BOTH the socket idle cap AND the request cap so a quiet-but-alive CLI is not cut.
+            // client-level 20s socket-idle cap while still working. Override BOTH the socket idle
+            // cap AND the request cap so a quiet-but-alive CLI isn't cut.
             val r: List<ComponentInfo> = client.post("$baseUrl/api/plugins") {
                 auth(); contentType(ContentType.Application.Json); setBody(AddPluginReq(id))
                 timeout {
@@ -858,7 +837,6 @@ class KtorAgenticApi(
 
     override suspend fun uninstallPlugin(id: String): List<ComponentInfo> {
         return try {
-            // Uninstall also shells out to the CLI — same timeout rationale as installPlugin.
             val r: List<ComponentInfo> = client.delete("$baseUrl/api/plugins/${id.encodeURLPathPart()}") {
                 auth()
                 timeout {
@@ -899,7 +877,7 @@ class KtorAgenticApi(
         }
     }
 
-    // ── Feature: Commit-graph view ─────────────────────────────────────────────
+    // ── Commit-graph view ──
     override suspend fun commits(id: String): List<RepoCommits> {
         return try {
             val r: List<RepoCommits> = client.get("$baseUrl/api/sessions/$id/commits") { auth() }.body<CommitsResp>().repos
@@ -911,8 +889,7 @@ class KtorAgenticApi(
         }
     }
 
-    /** Changed files for a commit (or "working"). The sha is a path segment; repo goes in the query.
-     *  [parameter] URL-encodes the repo value, and [encodeURLPathPart] guards the sha segment. */
+    /** Changed files for a commit (or "working"). sha = path segment (URL-encoded); repo goes in the query. */
     override suspend fun commitFiles(id: String, repo: String, sha: String): List<CommitFile> {
         return try {
             val r: List<CommitFile> = client.get("$baseUrl/api/sessions/$id/commits/${sha.encodeURLPathPart()}/files") {
@@ -926,8 +903,7 @@ class KtorAgenticApi(
         }
     }
 
-    /** Line-level diff for one file. sha is a path segment; repo + path go in the query (both
-     *  URL-encoded by [parameter], so a path with slashes is safe). */
+    /** Line-level diff for one file. sha = path segment; repo + path go in the query (URL-encoded by [parameter], so paths with slashes are safe). */
     override suspend fun commitDiff(id: String, repo: String, sha: String, path: String): FileDiff {
         return try {
             val r: FileDiff = client.get("$baseUrl/api/sessions/$id/commits/${sha.encodeURLPathPart()}/diff") {
@@ -952,10 +928,7 @@ class KtorAgenticApi(
         }
     }
 
-    /** Adopt-picker discovery (GET /api/adoptable). The server returns a flat JSON array, so we
-     *  decode straight into `List<Adoptable>` (the global `json` instance already handles missing
-     *  fields leniently via `ignoreUnknownKeys`). Any HTTP failure propagates; callers (picker +
-     *  ViewModel) decide whether to surface it as a banner. */
+    /** Decodes the flat JSON array straight into `List<Adoptable>` (the global `json` already handles missing fields leniently). 404 (server predates the feature) is the only exception swallowed, degraded to "nothing to adopt". */
     override suspend fun adoptable(): List<Adoptable> {
         return try {
             val r: List<Adoptable> = client.get("$baseUrl/api/adoptable") { auth() }.body()
@@ -977,8 +950,7 @@ class KtorAgenticApi(
         }
     }
 
-    /** Adopt a Claude Code session (POST /api/sessions/adopt). Returns the new server session id
-     *  the picker navigates to on success. */
+    /** Adopt a Claude Code session (POST /api/sessions/adopt). Picker navigates to the returned id. */
     override suspend fun adoptSession(req: AdoptSessionReq): String {
         return try {
             val r: String = client.post("$baseUrl/api/sessions/adopt") {
@@ -992,10 +964,7 @@ class KtorAgenticApi(
         }
     }
 
-    /** Hand a session off to a local Claude Code CLI (POST /api/sessions/:id/detach). Throws on
-     *  non-2xx — the calling ViewModel surfaces the server's body as a user-facing error. After
-     *  success the server flips `Session.detached = true` on subsequent reads, which the detail
-     *  screen uses to keep the "handed off" banner up without an additional round-trip. */
+    /** POST /api/sessions/:id/detach. Throws on non-2xx (VM surfaces server body as user error). After success the server sets `Session.detached = true`; the detail screen keeps the "handed off" banner up without an extra round-trip. */
     override suspend fun detach(id: String): DetachResp {
         return try {
             val r: DetachResp = client.post("$baseUrl/api/sessions/${id.encodeURLPathPart()}/detach") { auth() }.body()
@@ -1031,8 +1000,7 @@ class KtorAgenticApi(
         client.close(); streamClient.close()
     }
 
-    /** If [text] is the gateway HELLO frame, derive the watchdog idle cap from its heartbeat cadence
-     *  (~2.5x + slack). null when it isn't a HELLO (so the caller keeps the current cap). */
+    /** Derive the watchdog idle cap from HELLO's heartbeatMs (~2.5x + slack). null when not a HELLO so the caller keeps its current cap. */
     private fun heartbeatCapFrom(text: String): Long? = runCatching {
         val obj = json.parseToJsonElement(text).jsonObject
         if (obj["kind"]?.jsonPrimitive?.content != "hello") return@runCatching null

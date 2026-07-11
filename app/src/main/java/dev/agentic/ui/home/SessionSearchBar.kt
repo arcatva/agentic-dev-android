@@ -45,18 +45,7 @@ import dev.agentic.ui.components.highlightQuery
 import dev.agentic.ui.components.matchRanges
 import dev.agentic.ui.components.snippetAroundMatch
 
-/**
- * Stateless session-list search surface. Hosts the shared [SearchBar] at the title row only. The
- * results list itself is rendered by [SearchResultsPanel] inside the host's [SessionListPane], so
- * the panel REPLACES (not overlays) the session list body — no occlusion, no reflow.
- *
- * The wrapper itself owns no query state — the host (top bar) passes [query] / [onQueryChange] so
- * the same String that drives HomeViewModel's content search also drives the visible text and
- * spinner.
- *
- * [onExpandedChange] mirrors whether the host should swap the body into search-results mode
- * (query has length >= 2 and selection mode is off) so the host can hide the New-request FAB.
- */
+/** Stateless search surface; hosts the shared SearchBar. Results render in SearchResultsPanel inside the host's SessionListPane (replaces, not overlays). */
 @Composable
 internal fun SessionSearchBar(
     query: String,
@@ -68,10 +57,7 @@ internal fun SessionSearchBar(
     onExpandedChange: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
-    // Local text owned by the composable for immediate display — no round-trip
-    // through ViewModel → combine chain → recompose before the user sees each
-    // keystroke. The external [query] syncs back in only when it's externally
-    // cleared (e.g. the host calls onClearSearch → ViewModel sets query to "").
+    // Local text for immediate display — avoids the VM→combine→recompose round-trip on every keystroke.
     var localText by rememberSaveable { mutableStateOf(query) }
     LaunchedEffect(query) {
         if (localText != query) localText = query
@@ -80,13 +66,9 @@ internal fun SessionSearchBar(
     val expanded = localText.length >= 2 && !selectionMode
     LaunchedEffect(expanded) { onExpandedChange(expanded) }
 
-    // The adaptive scaffold auto-focuses the first focusable child when the list pane
-    // re-enters. Keep the search TextField out of focus traversal until the USER
-    // explicitly taps it (or while it already contains text). A FocusRequester alone
-    // does not prevent scaffold focus — canFocus=false does.
-    //
-    // `remember`, not rememberSaveable: restoring userActivated=true after process
-    // recreation would re-request focus and pop the keyboard unprompted on restore.
+    // canFocus=false (not just FocusRequester) is what keeps the adaptive scaffold's auto-focus off
+    // the field. `remember`, not rememberSaveable: restoring userActivated=true after process recreation
+    // would pop the keyboard unprompted.
     var userActivatedSearch by remember { mutableStateOf(false) }
     val searchFocus = remember { FocusRequester() }
     val canFocusSearch = searchTextFieldCanFocus(query = localText, userActivated = userActivatedSearch)
@@ -110,11 +92,9 @@ internal fun SessionSearchBar(
                 },
             searching = searching,
         )
-        // While the field is focus-gated (canFocus=false), the TextField's own gesture
-        // handler swallows taps WITHOUT gaining focus — an outer `.clickable` on the
-        // TextField's modifier chain never fires (that was the "search bar is dead" bug).
-        // This overlay sits ON TOP of the TextField, so it receives the tap first: arm
-        // the gate, then the LaunchedEffect above requests focus and the IME opens.
+        // canFocus=false makes the TextField swallow its own taps without gaining focus — an outer
+        // .clickable never fires (the "search bar is dead" bug). Overlay sits ON TOP, arms the gate,
+        // the LaunchedEffect above then requests focus + IME.
         if (!canFocusSearch) {
             Box(
                 Modifier
@@ -125,9 +105,7 @@ internal fun SessionSearchBar(
                         onClickLabel = "Search sessions",
                         role = Role.Button,
                     ) { userActivatedSearch = true }
-                    // The gated TextField (canFocus=false) is skipped by accessibility
-                    // traversal, so this overlay IS the search entry point for TalkBack —
-                    // label it accordingly.
+                    // Gated TextField is skipped by a11y traversal, so this overlay IS the TalkBack entry.
                     .semantics { contentDescription = "Search sessions" },
             )
         }
@@ -137,20 +115,7 @@ internal fun SessionSearchBar(
 internal fun searchTextFieldCanFocus(query: String, userActivated: Boolean): Boolean =
     userActivated || query.isNotEmpty()
 
-/**
- * Replaces [SessionListPane]'s body when the user has typed at least 2 characters. Lists the
- * [SearchHit] results as plain `SessionRow`s, or shows a centered "no match" message. The panel
- * occupies the entire list region, so it neither overlaps nor pushes anything — when the user
- * clears the search box the host flips back to the regular list immediately.
- *
- * Tapping a result row also hides the soft keyboard so the row beneath isn't obscured, and clears
- * the search query so the user lands on the regular list once they return from the session detail.
- *
- * Tapping empty space in the panel (gaps, below the last row, the "no match" area) blurs the search
- * field and drops the keyboard too — but that is handled once at the screen root by
- * [Modifier.clearFocusOnTap] on the host (this panel renders inside that container), so the panel no
- * longer carries its own full-area tap handler.
- */
+/** Replaces SessionListPane's body when the query has length ≥ 2. Occupies the full list region so clearing the box flips back to the regular list immediately. */
 @Composable
 internal fun SearchResultsPanel(
     results: List<SearchHit>,
@@ -161,11 +126,9 @@ internal fun SearchResultsPanel(
     lastSearchedQuery: String = "",
 ) {
     val keyboard = LocalSoftwareKeyboardController.current
-    // Sample the clock once per query so timestamps stay correct without a recomposition storm.
     val now = remember(query) { System.currentTimeMillis() }
-    // A search is "in flight" when the current query differs from the last one the
-    // server has answered. This is immune to one-frame ordering races between
-    // searchQuery / searching / searchResults updates in the combine chain.
+    // In-flight when the current query differs from the last one the server answered — immune to
+    // one-frame ordering races between searchQuery / searching / searchResults updates.
     val searchInFlight = query.isNotEmpty() && query != lastSearchedQuery
 
     if (results.isEmpty()) {
@@ -201,8 +164,7 @@ internal fun SearchResultsPanel(
             contentPadding = PaddingValues(vertical = 8.dp, horizontal = 12.dp),
         ) {
             items(results, key = { it.session.id }) { hit ->
-                // animateItem() so result rows slide in/out/reorder as the query narrows, matching the
-                // main session list (HomeScreen) instead of snapping.
+                // animateItem() so rows slide in/out/reorder as the query narrows — matches HomeScreen.
                 Column(Modifier.animateItem().fillMaxWidth().padding(vertical = 5.dp)) {
                     SessionRow(
                         session = hit.session,
@@ -219,9 +181,7 @@ internal fun SearchResultsPanel(
                         onLongClick = {},
                         modifier = Modifier.fillMaxWidth(),
                     )
-                    // When the session matched on content the row doesn't show (an answer, a tool's
-                    // detail, notes, …) surface that snippet with the matched text painted in the
-                    // theme colour — otherwise a content hit looks like an unexplained result row.
+                    // Surface content the row doesn't show (answer, tool detail, notes) with the match painted — otherwise an unexplained result row.
                     hit.bestSnippetMatch(query)?.let { match ->
                         SearchSnippet(
                             label = match.field.snippetLabel(),
@@ -236,13 +196,7 @@ internal fun SearchResultsPanel(
     }
 }
 
-/**
- * One matched-content line shown beneath a search result's [SessionRow]: a quiet field [label]
- * (e.g. "answer", "tool") followed by the backend [snippet], with every occurrence of [query]
- * painted in the theme's primary colour via [highlightQuery]. Wraps to at most two lines so a long
- * snippet can't make one result tower over the others; the matched substring is what the user
- * scanned for, so it carries the brand colour while the surrounding context stays muted.
- */
+/** Matched-content line under a SessionRow: field label + snippet with the query painted via highlightQuery. Max 2 lines. */
 @Composable
 private fun SearchSnippet(
     label: String,
@@ -251,8 +205,7 @@ private fun SearchSnippet(
     modifier: Modifier = Modifier,
 ) {
     val accent = MaterialTheme.colorScheme.primary
-    // Re-window so the matched term is near the front (otherwise the 2-line clamp hides the
-    // backend's centred match), then highlight it. Recomputed only when an input actually changes.
+    // Re-window so the match is near the front (the 2-line clamp would otherwise hide a centred backend window), then highlight.
     val highlighted = remember(snippet, query, accent) {
         highlightQuery(snippetAroundMatch(snippet, query), query, accent)
     }
@@ -275,32 +228,19 @@ private fun SearchSnippet(
     }
 }
 
-/**
- * Fields whose text the [SessionRow] already shows — the prompt is the row's main line and the repo
- * names sit in its subtitle — so a match on them needs no extra snippet. Every other field is
- * "content" the row doesn't surface, which is what [SearchSnippet] exists to reveal.
- */
+// Fields already shown on the row (prompt = main line, repos = subtitle) — a match needs no extra snippet.
 private val ROW_VISIBLE_FIELDS = setOf(SearchField.Title, SearchField.Repo)
 
 /**
- * The single match worth showing under the row as a highlighted snippet, or `null` when the session
- * only matched fields the row already shows (its prompt / repos). The backend lists [matches] in
- * importance order (prompt → metadata → log content) and caps the list, so the first
- * non-row-visible match is the most relevant "why did this match?" snippet.
+ * Single match worth surfacing under the row, or null if only row-visible fields matched. Backend
+ * lists matches in importance order (prompt → metadata → log), capped — so the first non-row-visible
+ * match is the most relevant "why did this match?" snippet.
  *
- * Subtlety 1 — the backend exposes the prompt text through TWO fields: [SearchField.Title] (the
- * `session.prompt` metadata that IS the row's main line) and [SearchField.Prompt] (a rendered
- * user-turn log line). For a single-turn session those are the same text, so a `Prompt` match would
- * render a snippet that just repeats the title — the very redundancy this feature removes. We drop a
- * `Prompt` match only when its snippet equals the row's prompt; an earlier turn in a multi-turn
- * session, or a windowed slice of a long prompt whose match sits off-screen in the truncated title,
- * differs and is still surfaced.
+ * Subtlety 1 — backend exposes prompt via two fields: Title (= session.prompt, the row's main line) AND Prompt (a rendered log line).
+ * For a single-turn session those are identical, so a Prompt match would render a snippet that just repeats the title — drop it
+ * only when the snippet equals the row's prompt; an earlier turn in a multi-turn session or a windowed slice of a long prompt still surfaces.
  *
- * Subtlety 2 — a backend snippet is a fixed-size window that does NOT always contain the query: for a
- * long field the window can fall entirely beside the match, so the snippet has nothing to highlight.
- * Among the eligible matches we therefore prefer one whose snippet actually contains [query] (so the
- * highlight is visible), and prefer readable prose over [SearchField.Ask] — whose snippet is the raw
- * AskUserQuestion JSON payload — falling back to the first eligible match only when none contain it.
+ * Subtlety 2 — backend snippet is a fixed window that may not contain the query (window can fall beside the match). Prefer matches whose snippet actually contains the query, and prefer prose over Ask (raw AskUserQuestion JSON).
  */
 internal fun SearchHit.bestSnippetMatch(query: String): SearchMatch? {
     val rowPrompt = session.prompt.trim()
@@ -318,14 +258,10 @@ internal fun SearchHit.bestSnippetMatch(query: String): SearchMatch? {
         ?: eligible.first()
 }
 
-/** Strips the leading/trailing "..." that the backend's `extract_snippet` adds when it windows a
- *  long field, so a snippet can be compared against the full source text it was cut from. */
+/** Strips the "..." the backend's `extract_snippet` adds when it windows a long field. */
 private fun String.stripSnippetEllipsis(): String = removePrefix("...").removeSuffix("...")
 
-/**
- * Short human label for the field a content match came from, shown as a quiet prefix on the snippet.
- * Empty for the row-visible fields, which are never rendered as snippets.
- */
+/** Short human label for the field a content match came from; empty for row-visible fields (never rendered). */
 private fun SearchField.snippetLabel(): String = when (this) {
     SearchField.Title, SearchField.Repo -> ""
     SearchField.Branch -> "branch"

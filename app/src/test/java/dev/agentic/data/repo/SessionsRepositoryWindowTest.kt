@@ -19,20 +19,13 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
-/**
- * Unit tests for the bounded transcript window ([SessionsRepository.loadEarlier] / [loadNewer]) on
- * ENDED sessions. The [FakeAgenticApi] paged-log mode serves an immutable event list as tail/before
- * windows (one rendered line per event), modeling the server's Discord-style cursor contract, so we
- * can drive real scroll-back / scroll-forward and assert the resident window stays bounded and tiled
- * (contiguous, no gaps, no duplicates).
- */
+// Bounded-window tests: paged-log fake serves tail/before windows so we can drive real scroll-back / scroll-forward and assert the resident window stays bounded and tiled (contiguous, no gaps, no duplicates).
 @OptIn(ExperimentalCoroutinesApi::class)
 class SessionsRepositoryWindowTest {
 
     private lateinit var api: FakeAgenticApi
     private lateinit var repoScope: CoroutineScope
 
-    /** A `prompt` event → one PromptNode with unique text "e$i", so nodes map 1:1 to events in order. */
     private fun ev(i: Int): JsonElement = Json.parseToJsonElement("""{"kind":"prompt","text":"e$i"}""")
 
     private fun texts(repo: SessionsRepository, id: String = "s1"): List<String> =
@@ -40,8 +33,7 @@ class SessionsRepositoryWindowTest {
 
     @Before fun setUp() {
         api = FakeAgenticApi()
-        // 10 events e0..e9 as an immutable ended-session log, served two-per-page so a maxResidentEvents
-        // of 4 (= 2 pages) forces eviction after a couple of scroll-back steps.
+        // 10 events served two-per-page; maxResidentEvents=4 (= 2 pages) forces eviction.
         api.pagedEvents["s1"] = (0..9).map { ev(it) }
         api.pagedPageLimit = 2
         api.sessionDetails["s1"] = SessionDetail(Session(id = "s1", prompt = "go", status = "done"))
@@ -59,13 +51,11 @@ class SessionsRepositoryWindowTest {
         val flow = repo.transcript("s1")
         advanceUntilIdle()
 
-        // Initial tail window: last two events, more older, nothing newer evicted yet.
         assertEquals(listOf("e8", "e9"), texts(repo))
         assertTrue(flow.value.ended)
         assertTrue(flow.value.hasMore)
         assertFalse(flow.value.hasNewer)
 
-        // Scroll all the way back.
         var i = 0
         while (flow.value.hasMore && i++ < 20) { repo.loadEarlier("s1"); advanceUntilIdle() }
 
@@ -85,7 +75,6 @@ class SessionsRepositoryWindowTest {
         while (flow.value.hasMore && i++ < 20) { repo.loadEarlier("s1"); advanceUntilIdle() }
         assertTrue(flow.value.hasNewer)
 
-        // Now scroll forward again.
         var j = 0
         while (flow.value.hasNewer && j++ < 20) { repo.loadNewer("s1"); advanceUntilIdle() }
 
@@ -93,7 +82,6 @@ class SessionsRepositoryWindowTest {
         assertFalse("back at the tail — nothing newer left", flow.value.hasNewer)
         assertEquals("window bounded at the newest page(s)", listOf("e6", "e7", "e8", "e9"), t)
         assertTrue("the true tail (e9) is resident", t.contains("e9"))
-        // Tiling: contiguous, strictly ascending, no duplicates — pages never overlapped or gapped.
         assertEquals(t.sorted(), t)
         assertEquals(t.toSet().size, t.size)
     }
@@ -107,7 +95,7 @@ class SessionsRepositoryWindowTest {
         while (flow.value.hasMore && i++ < 20) { repo.loadEarlier("s1"); advanceUntilIdle() }
         var j = 0
         while (flow.value.hasNewer && j++ < 20) { repo.loadNewer("s1"); advanceUntilIdle() }
-        // The newest two events match the initial tail load — reload via before=upper is byte-identical.
+        // Newest two events match the initial tail load — reload via before=upper is byte-identical.
         assertEquals(listOf("e8", "e9"), texts(repo).takeLast(2))
         assertFalse(flow.value.hasNewer)
     }

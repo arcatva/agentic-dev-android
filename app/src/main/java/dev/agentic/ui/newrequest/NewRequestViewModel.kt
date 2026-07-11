@@ -27,20 +27,14 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * Per-skill tri-state session override. No UI sets these anymore (New request only selects
- * repos; components are managed globally on the Settings page) — they exist so TEMPLATES can
- * restrict a session to their skill list (see [NewRequestViewModel.setSkillsFromTemplate]).
- * - [Inherit]: follow global setting (skill appears in neither forced-on nor hidden list).
- * - [ForceOn]: force this skill ON for this session (even if globally disabled).
- * - [ForceOff]: force this skill OFF for this session (even if globally enabled).
+ * Per-skill tri-state session override (only set by templates now — components are managed
+ * globally on Settings): [Inherit] follows global; [ForceOn]/[ForceOff] override per-session.
  */
 enum class Override { Inherit, ForceOn, ForceOff }
 
 /**
- * Draft state for the SETTINGS page's "Add MCP server" form ([dev.agentic.ui.globalsettings]).
- * Lives here for historical reasons — New request no longer adds/removes MCP servers itself.
- * [transport] is "stdio" or "http". Fields not relevant to the selected transport
- * are retained in state but ignored on add (the form shows only the relevant ones).
+ * Draft state for the Settings page's "Add MCP server" form. [transport] is "stdio" or "http";
+ * fields not relevant to the selected transport are retained in state but ignored on add.
  */
 data class McpDraft(
     val name: String = "",
@@ -49,7 +43,6 @@ data class McpDraft(
     val command: String = "",
     val args: String = "",       // space-separated, split on add
     val env: String = "",        // KEY=VALUE lines, split on add
-    // http/sse fields
     val url: String = "",
     val httpType: String = "http",  // "http" or "sse"
     val headers: String = "",       // KEY=VALUE lines, split on add
@@ -66,15 +59,7 @@ data class McpDraft(
     val isValid: Boolean get() = validationError == null
 }
 
-/**
- * Default content pre-filled into the New-request "CLAUDE.md (optional)" field. It tells each
- * launched session how this multi-session / multi-worktree environment works: stay on your own
- * `agentic/<session>` branch, open a PR for the user to approve instead of pushing to the default
- * branch, and treat merge conflicts as the user's call (AI-resolve vs. manual). The user can edit or
- * clear it per session; cleared (blank) sends no extra guidance (see [NewRequestViewModel.submit]).
- * Branch-agnostic on purpose — `gh pr create` targets whatever the repo's default branch is
- * (`main` or `master`), so this works across repos.
- */
+/** Default session-CLAUDE.md text; tells each session how the agentic-dev worktree/PR workflow works. Branch-agnostic. */
 val DEFAULT_CLAUDE_MD: String = """
     # Session workflow — agentic-dev
 
@@ -98,47 +83,36 @@ val DEFAULT_CLAUDE_MD: String = """
       review/resolve manually. Wait for their decision before changing the conflicting files.
 """.trimIndent()
 
-/** Client-side cap on a single attachment, checked before the file is read into memory. Reading an
- *  arbitrarily large device file into a ByteArray risks an OutOfMemoryError on Android; this fails
- *  oversized picks fast with a clear message instead. Only enforced when the picker reports a size
- *  (unknown size = -1 proceeds — rare, and the server's own upload_max_bytes still caps the upload). */
+/** Client-side attachment cap; rejects oversized picks before reading into a ByteArray (OOM guard).
+ *  Unknown size (-1) proceeds — the server's upload_max_bytes is the second line of defense. */
 private const val MAX_ATTACHMENT_BYTES: Long = 25L * 1024 * 1024
 
 data class NewRequestUiState(
     val availableRepos: List<String> = emptyList(),
-    // ── Skill catalog (GET /api/global-settings, kind=="skill") — no UI, kept ONLY so a
-    // template's skill list can be resolved into hidden/forced-on lists at submit. Plugins
-    // and MCP servers have no per-session state at all: sessions inherit the global config.
+    // Skill catalog (kind=="skill") only — kept so applyTemplate can resolve a template's skill
+    // list into hidden/forced-on at submit. Plugins and MCP have no per-session state.
     val availableSkillComponents: List<ComponentInfo> = emptyList(),
     val templates: List<Template> = emptyList(),
     val selectedRepos: List<String> = emptyList(),
-    // Per-skill session overrides, set only by templates (see [Override]).
-    // On submit: ForceOff → hiddenSkills, ForceOn → forcedOnSkills, Inherit → neither.
+    // Per-skill session overrides, set only by templates (see [Override]). On submit: ForceOff →
+    // hiddenSkills, ForceOn → forcedOnSkills, Inherit → neither.
     val skillOverrides: Map<String, Override> = emptyMap(),
     val prompt: String = "",
-    // Session-scoped CLAUDE.md guidance, PRE-FILLED with [DEFAULT_CLAUDE_MD] (the multi-session
-    // worktree / PR / conflict workflow). Sent verbatim on submit, so the agent gets it by default;
-    // blank → null (the user cleared it ⇒ no extra guidance). The backend writes it into the session
-    // dir so Claude Code loads it as project memory, on top of each repo's own CLAUDE.md. Not touched
-    // by templates (a template leaves whatever the user currently has).
+    // Pre-filled with [DEFAULT_CLAUDE_MD] so the agent gets the worktree / PR workflow on launch;
+    // blank → null (user cleared it → no extra guidance). Not touched by templates.
     val claudeMd: String = DEFAULT_CLAUDE_MD,
-    // Model defaults to the cached session-start default if already loaded, otherwise null — the
-    // init block fetches GET /api/models?scope=session_start and fills it in. Until the scoped
-    // catalog arrives the slider shows "Default" (no override). Using the cached default avoids a
-    // null→default flicker when the screen is opened a second time.
-    // New requests default to Ultracode mode (the Effort slider's top "Ultracode" notch).
-    // mode=ultracode forces xhigh effort + auto workflow orchestration; we seed effort=xhigh too so the
-    // initial state mirrors exactly what tapping the Ultracode notch produces (setMode + setEffort). A
-    // template or a manual slider move still overrides any of these.
+    // Defaults to the cached session-start default if already loaded, else null — init block
+    // fetches the scoped catalog and fills it in. Using the cached default avoids a null→default
+    // flicker when the screen is opened a second time.
     val model: String? = ModelCatalog.defaultSessionStartModelKey(),
+    // Seed both mode=ultracode and effort=xhigh so the initial state mirrors tapping the Ultracode
+    // notch (setMode + setEffort). A template or manual slider move still overrides these.
     val effort: String? = "xhigh",
     val mode: String? = "ultracode",
     val permissionMode: String? = null,
-    // Files the user picked from the device to attach to this request. Each is uploaded to the
-    // pre-session staging area (POST /api/uploads) in the background; on submit, the successfully
-    // staged ones are listed in [NewSessionReq.stagedUploads] and their paths embedded in the
-    // prompt's `[attached: ...]` marker so the backend adopts them into the new session before the
-    // first prompt runs. Each chip shows its [PendingAttachment.state]; remove is always available.
+    // Files picked from the device to attach to this request. Each is uploaded to the pre-session
+    // staging area; on submit the staged ones are listed in [NewSessionReq.stagedUploads] and
+    // their paths embedded in the prompt's `[attached: ...]` marker.
     val attachments: List<PendingAttachment> = emptyList(),
     val submitting: Boolean = false,
     val createdId: String? = null,
@@ -164,9 +138,6 @@ class NewRequestViewModel(
         }
         viewModelScope.launch {
             try {
-                // Only the SKILL catalog is needed here — not for any picker UI (this screen
-                // selects repos only), but so applyTemplate can resolve a template's skill
-                // list into hidden/forced-on lists at submit.
                 val allComponents = sessionsRepo.globalSettings()
                 _uiState.update {
                     it.copy(availableSkillComponents = allComponents.filter { c -> c.kind == "skill" })
@@ -180,20 +151,17 @@ class NewRequestViewModel(
             } catch (e: Exception) { AppLog.d("VM", "catalog templates load failed: ${e.message}") }
         }
         viewModelScope.launch {
-            // Full catalog: feeds modelLabel for session tags / workflow chips. Independent of the
-            // scoped load below, so it gets its own coroutine (parallel, like the other catalogs).
             try {
                 sessionsRepo.modelCatalog()
             } catch (e: Exception) { AppLog.d("VM", "catalog modelCatalog load failed: ${e.message}") }
         }
         viewModelScope.launch {
             try {
-                // Claude-only session-start catalog — the only list this screen's Model slider offers.
                 sessionsRepo.sessionStartModelCatalog()
                 val defaultModel = ModelCatalog.defaultSessionStartModelKey()
                 if (defaultModel != null) {
-                    // Only set the default when the user hasn't already picked a model
-                    // (either manually or via a template) while the catalog was loading.
+                    // Only set the default if the user hasn't already picked a model (manually
+                    // or via a template) while the catalog was loading.
                     _uiState.update { if (it.model == null) it.copy(model = defaultModel) else it }
                 }
             } catch (e: Exception) { AppLog.d("VM", "catalog sessionStartModelCatalog load failed: ${e.message}") }
@@ -202,19 +170,12 @@ class NewRequestViewModel(
 
     fun setRepos(repos: List<String>) { _uiState.update { it.copy(selectedRepos = repos) } }
 
-    /**
-     * Set the tri-state override for a skill. No UI calls this anymore (components are managed
-     * globally in Settings) — it backs template application and tests.
-     */
+    /** Set the tri-state override for a skill. Used only by template application and tests now. */
     fun setSkillOverride(id: String, override: Override) {
         _uiState.update { s -> s.copy(skillOverrides = s.skillOverrides + (id to override)) }
     }
 
-    /**
-     * Map a template's skill list to overrides: listed skills → Inherit (unaffected), unlisted skills → ForceOff.
-     * An empty [skillNames] means "all active" → leaves all at Inherit (don't accidentally hide everything).
-     * Internal — used only by [applyTemplate].
-     */
+    // Listed skills → Inherit, unlisted → ForceOff; empty list = no-op (don't accidentally hide all).
     internal fun setSkillsFromTemplate(skillNames: List<String>, available: List<ComponentInfo>) {
         val overrides = if (skillNames.isEmpty()) {
             emptyMap()
@@ -233,11 +194,7 @@ class NewRequestViewModel(
     fun setMode(mode: String?) { _uiState.update { it.copy(mode = mode) } }
     fun setPermissionMode(permissionMode: String?) { _uiState.update { it.copy(permissionMode = permissionMode) } }
 
-    /**
-     * Apply [template] to the form: expand [vars] into the prompt body using the domain
-     * [applyTemplate] pure function, then copy repos/model/effort/mode from the template.
-     * Skills from the template are mapped to overrides via [setSkillsFromTemplate].
-     */
+    /** Apply [template]: expand [vars] via domain [applyTemplate], then copy repos/model/effort/mode. */
     fun applyTemplate(t: Template, vars: Map<String, String>) {
         AppLog.d("VM", "applying template: ${t.name}")
         val s = _uiState.value
@@ -251,22 +208,18 @@ class NewRequestViewModel(
                 permissionMode = t.permissionMode,
             )
         }
-        // Map template skill list to overrides: unlisted skills → ForceOff; listed/all → Inherit.
         setSkillsFromTemplate(t.skills, s.availableSkillComponents)
     }
 
     // ── Attachments (pre-session staging) ───────────────────────────────────────
 
-    /** In-flight staging-upload coroutines, keyed by [PendingAttachment.id] (the URI string). Held so
-     *  a removal mid-upload can cancel the network call, and so [submit] can join any still running
-     *  before composing the prompt. Synchronized because attachFiles spawns N coroutines that each
-     *  finish independently on the main thread. */
+    /** In-flight staging-upload coroutines, keyed by [PendingAttachment.id] (URI string). Held so a
+     *  removal can cancel mid-upload and so [submit] can join any still running before the prompt
+     *  is composed. Synchronized: attachFiles spawns N coroutines that finish independently. */
     private val uploadJobs = mutableMapOf<String, Job>()
 
-    /** Pick [uris] from the device and start staging them in parallel. Each becomes a
-     *  [PendingAttachment] (Pending → Uploading → Done/Failed). Display name + size are queried up
-     *  front so the chip can render immediately. Mirrors the session composer's attach flow but hits
-     *  the pre-session staging endpoint, since there is no session id yet. */
+    /** Pick [uris] from the device and start staging them in parallel; each becomes a
+     *  [PendingAttachment] (Pending → Uploading → Done/Failed). */
     fun attachFiles(uris: List<Uri>, resolver: ContentResolver) {
         if (uris.isEmpty()) return
         AppLog.d("VM", "attaching ${uris.size} file(s)")
@@ -285,12 +238,9 @@ class NewRequestViewModel(
         _uiState.update { s -> s.copy(attachments = s.attachments.filterNot { it.id == id }) }
     }
 
-    /** Spawn the staging-upload coroutine for [att], flipping it Uploading → Done(token,name,path) or
-     *  Failed(reason). On completion the job is dropped from [uploadJobs] regardless of outcome.
-     *
-     *  Started LAZY and registered in [uploadJobs] BEFORE [Job.start] so the completion block's
-     *  `remove` can never run before the `put` (which would strand a finished job in the map — it
-     *  races under an immediate/synchronous completion, e.g. an oversize reject or a test dispatcher). */
+    /** Spawn the staging-upload coroutine for [att], flipping Uploading → Done/Failed.
+     *  Registered in [uploadJobs] BEFORE [Job.start] (LAZY) so the completion's remove can never
+     *  run before the put under an immediate/synchronous completion (oversize reject, test dispatcher). */
     private fun launchUpload(att: PendingAttachment, resolver: ContentResolver) {
         AppLog.d("VM", "staging upload: ${att.displayName}")
         _uiState.update { s ->
@@ -298,7 +248,7 @@ class NewRequestViewModel(
         }
         val job = viewModelScope.launch(start = CoroutineStart.LAZY) {
             val finalState: UploadState = if (att.sizeBytes > MAX_ATTACHMENT_BYTES) {
-                // Reject before reading into memory (OOM guard). sizeBytes < 0 means unknown → proceed.
+                // Reject before reading into memory (OOM guard). sizeBytes < 0 = unknown → proceed.
                 UploadState.Failed("File too large (max ${MAX_ATTACHMENT_BYTES / (1024 * 1024)} MB)")
             } else {
                 val outcome = runCatching {
@@ -310,8 +260,8 @@ class NewRequestViewModel(
                         when (r) {
                             is Outcome.Success -> {
                                 AppLog.d("VM", "staging upload done: ${r.value.path}")
-                                // Keep token + name so submit() can list this file in stagedUploads; path
-                                // goes in the prompt marker.
+                                // Keep token + name so submit() can list this file in stagedUploads;
+                                // path goes in the prompt marker.
                                 UploadState.Done(r.value.path, r.value.token, r.value.name)
                             }
                             is Outcome.Failure -> {
@@ -335,12 +285,11 @@ class NewRequestViewModel(
         job.start()
     }
 
-    /** Read a SAF/document URI to bytes via the ContentResolver (handles content:// and file://).
-     *  Throws if the stream can't be opened. */
+    /** Read a SAF/document URI to bytes via ContentResolver (handles content:// and file://). */
     private fun readBytes(resolver: ContentResolver, uri: Uri): ByteArray =
         resolver.openInputStream(uri)?.use { it.readBytes() } ?: error("Cannot open $uri")
 
-    /** Best-effort display name + size for a picker URI; falls back to the last path segment and -1. */
+    /** Best-effort display name + size; falls back to last path segment and -1. */
     private fun queryDisplayNameAndSize(resolver: ContentResolver, uri: Uri): Pair<String, Long> {
         var name = uri.lastPathSegment?.substringAfterLast('/')?.takeIf { it.isNotEmpty() } ?: "file"
         var size = -1L
@@ -357,10 +306,8 @@ class NewRequestViewModel(
         return name to size
     }
 
-    /** Build the create prompt body: the user's text plus a trailing `[attached: a, b]` marker listing
-     *  the uploads/<name> path of every successfully-staged attachment. Matches the marker the session
-     *  transcript reducer parses (and strips), so the optimistic prompt shown after navigation and the
-     *  server's eventual echo normalize to the same text. No marker when nothing staged. */
+    /** Build the create prompt body: user text + trailing `[attached: a, b]` marker listing each
+     *  staged file's uploads/<name> path. Same marker the session transcript reducer parses/strips. */
     private fun composePromptWithMarker(text: String, attachments: List<PendingAttachment>): String {
         val paths = attachments.mapNotNull { (it.state as? UploadState.Done)?.path }
         if (paths.isEmpty()) return text
@@ -368,18 +315,13 @@ class NewRequestViewModel(
         return if (text.isEmpty()) "\n\n$marker" else "$text\n\n$marker"
     }
 
-    /**
-     * Submit the form as a new session. Sets submitting=true, awaits any in-flight attachment uploads,
-     * then calls sessionsRepo.create with the staged attachments + a marker-bearing prompt:
-     * - Success: sets createdId (screen navigates away and may call setPendingPrompt).
-     * - Failure: sets a user-readable error, clears submitting.
-     */
+    /** Submit form as a new session. Awaits in-flight uploads; on success sets createdId, on failure sets error. */
     fun submit() {
         AppLog.d("VM", "submitting new session")
         val s = _uiState.value
         _uiState.update { it.copy(submitting = true, error = null) }
-        // Join any staging uploads still in flight when the user tapped Launch, so the create request's
-        // marker + stagedUploads reflect their final state (only Done files are sent).
+        // Join staging uploads still in flight at Launch so the request's marker + stagedUploads
+        // reflect final state (only Done files are sent).
         val jobsToAwait = synchronized(uploadJobs) { uploadJobs.values.toList() }
         viewModelScope.launch {
             try {
@@ -387,8 +329,8 @@ class NewRequestViewModel(
             } catch (e: CancellationException) {
                 throw e
             }
-            // Re-read after the joins: Done attachments carry their staging token/name/path; Failed
-            // ones are dropped from both the marker and stagedUploads (the user saw the error chip).
+            // Re-read after joins: Done attachments carry token/name/path; Failed are dropped from
+            // both the marker and stagedUploads (the user saw the error chip).
             val finalAtts = _uiState.value.attachments
             val staged = finalAtts.mapNotNull { att ->
                 (att.state as? UploadState.Done)?.let { d ->
@@ -397,25 +339,21 @@ class NewRequestViewModel(
             }
             val req = NewSessionReq(
                 repos = s.selectedRepos,
-                // The whitelist is dead post-cutover; gating is sent as override lists.
                 skills = emptyList(),
-                // ForceOff → hidden; ForceOn → forcedOn; Inherit → neither list
-                // Lists keyed by and emitting it.id (the canonical component identifier).
+                // ForceOff → hidden; ForceOn → forcedOn; Inherit → neither list. Keyed by it.id
+                // (the canonical component identifier).
                 hiddenSkills     = s.availableSkillComponents.filter { s.skillOverrides[it.id] == Override.ForceOff }.map { it.id },
                 forcedOnSkills   = s.availableSkillComponents.filter { s.skillOverrides[it.id] == Override.ForceOn  }.map { it.id },
-                // Plugins/MCP have no per-session selection anymore — sessions inherit the
-                // global config (managed on the Settings page).
+                // Plugins/MCP have no per-session selection — sessions inherit the global config.
                 hiddenPlugins    = emptyList(),
                 forcedOnPlugins  = emptyList(),
                 hiddenMcpServers   = emptyList(),
                 forcedOnMcpServers = emptyList(),
-                // Session-scoped ad-hoc MCP servers were removed from the UI — component
-                // management (add/remove) lives on the Settings page; this screen only selects.
                 extraMcpServers  = emptyList(),
                 prompt = composePromptWithMarker(s.prompt, finalAtts),
                 model = s.model,
-                // Ultracode always runs at xhigh effort — preserve that invariant even if a template
-                // set mode=ultracode with a different effort (the Effort slider folds the two together).
+                // Ultracode always runs at xhigh — enforce the invariant in case a template set
+                // mode=ultracode with a different effort.
                 effort = if (s.mode == "ultracode") "xhigh" else s.effort,
                 mode = s.mode,
                 permissionMode = s.permissionMode,

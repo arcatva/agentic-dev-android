@@ -14,21 +14,7 @@ import java.util.Locale
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
-/**
- * Owns the on-disk log directory and everything we do with it: where the rolling logcat capture
- * file lives, where crash reports are written, zipping the whole lot for export/share, reading the
- * tail for the in-app viewer, clearing, and tracking which crashes the user has already seen.
- *
- * Everything lives under app-private storage ([Context.getFilesDir]), so no runtime permission is
- * needed and the files survive a crash — [LogcatCollector] flushes the capture, and [writeCrash]
- * writes a standalone report synchronously before the process dies.
- *
- * Thread-safety: writes come from at most two places at once — the background logcat thread (which
- * only touches [logFile] + its rotations via [LogcatCollector]) and the main/VM thread (crash
- * report writes, export, clear). Those touch disjoint files, except [clear], which truncates
- * [logFile]. To avoid racing the collector's open writer, the caller ([dev.agentic.ui.diagnostics]
- * DiagnosticsViewModel.clear) stops the collector around [clear] and restarts it afterwards.
- */
+/** Owns the on-disk logs dir: rolling logcat capture, crash reports, zip export, tail viewer, clear, seen-state. App-private storage (no permission); [clear] must be called while the collector is stopped to avoid racing its open writer. */
 class LogStore(private val context: Context) {
 
     /** filesDir/logs — holds the rolling logcat capture, its rotations, and a crashes/ subdir. */
@@ -42,22 +28,14 @@ class LogStore(private val context: Context) {
 
     private val prefs = context.getSharedPreferences("agentic_logs", Context.MODE_PRIVATE)
 
-    /**
-     * Whether "Verbose logging" is enabled — drives BOTH the verbose seams ([AppLog.verbose]) and the
-     * rolling logcat→file capture. Default OFF: normal runs are quiet and the captured file stays small;
-     * the user turns it on from Diagnostics to reproduce a bug. Crash reports are ALWAYS written
-     * regardless (the crash handler is independent), so a crash is never lost even with this off.
-     */
+    /** Verbose-logging gate (drives [AppLog.verbose] and the logcat→file capture). Crash reports write independently and are never lost when this is off. */
     var captureEnabled: Boolean
         get() = prefs.getBoolean(KEY_CAPTURE_ENABLED, false)
         set(value) { prefs.edit().putBoolean(KEY_CAPTURE_ENABLED, value).apply() }
 
     // ── Crash reports ─────────────────────────────────────────────────────────
 
-    /**
-     * Writes a standalone crash report and prunes old ones. Best-effort and never throws — it runs
-     * inside the uncaught-exception handler, where a second failure would be useless.
-     */
+    /** Writes a standalone crash report and prunes old ones. Best-effort, never throws (runs inside the uncaught-exception handler). */
     fun writeCrash(thread: Thread, error: Throwable) {
         runCatching {
             val file = File(crashesDir, "crash-${fileTs()}.txt")
@@ -85,11 +63,7 @@ class LogStore(private val context: Context) {
         return crashReports().filter { it.lastModified() > seenAt }
     }
 
-    /**
-     * Mark all current crashes as seen so the next-launch prompt doesn't re-fire for them. Anchors
-     * the marker to the newest crash file's mtime (not the wall clock) so a backward clock jump
-     * between the crash and the acknowledgment can't make an already-seen crash look unseen again.
-     */
+    /** Mark all current crashes as seen so the next-launch prompt doesn't re-fire. Anchors the marker to the newest crash file's mtime (not the wall clock) so a backward clock jump between crash and ack can't make a seen crash look unseen again. */
     fun markCrashesSeen() {
         val newest = crashReports().firstOrNull()?.lastModified() ?: System.currentTimeMillis()
         prefs.edit().putLong(KEY_CRASHES_SEEN_AT, newest).apply()
@@ -102,10 +76,7 @@ class LogStore(private val context: Context) {
 
     // ── In-app viewer ─────────────────────────────────────────────────────────
 
-    /**
-     * Returns the last [maxBytes] bytes of the active capture file for the in-app viewer. We tail
-     * rather than load the whole file so a multi-megabyte log never blows up Compose / memory.
-     */
+    /** Tail (last [maxBytes]) of the active capture file. Tails rather than loads whole file so multi-MB logs don't blow Compose / memory. */
     fun tail(maxBytes: Long = 256L * 1024): String = runCatching {
         val file = logFile
         if (!file.exists()) return@runCatching ""
@@ -124,11 +95,7 @@ class LogStore(private val context: Context) {
 
     // ── Export ────────────────────────────────────────────────────────────────
 
-    /**
-     * Zips the whole logs dir (rolling capture + rotations + crashes) plus a device-info header
-     * into cacheDir/log-exports and returns the zip. The caller shares it via FileProvider. Old
-     * exports are deleted first so the share sheet never offers a stale file.
-     */
+    /** Zips the logs dir (capture + rotations + crashes) plus a device-info header into cacheDir/log-exports. Old exports deleted first so the share sheet never offers a stale file. */
     fun exportZip(): File {
         val exportsDir = File(context.cacheDir, EXPORTS_DIR).apply { mkdirs() }
         exportsDir.listFiles()?.forEach { runCatching { it.delete() } }
@@ -148,8 +115,7 @@ class LogStore(private val context: Context) {
         } else {
             runCatching {
                 zos.putNextEntry(ZipEntry(entryPath))
-                // closeEntry() in finally: if the copy throws (disk full, concurrent change), the
-                // entry is still closed so the stream stays valid and remaining files still zip.
+                // closeEntry() in finally: if the copy throws (disk full, concurrent change), the entry is still closed so the stream stays valid and remaining files still zip.
                 try {
                     file.inputStream().use { it.copyTo(zos) }
                 } finally {
@@ -185,8 +151,7 @@ class LogStore(private val context: Context) {
         private const val KEY_CAPTURE_ENABLED = "capture_enabled"
         private const val KEY_CRASHES_SEEN_AT = "crashes_seen_at"
 
-        // SimpleDateFormat is not thread-safe; build a fresh instance per call (cheap, and these
-        // are not hot paths). Locale.US keeps the timestamps stable regardless of device locale.
+        // SimpleDateFormat is not thread-safe; build a fresh instance per call. Locale.US keeps timestamps stable regardless of device locale.
         private fun fileTs(): String = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
         private fun humanTs(): String = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())
 

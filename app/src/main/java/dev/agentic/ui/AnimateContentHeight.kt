@@ -15,26 +15,13 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.layout.layout
 import kotlinx.coroutines.launch
 
-/**
- * Like [androidx.compose.animation.animateContentSize] but animates ONLY the height. The width is
- * reported as the child's measured width on every frame, so a full-width card snaps to the new width
- * instantly when the window is resized — it never visibly grows from short to long. Height changes
- * (expand/collapse, text streaming in) still animate smoothly.
- *
- * Why not `animateContentSize`: it animates the whole `IntSize`, so on a live width change (a window
- * resize / unfold / split-screen drag) a `fillMaxWidth` card animates its WIDTH too, which reads as
- * inconsistent next to the cards that snap. This keeps the smooth height feel without the width grow.
- *
- * The height animation defaults to the app motion layer's spatial spec ([appSpatialSpec]) so it
- * matches the rest of the app's spring feel; pass [animationSpec] to override.
- */
+/** Like [androidx.compose.animation.animateContentSize] but height-only — width snaps instantly so resize doesn't grow fillMaxWidth cards. */
 fun Modifier.animateContentHeight(
     animationSpec: FiniteAnimationSpec<Int>? = null,
 ): Modifier = composed {
     val spec = animationSpec ?: appSpatialSpec<Int>()
     val scope = rememberCoroutineScope()
-    // Created lazily on the first measure so it seeds to the initial height — no grow-in from 0 when
-    // the card first appears (matches animateContentSize, which snaps on first composition).
+    // Seed lazily on first measure to the initial height (no grow-in from 0), matching animateContentSize.
     var animatable by remember { mutableStateOf<Animatable<Int, AnimationVector1D>?>(null) }
     clipToBounds().layout { measurable, constraints ->
         val placeable = measurable.measure(constraints)
@@ -43,7 +30,6 @@ fun Modifier.animateContentHeight(
         if (anim.targetValue != targetHeight) {
             scope.launch { anim.animateTo(targetHeight, spec) }
         }
-        // Report the child's real width (snaps instantly) but the animated height.
         layout(placeable.width, anim.value) {
             placeable.place(0, 0)
         }

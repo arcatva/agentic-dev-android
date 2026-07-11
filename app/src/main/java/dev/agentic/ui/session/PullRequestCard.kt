@@ -41,23 +41,11 @@ import dev.agentic.ui.OnAccentCyanContainer
 import dev.agentic.ui.animateContentHeight
 import dev.agentic.ui.fadingEdgeBottom
 
-// Collapse a PR description longer than this (lines OR chars) behind a Show-more toggle, so a long PR
-// body can never bloat the card — the "again long and ugly" complaint was the whole message being
-// crammed in; here the focused PR description still shows, but capped by default.
+// Cap collapsed PR description preview by lines AND chars so a one-line 500-char body is actually shortened.
 private const val PR_BODY_PREVIEW_LINES = 8
 private const val PR_BODY_PREVIEW_CHARS = 400
 
-/**
- * Renders a [PrNode] — a pull request the session created, detected and enriched (title + description +
- * state) by the backend and delivered as its own `kind:pr` frame — as a compact, cyan-accent card. One
- * card per PR; it stands on its own in the transcript, never merged into the assistant's prose.
- *
- * Layout: a tap-to-open header (PR title prominent, `owner/repo #number` as the overline, a merge +
- * open-in-new icon) over the PR description as markdown. The description is capped to a short preview by
- * default and reveals the rest with Show more. Cyan family ([AccentCyanContainer] /
- * [OnAccentCyanContainer]) matches the skill chips so PRs read as their own kind of event. The header is
- * non-selectable (a tap opens the PR instead of starting a transcript selection); the body stays selectable.
- */
+/** Compact cyan card for a [PrNode] delivered as a `kind:pr` frame; one card per PR. */
 @Composable
 fun PrCard(node: PrNode, modifier: Modifier = Modifier) {
     val uriHandler = LocalUriHandler.current
@@ -66,9 +54,7 @@ fun PrCard(node: PrNode, modifier: Modifier = Modifier) {
 
     val bodyLines = node.body.lines()
     val isLong = bodyLines.size > PR_BODY_PREVIEW_LINES || node.body.length > PR_BODY_PREVIEW_CHARS
-    // Collapsed preview is capped by BOTH lines and chars, so a body that is long only by character
-    // count (e.g. one 500-char line) is actually shortened — otherwise "Show more" would show but
-    // reveal nothing new.
+    // Both line- and char-cap so a single very long line is actually shortened.
     val shownBody = if (expanded || !isLong) node.body
         else bodyLines.take(PR_BODY_PREVIEW_LINES).joinToString("\n").take(PR_BODY_PREVIEW_CHARS).trimEnd()
 
@@ -78,14 +64,12 @@ fun PrCard(node: PrNode, modifier: Modifier = Modifier) {
         modifier = modifier.fillMaxWidth(),
     ) {
         Column {
-            // Header — tap anywhere opens the PR. Padding is INSIDE the clickable so the press ripple
-            // covers the whole row (clipped to the card shape), matching the other inline cards.
+            // Header: padding is INSIDE the clickable so the ripple covers the whole row.
             DisableSelection {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        // runCatching: a device with no browser / restricted intent handling would
-                        // otherwise crash on openUri (ActivityNotFoundException) — swallow it.
+                        // Swallow ActivityNotFoundException on devices with no browser.
                         .clickable { runCatching { uriHandler.openUri(node.url) } }
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -112,12 +96,7 @@ fun PrCard(node: PrNode, modifier: Modifier = Modifier) {
             }
             if (node.body.isNotBlank()) {
                 HorizontalDivider(color = onContainer.copy(alpha = 0.15f))
-                // Description + toggle animate their height together on expand/collapse (the app's
-                // spring spec, via animateContentHeight). While collapsed, the preview dissolves at the
-                // bottom (fadingEdgeBottom) instead of ending on a hard cut, hinting there's more.
                 Column(Modifier.animateContentHeight()) {
-                    // Keep code blocks / tables in the card's cyan accent family instead of the neutral
-                    // surface defaults — a light veil of the on-container color reads as an inset.
                     MarkdownText(
                         shownBody,
                         modifier = Modifier
@@ -129,7 +108,6 @@ fun PrCard(node: PrNode, modifier: Modifier = Modifier) {
                         tableDivider = onContainer.copy(alpha = 0.22f),
                     )
                     if (isLong) {
-                        // A real M3 text button (ripple, shape, touch target) instead of a bare Row.
                         DisableSelection {
                             TextButton(
                                 onClick = { expanded = !expanded },
@@ -155,8 +133,7 @@ fun PrCard(node: PrNode, modifier: Modifier = Modifier) {
     }
 }
 
-/** The card overline: `owner/repo #number`, plus the PR state when it isn't the default "open"
- *  (so a merged/closed PR reads clearly; freshly-created PRs are open and stay uncluttered). */
+/** PR overline: `owner/repo #number`, state appended only when not "open". */
 private fun prOverline(node: PrNode): String = buildString {
     append(node.repo.ifBlank { "pull request" })
     if (node.number > 0) append(" #${node.number}")

@@ -4,12 +4,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/**
- * [LogNoise] drops framework spam BEFORE it reaches the capture file. Motivating case: on Samsung
- * Android 16 (SM-F966B), `View: setRequestedFrameRate` is logged at INFO on every Compose draw —
- * 8288 of 8957 lines (92.5%) in a real diagnostic export, shrinking the 4 MB rotation budget to
- * ~38 seconds of history and washing out the app's own Nav/Auth lines.
- */
+// LogNoise drops framework spam (e.g. Samsung Android 16's 92.5% setRequestedFrameRate INFO spam) before it hits the capture file.
 class LogNoiseTest {
 
     @Test

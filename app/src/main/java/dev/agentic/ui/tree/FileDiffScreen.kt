@@ -52,21 +52,20 @@ private val DelBg = Color(0x33E05656)
 private val AddFg = Color(0xFF8FE3AD)
 private val DelFg = Color(0xFFEDA3A3)
 
-/** A flattened render item: either a hunk header or a single diff line. [text] is the display-ready
- *  content (tabs already expanded), precomputed once when the diff is flattened. */
+/** A flattened render item: hunk header OR single diff line. [text] is display-ready (tabs expanded),
+ *  precomputed once when the diff is flattened. */
 private sealed interface DiffRow {
     data class Header(val hunk: DiffHunk) : DiffRow
     data class Line(val line: DiffLine, val text: String) : DiffRow
 }
 
 /**
- * Full-screen line-level diff for ONE file. Stateless: all state lives in [FileDiffViewModel],
- * created inline from the type-safe route args (id/repo/sha/path) via [SavedStateHandle] — the same
- * pattern as [CommitGraphScreen].
+ * Full-screen line-level diff for ONE file. Stateless: state lives in [FileDiffViewModel], created
+ * inline from the type-safe route args (id/repo/sha/path) via [SavedStateHandle] — same pattern as
+ * [CommitGraphScreen].
  *
- * Renders each line monospace with a fixed gutter (old line no | new line no | +/-/space marker)
- * and a per-kind background. Long lines wrap (the gutter stays top-aligned); syntax highlighting is
- * intentionally deferred — this ships the readable text first.
+ * Renders each line monospace with a fixed gutter (old no | new no | +/-/space marker) + per-kind
+ * background. Long lines wrap (gutter stays top-aligned); syntax highlighting intentionally deferred.
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -177,7 +176,7 @@ private fun TruncatedBanner() {
     }
 }
 
-/** A "@@ -a,b +c,d @@ heading" separator between hunks. */
+/** "@@ -a,b +c,d @@ heading" separator between hunks. */
 @Composable
 private fun HunkHeaderRow(hunk: DiffHunk) {
     val range = "@@ -${hunk.oldStart},${hunk.oldLines} +${hunk.newStart},${hunk.newLines} @@"
@@ -198,10 +197,10 @@ private fun HunkHeaderRow(hunk: DiffHunk) {
 private val GUTTER_NUM_WIDTH = 38.dp
 private val GUTTER_MARK_WIDTH = 14.dp
 
-/** One diff line: [old no][new no][marker] content, monospace, tinted by kind. Long lines wrap; the
- *  gutter is top-aligned so the numbers sit at the first visual row of a wrapped line. [text] is the
- *  display-ready content (tabs already expanded by the flatten step). Individual vals (no Triple) so
- *  scrolling a large diff doesn't allocate per row. */
+/** One diff line: [old no][new no][marker] content, monospace, tinted by kind. Long lines wrap;
+ *  gutter top-aligned so numbers sit at first visual row of a wrapped line. [text] is display-ready
+ *  (tabs expanded by the flatten step). Individual vals (no Triple) so scrolling a large diff
+ *  doesn't allocate per row. */
 @Composable
 private fun DiffLineRow(line: DiffLine, text: String) {
     val isAdd = line.kind == "add"

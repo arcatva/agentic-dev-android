@@ -21,7 +21,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
-/** Fade the content out over the trailing [width] px (right edge) using an offscreen DstIn mask. */
+/** Fade the trailing [width] px (right edge) via an offscreen DstIn mask. */
 fun Modifier.fadingEdge(width: Dp = 28.dp): Modifier = this
     .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
     .drawWithContent {
@@ -37,9 +37,7 @@ fun Modifier.fadingEdge(width: Dp = 28.dp): Modifier = this
         )
     }
 
-/** Fade the content out over the trailing [height] px (bottom edge) using an offscreen DstIn mask —
- *  the vertical counterpart of [fadingEdge], for a clipped block (e.g. a collapsed description) that
- *  should dissolve into the surface instead of ending on a hard cut. */
+/** Vertical counterpart of [fadingEdge] for a clipped block that should dissolve into the surface. */
 fun Modifier.fadingEdgeBottom(height: Dp = 32.dp): Modifier = this
     .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
     .drawWithContent {
@@ -55,11 +53,7 @@ fun Modifier.fadingEdgeBottom(height: Dp = 32.dp): Modifier = this
         )
     }
 
-/**
- * Fade content out over [width] px at the left and/or right edge using an offscreen DstIn mask.
- * [fadeStart] / [fadeEnd] are evaluated at draw time, so a horizontally-scrollable row can fade only
- * the edge that actually has off-screen content — left once scrolled, right while more remains.
- */
+/** Fade [width] px at left/right; [fadeStart]/[fadeEnd] evaluated at draw time so only the edge with off-screen content fades. */
 fun Modifier.fadingEdgeHorizontal(
     width: Dp = 28.dp,
     fadeStart: () -> Boolean = { true },
@@ -91,12 +85,7 @@ fun Modifier.fadingEdgeHorizontal(
         }
     }
 
-/**
- * Fade content out over [height] px at the top and/or bottom edge using an offscreen DstIn mask —
- * the vertical counterpart of [fadingEdgeHorizontal]. [fadeTop] / [fadeBottom] are evaluated at
- * draw time, so a vertically-scrollable block can fade only the edge that actually has off-screen
- * content — top once scrolled down, bottom while more remains below.
- */
+/** Vertical counterpart of [fadingEdgeHorizontal]; fade* evaluated at draw time. */
 fun Modifier.fadingEdgeVertical(
     height: Dp = 24.dp,
     fadeTop: () -> Boolean = { true },
@@ -128,7 +117,7 @@ fun Modifier.fadingEdgeVertical(
         }
     }
 
-/** Single-line text that fades out at the right edge when it overflows (instead of an ellipsis). */
+/** Single-line text that fades at the right edge instead of ellipsizing when it overflows. */
 @Composable
 fun FadingText(
     text: String,

@@ -4,7 +4,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-/** In-memory SettingsStore for unit tests. No Android dependencies. */
+// In-memory SettingsStore for unit tests.
 class FakeSettingsStore(initialHost: String = "http://localhost:7420") : SettingsStore {
     private val _token = MutableStateFlow<String?>(null)
     override val token: StateFlow<String?> = _token.asStateFlow()

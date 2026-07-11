@@ -11,26 +11,15 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
 /**
- * Polls workflow-run and outbox endpoints on behalf of the UI.
- *
- * Both [runsStream] and [outboxStream] use [pollFlow] at 2500 ms and apply a last-good-on-error
- * strategy: a failed tick re-emits the previous successful value so the UI never sees an empty
- * list due to a transient network blip.
- *
- * POLL STOP RULE: the Flow stops when the collector cancels (i.e. when the ViewModel's
- * coroutine scope is cancelled or the collector calls `cancel()`). There is intentionally NO
- * session-status stop baked in here — the ViewModel controls subscription lifetime. This is a
- * deliberate MVVM deviation from the old SessionScreen (line 558-568) which combined the poll
- * and stop-when-all-done logic in one loop.
+ * Polls workflow-run and outbox endpoints on behalf of the UI. Both streams use [pollFlow] at 2500 ms
+ * and keep-last-good-on-error so a transient blip never surfaces as an empty list.
+ * The Flow stops when the collector cancels (the ViewModel controls subscription lifetime; no session-status stop is baked in here).
  */
 class WorkflowsRepository(
     private val api: AgenticApi,
     private val scope: CoroutineScope,
 ) {
-    /**
-     * Cold flow that polls `api.workflows(id)` every 2500 ms. Keeps the last successful list
-     * when a tick throws (network blips do not surface to the UI as empty).
-     */
+    /** Cold flow that polls `api.workflows(id)` every 2500 ms, keeping the last successful list on error. */
     fun runsStream(id: String): Flow<List<WorkflowRun>> = flow {
         val pollLog = PollLogState()
         val subject = "runs(id=${id.take(8)})"
@@ -46,22 +35,14 @@ class WorkflowsRepository(
         }.collect { emit(it) }
     }
 
-    /**
-     * Best-effort fetch of the agent transcript. Returns empty string on any error (matches old
-     * WorkflowScreen line 246 behaviour — no error UI for a transcript load failure).
-     */
+    /** Best-effort: empty string on any error (no error UI for a transcript load failure). */
     suspend fun agentTranscript(id: String, runId: String, agentId: String): String =
         runCatching { api.workflowAgent(id, runId, agentId) }.getOrElse {
             AppLog.v("WFlow", "agentTranscript failed: ${it.message}")
             ""
         }
 
-    /**
-     * Cold flow that polls `api.outbox(id)` every 2500 ms and maps each [dev.agentic.data.net.SharedFile]
-     * to an [AttachmentNode]. `SharedFile.mtime` is a Double (fractional millis from Node.js
-     * `statSync.mtimeMs`) and is converted with [Double.toLong] (matches SessionScreen line 561).
-     * Last-good-on-error strategy applies identically to [runsStream].
-     */
+    /** Cold flow that polls `api.outbox(id)` every 2500 ms; SharedFile.mtime is Double (fractional ms from Node.js statSync.mtimeMs), converted with .toLong(). Last-good-on-error same as [runsStream]. */
     fun outboxStream(id: String): Flow<List<AttachmentNode>> = flow {
         val pollLog = PollLogState()
         val subject = "outbox(id=${id.take(8)})"
