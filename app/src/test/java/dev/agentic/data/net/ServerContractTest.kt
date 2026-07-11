@@ -35,7 +35,7 @@ class ServerContractTest {
     private fun fixture(): String =
         requireNotNull(javaClass.classLoader?.getResourceAsStream("contract/session-sample.json")) {
             "missing test resource contract/session-sample.json"
-        }.bufferedReader().readText()
+        }.bufferedReader().use { it.readText() }
 
     @Test
     fun `decodes a real fully-populated server Session`() {
