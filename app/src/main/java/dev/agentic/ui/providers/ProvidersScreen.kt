@@ -32,6 +32,8 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.ExpandLess
+import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
@@ -60,6 +62,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -83,6 +86,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import dev.agentic.data.net.NativeFamily
+import dev.agentic.data.net.NativeOverrideReq
 import dev.agentic.data.net.NewProviderReq
 import dev.agentic.data.net.Provider
 import dev.agentic.di.appContainer
@@ -319,6 +324,9 @@ fun ModelsSections() {
             }
         }
     }
+
+    // Claude Code official (native) models — per-family routing override editor.
+    NativeModelsSection()
 }
 
 // ── Router color helpers ──────────────────────────────────────────────────
@@ -762,4 +770,168 @@ private fun ProtocolSelector(selected: String, enabled: Boolean, onSelect: (Stri
             }
         }
     }
+}
+
+// ── Claude Code official (native) models — collapsible per-family override section ──
+
+@Composable
+private fun NativeModelsSection() {
+    val container = appContainer()
+    val vm: NativeModelsViewModel = viewModel(
+        factory = viewModelFactory { initializer { NativeModelsViewModel(container.api) } },
+    )
+    val ui by vm.uiState.collectAsStateWithLifecycle()
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    var editing by remember { mutableStateOf<NativeFamily?>(null) }
+
+    SectionCard(
+        title = "Claude Code official models",
+        trailing = {
+            IconButton(onClick = { expanded = !expanded }) {
+                Icon(
+                    if (expanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                    contentDescription = if (expanded) "Collapse" else "Expand",
+                )
+            }
+        },
+    ) {
+        // Single Column child so a collapsed AnimatedVisibility doesn't double the card's gap.
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            // Errors render regardless of expand state — a save/reset failure while collapsed
+            // must not be silent.
+            val err = ui.error
+            if (err != null) {
+                Text(err, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            }
+            AnimatedVisibility(
+                visible = expanded,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut(),
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    when {
+                        // Spinner only on the FIRST load (empty list); a post-edit refresh updates
+                        // the cards in place instead of flashing the whole list to a spinner.
+                        ui.loading && ui.families.isEmpty() -> LoadingIndicator()
+                        ui.families.isEmpty() -> Text(
+                            "No native Claude models discovered.",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        else -> ui.families.forEach { fam ->
+                            key(fam.family) {
+                                NativeFamilyCard(fam, ui.busy, onEdit = { editing = fam })
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    val target = editing
+    if (target != null) {
+        NativeOverrideDialog(
+            family = target,
+            busy = ui.busy,
+            onDismiss = { editing = null },
+            onSave = { req -> vm.save(target.family, req) { e -> if (e == null) editing = null } },
+            onReset = { vm.reset(target.family); editing = null },
+        )
+    }
+}
+
+@Composable
+private fun NativeFamilyCard(fam: NativeFamily, busy: Boolean, onEdit: () -> Unit) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shape = MaterialTheme.shapes.medium,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text(fam.label, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                        if (fam.customized) {
+                            Text(
+                                "Customized",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Bold,
+                            )
+                        }
+                    }
+                    if (fam.models.isNotEmpty()) {
+                        Text(
+                            fam.models.joinToString(", ") { it.id },
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                if (fam.editable) {
+                    IconButton(onClick = onEdit, enabled = !busy) {
+                        Icon(Icons.Rounded.Edit, contentDescription = "Edit ${fam.label}")
+                    }
+                }
+            }
+            val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+            val barColor = MaterialTheme.colorScheme.primary
+            val trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
+            MetricRow("Capability", fam.capability, barColor, trackColor, labelColor)
+            MetricRow("Priority", fam.priority, barColor, trackColor, labelColor)
+            MetricRow("Cost", fam.cost, barColor, trackColor, labelColor)
+        }
+    }
+}
+
+@Composable
+private fun NativeOverrideDialog(
+    family: NativeFamily,
+    busy: Boolean,
+    onDismiss: () -> Unit,
+    onSave: (NativeOverrideReq) -> Unit,
+    onReset: () -> Unit,
+) {
+    var capability by remember(family.family) { mutableFloatStateOf(family.capability) }
+    var priority by remember(family.family) { mutableFloatStateOf(family.priority) }
+    var cost by remember(family.family) { mutableFloatStateOf(family.cost) }
+    var description by remember(family.family) { mutableStateOf(family.description) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("${family.label} routing") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                FloatSliderField(label = "Capability", value = { capability }, onValueChange = { capability = it })
+                FloatSliderField(label = "Scheduling priority", value = { priority }, onValueChange = { priority = it })
+                FloatSliderField(label = "Relative cost (0 = cheapest)", value = { cost }, onValueChange = { cost = it })
+                AppTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    placeholder = "Good at (the router reads this)",
+                    enabled = !busy,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                if (family.customized) {
+                    TextButton(onClick = onReset, enabled = !busy) {
+                        Text("Reset to default", color = MaterialTheme.colorScheme.error)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = !busy,
+                onClick = {
+                    onSave(NativeOverrideReq(capability = capability, priority = priority, cost = cost, description = description))
+                },
+            ) { Text("Save") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
 }
