@@ -336,8 +336,49 @@ class GlobalSettingsViewModelTest {
         vm.installSkill("anthropics/skills/skills/pdf")
         advanceUntilIdle()
 
-        assertEquals(listOf("anthropics/skills/skills/pdf"), api.installSkillCalls)
+        assertEquals(listOf("anthropics/skills/skills/pdf" to false), api.installSkillCalls)
         assertEquals(listOf(installed), vm.uiState.value.components)
+        assertFalse(vm.uiState.value.busy)
+    }
+
+    @Test fun `installSkill update flag reaches API`() = runTest(dispatcher) {
+        api.installSkillResult = listOf(skill("pdf", "pdf", true))
+        val vm = vm()
+        advanceUntilIdle()
+
+        vm.installSkill("anthropics/skills/skills/pdf", update = true)
+        advanceUntilIdle()
+        assertEquals(listOf("anthropics/skills/skills/pdf" to true), api.installSkillCalls)
+    }
+
+    @Test fun `addSource updates sources and force-refreshes the catalog`() = runTest(dispatcher) {
+        api.skillCatalogResult = emptyList()
+        val vm = vm()
+        advanceUntilIdle()
+
+        vm.addSource("me/my-skills")
+        advanceUntilIdle()
+
+        assertEquals(listOf("me/my-skills"), api.addSkillSourceCalls)
+        assertTrue(vm.uiState.value.sources!!.contains("me/my-skills"))
+        // The follow-up catalog reload bypassed the cache.
+        assertTrue(api.skillCatalogRefreshCalls.contains(true))
+        assertFalse(vm.uiState.value.busy)
+    }
+
+    @Test fun `removeSource updates sources and surfaces failure`() = runTest(dispatcher) {
+        val vm = vm()
+        advanceUntilIdle()
+
+        vm.removeSource("anthropics/skills")
+        advanceUntilIdle()
+        assertEquals(listOf("anthropics/skills"), api.deleteSkillSourceCalls)
+        assertEquals(emptyList<String>(), vm.uiState.value.sources)
+
+        api.deleteSkillSourceException = RuntimeException("nope")
+        vm.removeSource("x/y")
+        advanceUntilIdle()
+        assertNotNull(vm.uiState.value.error)
         assertFalse(vm.uiState.value.busy)
     }
 

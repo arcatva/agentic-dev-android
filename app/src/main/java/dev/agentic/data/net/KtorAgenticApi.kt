@@ -739,23 +739,62 @@ class KtorAgenticApi(
         }
     }
 
-    override suspend fun getSkillCatalog(): List<CatalogSkill> {
+    override suspend fun getSkillCatalog(refresh: Boolean): SkillCatalogResp {
         return try {
-            val r: SkillCatalogResp = client.get("$baseUrl/api/skills/catalog") { auth() }.body()
-            AppLog.d("API", "GET skills/catalog -> OK (${r.skills.size})")
-            r.skills
+            val r: SkillCatalogResp = client.get("$baseUrl/api/skills/catalog") {
+                auth(); if (refresh) parameter("refresh", "true")
+            }.body()
+            AppLog.d("API", "GET skills/catalog refresh=$refresh -> OK (${r.skills.size}, ${r.errors.size} errors)")
+            r
         } catch (e: Exception) {
             AppLog.w("API", "GET skills/catalog -> FAILED: ${e.message}")
             throw e
         }
     }
 
-    override suspend fun installSkill(source: String): List<ComponentInfo> {
+    override suspend fun getSkillSources(): List<String> {
+        return try {
+            val r: SkillSourcesResp = client.get("$baseUrl/api/skills/sources") { auth() }.body()
+            AppLog.d("API", "GET skills/sources -> OK (${r.sources.size})")
+            r.sources
+        } catch (e: Exception) {
+            AppLog.w("API", "GET skills/sources -> FAILED: ${e.message}")
+            throw e
+        }
+    }
+
+    override suspend fun addSkillSource(source: String): List<String> {
+        return try {
+            val r: SkillSourcesResp = client.post("$baseUrl/api/skills/sources") {
+                auth(); contentType(ContentType.Application.Json); setBody(AddSkillSourceReq(source))
+            }.body()
+            AppLog.d("API", "POST skills/sources source=$source -> OK")
+            r.sources
+        } catch (e: Exception) {
+            AppLog.w("API", "POST skills/sources -> FAILED: ${e.message}")
+            throw e
+        }
+    }
+
+    override suspend fun deleteSkillSource(source: String): List<String> {
+        return try {
+            val r: SkillSourcesResp = client.delete("$baseUrl/api/skills/sources") {
+                auth(); parameter("source", source)
+            }.body()
+            AppLog.d("API", "DELETE skills/sources source=$source -> OK")
+            r.sources
+        } catch (e: Exception) {
+            AppLog.w("API", "DELETE skills/sources -> FAILED: ${e.message}")
+            throw e
+        }
+    }
+
+    override suspend fun installSkill(source: String, update: Boolean): List<ComponentInfo> {
         return try {
             val r: List<ComponentInfo> = client.post("$baseUrl/api/skills/install") {
-                auth(); contentType(ContentType.Application.Json); setBody(InstallSkillReq(source))
+                auth(); contentType(ContentType.Application.Json); setBody(InstallSkillReq(source, update))
             }.body()
-            AppLog.d("API", "POST skills/install source=$source -> OK")
+            AppLog.d("API", "POST skills/install source=$source update=$update -> OK")
             r
         } catch (e: Exception) {
             AppLog.w("API", "POST skills/install -> FAILED: ${e.message}")

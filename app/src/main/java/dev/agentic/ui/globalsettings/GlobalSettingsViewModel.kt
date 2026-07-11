@@ -29,11 +29,16 @@ data class GlobalSettingsUiState(
      * because these ops are serialized one-at-a-time (parallel CRUD on the same list is unsafe).
      */
     val busy: Boolean = false,
-    // ── External skill store (GET /api/skills/catalog) ──
+    // ── External skill store (GET /api/skills/catalog + /api/skills/sources) ──
     /** null = not fetched yet; loaded lazily when the Install mode is first shown. */
     val catalog: List<CatalogSkill>? = null,
+    /** Per-source scan failures — the rest of the store still renders. */
+    val catalogErrors: List<String> = emptyList(),
     val catalogLoading: Boolean = false,
+    /** Transport-level failure (the whole catalog request failed). */
     val catalogError: String? = null,
+    /** Configured store sources; null = not fetched yet. */
+    val sources: List<String>? = null,
 )
 
 /**
@@ -159,8 +164,8 @@ class GlobalSettingsViewModel(
     /** Add a skill globally — [instructions] is the SKILL.md markdown body (what the agent
      *  actually loads and follows). Calls the API and replaces the component list from the
      *  response. No-ops silently while another op is busy (the UI must also disable submit). */
-    fun addSkill(name: String, description: String, instructions: String) {
-        if (!acquireBusy()) return
+    fun addSkill(name: String, description: String, instructions: String): Boolean {
+        if (!acquireBusy()) return false
         viewModelScope.launch {
             try {
                 val refreshed = api.addSkill(name, description, instructions)
@@ -169,34 +174,75 @@ class GlobalSettingsViewModel(
                 _uiState.update { it.copy(busy = false, error = "Failed to add skill: ${e.message}") }
             }
         }
+        return true
     }
 
-    /** Load the external skill catalog (once — subsequent calls no-op unless it failed). */
-    fun loadCatalog() {
+    /** Load the external skill store — catalog (aggregated across sources) + the source list.
+     *  Without [force], no-ops when already loaded; [force] bypasses the server-side cache too. */
+    fun loadCatalog(force: Boolean = false) {
         val s = _uiState.value
-        if (s.catalogLoading || (s.catalog != null && s.catalogError == null)) return
+        if (s.catalogLoading) return
+        if (!force && s.catalog != null && s.catalogError == null) return
         _uiState.update { it.copy(catalogLoading = true, catalogError = null) }
         viewModelScope.launch {
             try {
-                val skills = api.getSkillCatalog()
-                _uiState.update { it.copy(catalog = skills, catalogLoading = false) }
+                val resp = api.getSkillCatalog(refresh = force)
+                val sources = api.getSkillSources()
+                _uiState.update {
+                    it.copy(
+                        catalog = resp.skills,
+                        catalogErrors = resp.errors,
+                        sources = sources,
+                        catalogLoading = false,
+                    )
+                }
             } catch (e: Exception) {
-                _uiState.update { it.copy(catalogLoading = false, catalogError = "Couldn't load the catalog: ${e.message}") }
+                _uiState.update { it.copy(catalogLoading = false, catalogError = "Couldn't load the store: ${e.message}") }
             }
         }
     }
 
-    /** Install a skill from a GitHub source (catalog entry or user-supplied URL/ref). */
-    fun installSkill(source: String) {
+    /** Add a store source, then rescan the catalog so its skills appear immediately. */
+    fun addSource(source: String) {
         if (!acquireBusy()) return
         viewModelScope.launch {
             try {
-                val refreshed = api.installSkill(source)
+                val sources = api.addSkillSource(source)
+                _uiState.update { it.copy(sources = sources, busy = false, error = null) }
+                loadCatalog(force = true)
+            } catch (e: Exception) {
+                _uiState.update { it.copy(busy = false, error = "Failed to add source: ${e.message}") }
+            }
+        }
+    }
+
+    /** Remove a store source, then rescan the catalog so its skills disappear. */
+    fun removeSource(source: String) {
+        if (!acquireBusy()) return
+        viewModelScope.launch {
+            try {
+                val sources = api.deleteSkillSource(source)
+                _uiState.update { it.copy(sources = sources, busy = false, error = null) }
+                loadCatalog(force = true)
+            } catch (e: Exception) {
+                _uiState.update { it.copy(busy = false, error = "Failed to remove source: ${e.message}") }
+            }
+        }
+    }
+
+    /** Install a skill from a GitHub source (catalog entry or user-supplied URL/ref).
+     *  [update] replaces an existing install of the same name. */
+    fun installSkill(source: String, update: Boolean = false): Boolean {
+        if (!acquireBusy()) return false
+        viewModelScope.launch {
+            try {
+                val refreshed = api.installSkill(source, update)
                 _uiState.update { it.copy(components = refreshed, busy = false, error = null) }
             } catch (e: Exception) {
                 _uiState.update { it.copy(busy = false, error = "Failed to install skill: ${e.message}") }
             }
         }
+        return true
     }
 
     /** Delete a skill by name globally. No-ops while busy. */
@@ -214,8 +260,8 @@ class GlobalSettingsViewModel(
 
     /** Install a plugin globally (slow — CLI). Sets busy while in flight.
      *  No-ops while another op is already in flight. */
-    fun installPlugin(id: String) {
-        if (!acquireBusy()) return
+    fun installPlugin(id: String): Boolean {
+        if (!acquireBusy()) return false
         viewModelScope.launch {
             try {
                 val refreshed = api.installPlugin(id)
@@ -224,6 +270,7 @@ class GlobalSettingsViewModel(
                 _uiState.update { it.copy(busy = false, error = "Failed to install plugin: ${e.message}") }
             }
         }
+        return true
     }
 
     /** Uninstall a plugin globally (slow). Sets busy while in flight. */
@@ -250,7 +297,9 @@ class GlobalSettingsViewModel(
     fun addMcpServer(draft: McpDraft): String? {
         val err = draft.validationError
         if (err != null) return err
-        if (!acquireBusy()) return null
+        // Busy-refusal must NOT look like success (null) - the caller arms its
+        // close-on-success flag on null and would later close on an unrelated op.
+        if (!acquireBusy()) return "Another operation is in progress - try again"
         val def = buildMcpServerDef(draft)
         viewModelScope.launch {
             try {

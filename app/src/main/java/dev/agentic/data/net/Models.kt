@@ -606,19 +606,34 @@ data class AddSkillReq(val name: String, val description: String, val instructio
 data class AddPluginReq(val id: String)
 
 /** One entry of the external skill store (GET /api/skills/catalog). [source] is the
- *  ready-to-install reference to POST back to /api/skills/install. */
+ *  ready-to-install reference to POST back to /api/skills/install; [sourceRepo] is the
+ *  configured store source it came from (display/grouping). */
 @Serializable
 data class CatalogSkill(
     val name: String,
     val description: String = "",
     val source: String,
+    val sourceRepo: String = "",
 )
 
-/** Response wrapper for GET /api/skills/catalog. */
+/** Response wrapper for GET /api/skills/catalog. [errors] carries per-source scan failures —
+ *  one broken source degrades instead of failing the whole store. */
 @Serializable
-data class SkillCatalogResp(val skills: List<CatalogSkill> = emptyList())
+data class SkillCatalogResp(
+    val skills: List<CatalogSkill> = emptyList(),
+    val errors: List<String> = emptyList(),
+)
 
-/** Body for POST /api/skills/install — [source] is `owner/repo[/path]` or a github.com URL. */
+/** Response wrapper for the /api/skills/sources CRUD (GET/POST/DELETE all return the list). */
 @Serializable
-data class InstallSkillReq(val source: String)
+data class SkillSourcesResp(val sources: List<String> = emptyList())
+
+/** Body for POST /api/skills/sources (add a store source). */
+@Serializable
+data class AddSkillSourceReq(val source: String)
+
+/** Body for POST /api/skills/install — [source] is `owner/repo[/path]` or a github.com URL;
+ *  [update] replaces an existing install of the same name (atomic swap). */
+@Serializable
+data class InstallSkillReq(val source: String, val update: Boolean = false)
 
