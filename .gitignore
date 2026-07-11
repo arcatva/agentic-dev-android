@@ -9,5 +9,8 @@
 # release signing — never commit the keystore or its passwords
 *.keystore
 keystore.properties
+# Firebase config (added when enabling FCM) — keep the client config file out of git
+google-services.json
+app/google-services.json
 # agentic-dev session delivery dir — build artifacts shown to the user, not source
 /outbox/
