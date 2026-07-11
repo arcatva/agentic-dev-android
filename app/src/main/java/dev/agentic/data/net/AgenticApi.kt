@@ -85,6 +85,10 @@ interface AgenticApi {
     suspend fun providers(): List<Provider> = emptyList()
     suspend fun addProvider(req: NewProviderReq) {}
     suspend fun deleteProvider(name: String) {}
+    // Native Claude model per-family routing overrides.
+    suspend fun nativeModels(): List<NativeFamily> = emptyList()
+    suspend fun putNativeOverride(family: String, req: NativeOverrideReq) {}
+    suspend fun deleteNativeOverride(family: String) {}
     // ── Feature: Global Settings (S5a) ────────────────────────────────────────
     /** Fetch all globally-configured components (skills, plugins, MCP) with their on/off state.
      *  Default impl returns empty list — test fakes override. */

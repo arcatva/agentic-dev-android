@@ -494,6 +494,42 @@ data class Provider(
 @Serializable
 data class ProviderList(val providers: List<Provider> = emptyList())
 
+// ── Native Claude model per-family routing overrides (GET/POST/DELETE /api/native-models) ──
+
+/** One native Claude model as discovered by the Anthropic Models API. */
+@Serializable
+data class NativeModelRef(
+    val id: String,
+    @SerialName("display_name") val displayName: String,
+)
+
+/** A native Claude model family with its effective routing metrics (GET /api/native-models).
+ *  [editable] is false for the `other` catch-all; [customized] means an override row exists. */
+@Serializable
+data class NativeFamily(
+    val family: String,
+    val label: String,
+    val models: List<NativeModelRef> = emptyList(),
+    val capability: Float = 0.5f,
+    val priority: Float = 0.5f,
+    val cost: Float = 0.5f,
+    val description: String = "",
+    val customized: Boolean = false,
+    val editable: Boolean = false,
+)
+
+@Serializable
+data class NativeFamilyList(val families: List<NativeFamily> = emptyList())
+
+/** Body for POST /api/native-models/{family}. */
+@Serializable
+data class NativeOverrideReq(
+    val capability: Float,
+    val priority: Float,
+    val cost: Float,
+    val description: String = "",
+)
+
 /** Body for POST /api/providers (add or replace by name). Carries the API key. */
 // ── Model catalog (GET /api/models) ─────────────────────────────────────
 
