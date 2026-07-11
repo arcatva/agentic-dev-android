@@ -92,12 +92,6 @@ fun GlobalSettingsScreen(
     val s by resolvedVm.uiState.collectAsStateWithLifecycle()
     val snackbarHost = remember { SnackbarHostState() }
 
-    // Refresh whenever this screen (re-)enters composition — most importantly on the way BACK
-    // from the skill store, which mutates skills through its own ViewModel instance. load() is
-    // quiet once content exists (no full-screen spinner), so the extra fetch on first entry
-    // (alongside the VM init load) is just a cheap duplicate GET.
-    LaunchedEffect(Unit) { resolvedVm.load() }
-
     // Show transient errors in a snackbar and dismiss them from the VM.
     LaunchedEffect(s.error) {
         val msg = s.error ?: return@LaunchedEffect

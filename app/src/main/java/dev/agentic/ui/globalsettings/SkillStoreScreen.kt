@@ -60,8 +60,8 @@ import dev.agentic.ui.components.cardFieldColors
  * Source management (list / add / remove) lives in a bottom sheet behind the top-bar
  * "Sources" action; Refresh re-scans past the server's cache.
  *
- * Owns its own [GlobalSettingsViewModel] instance — the Settings screen quietly reloads its
- * component list when you navigate back (see [GlobalSettingsViewModel.load]).
+ * Shares the Settings back-stack entry's [GlobalSettingsViewModel] (wired in AppNav), so
+ * installs/removals made here are immediately visible on the Settings screen.
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -196,10 +196,12 @@ fun SkillStoreScreen(
                         q.isEmpty() || it.name.contains(q, ignoreCase = true) ||
                             it.description.contains(q, ignoreCase = true)
                     }
-                    // Direct-install offer only when the query looks like a GitHub reference AND
-                    // matches nothing in the catalog — a slashed SEARCH term ("ci/cd") with real
-                    // results must not grow a spurious install row.
-                    val directRef = if (shown.isEmpty()) githubRefQuery(q) else null
+                    // Direct-install offer: an EXPLICIT URL always gets one (the user pasted it
+                    // to install, even if search happens to match); a bare slashed term ("ci/cd")
+                    // only when nothing in the catalog matches, so searches don't grow a spurious
+                    // install row.
+                    val isExplicitUrl = q.startsWith("https://") || q.startsWith("http://") || q.startsWith("github.com/")
+                    val directRef = if (isExplicitUrl || shown.isEmpty()) githubRefQuery(q) else null
                     val multiSource = catalog.map { it.sourceRepo }.distinct().size > 1
                     LazyColumn(Modifier.fillMaxSize()) {
                         // Direct install: the query itself looks like a GitHub reference.
@@ -251,7 +253,9 @@ fun SkillStoreScreen(
                             )
                         }
                         // Per-source scan failures — the rest of the store still renders.
-                        items(s.catalogErrors, key = { "err|$it" }) { err ->
+                        // No key: duplicate error strings (two sources failing identically)
+                        // would crash on key collision; index-based keys are fine for plain text.
+                        items(s.catalogErrors) { err ->
                             Text(
                                 err,
                                 color = MaterialTheme.colorScheme.error,
