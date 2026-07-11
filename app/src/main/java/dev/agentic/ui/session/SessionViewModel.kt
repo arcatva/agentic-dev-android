@@ -584,6 +584,17 @@ class SessionViewModel(
     private val _downloads = Channel<DownloadEffect>(Channel.BUFFERED)
     val downloads: Flow<DownloadEffect> = _downloads.receiveAsFlow()
 
+    /** A [DownloadEffect.Ready] buffered while no collector runs (wide layout: the session pane is
+     *  not live) carries a temp file nobody will delete if this VM is torn down first. Drain the
+     *  channel on clear and drop those temps (Codex review — disk leak, not just memory). */
+    override fun onCleared() {
+        while (true) {
+            val eff = _downloads.tryReceive().getOrNull() ?: break
+            if (eff is DownloadEffect.Ready) eff.file.delete()
+        }
+        super.onCleared()
+    }
+
     /** Per-attachment download progress, keyed by [AttachmentNode.path]. A present key means that file is
      *  downloading — its value carries the 0f..1f fraction (null while the size is unknown), the current
      *  transfer speed, and a stall flag; an absent key means idle. The map's keys ALSO serve as the set of
@@ -692,10 +703,14 @@ class SessionViewModel(
                 }
             }
             // Temp file in the app cache; ownership passes to the View on Ready (it deletes after
-            // saving). Deleted here on failure/cancellation.
-            val dest = withContext(Dispatchers.IO) { File.createTempFile("download-", ".part") }
+            // saving). Deleted here on failure/cancellation. Created INSIDE the try so a creation
+            // failure (cache dir gone, disk full) still emits Failed and clears the progress entry
+            // instead of leaving the card stuck in the downloading state (Codex review).
+            var dest: File? = null
             try {
-                filesRepo.downloadTo(id, node.path, dest) { received, total ->
+                val d = withContext(Dispatchers.IO) { File.createTempFile("download-", ".part") }
+                dest = d
+                filesRepo.downloadTo(id, node.path, d) { received, total ->
                     pace.onProgress(received, SystemClock.elapsedRealtime())
                     val fraction = total?.takeIf { it > 0 }
                         ?.let { (received.toFloat() / it).coerceIn(0f, 1f) }
@@ -706,13 +721,13 @@ class SessionViewModel(
                     }
                 }
                 AppLog.d("VM", "downloadAttachment id=${id.take(8)} path=${node.path} => OK")
-                _downloads.send(DownloadEffect.Ready(name, dest))
+                _downloads.send(DownloadEffect.Ready(name, d))
             } catch (e: CancellationException) {
-                dest.delete()
+                dest?.delete()
                 throw e
             } catch (e: Exception) {
                 AppLog.w("VM", "downloadAttachment id=${id.take(8)} path=${node.path} => FAILED: ${e.message ?: "download failed"}")
-                dest.delete()
+                dest?.delete()
                 _downloads.send(DownloadEffect.Failed(name, e.message ?: "download failed"))
             } finally {
                 ticker.cancel()
