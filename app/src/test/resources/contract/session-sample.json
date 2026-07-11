@@ -1,0 +1,62 @@
+{
+  "id": "sess-sample-1",
+  "repo": "demo",
+  "repos": [
+    "demo",
+    "lib"
+  ],
+  "skills": [
+    "tenants-dev"
+  ],
+  "hiddenSkills": [
+    "deep-research"
+  ],
+  "hiddenPlugins": [
+    "stripe"
+  ],
+  "prompt": "Fix the login bug",
+  "model": "opus",
+  "effort": "high",
+  "mode": null,
+  "permissionMode": "bypassPermissions",
+  "titlePinned": false,
+  "worktreePath": "/tmp/wt/sess-sample-1",
+  "branch": "agentic/sess-sample-1",
+  "claudeSessionId": "11111111-2222-3333-4444-555555555555",
+  "status": "done",
+  "costUsd": 1.25,
+  "exitCode": 0,
+  "error": "usage limit reached",
+  "errorKind": "usage_limit",
+  "createdAt": 1783781019400,
+  "startedAt": 1783700000000,
+  "endedAt": 1783700060000,
+  "lastUserMessageAt": 1783781019400,
+  "baseSha": "abc123def4560000000000000000000000000000",
+  "baseShas": {
+    "lib": "0000aaa1111bbb2222ccc3333ddd4444eee5555f",
+    "demo": "abc123def4560000000000000000000000000000"
+  },
+  "worktreeState": "live",
+  "parentSessionId": "parent-42",
+  "groupId": "grp-1",
+  "unreadEventId": 0,
+  "ackedEventId": 0,
+  "autoResume": true,
+  "origin": "fork",
+  "detached": false,
+  "nativeWatermarkLines": 0,
+  "hiddenMcpServers": [
+    "cloudflare"
+  ],
+  "extraMcpServers": [],
+  "forcedOnPlugins": [
+    "github"
+  ],
+  "forcedOnSkills": [
+    "code-review"
+  ],
+  "forcedOnMcpServers": [
+    "agentic"
+  ]
+}
