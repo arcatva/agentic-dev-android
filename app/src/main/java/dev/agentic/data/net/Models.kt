@@ -650,6 +650,10 @@ data class CatalogSkill(
     val description: String = "",
     val source: String,
     val sourceRepo: String = "",
+    /** Whether the store version differs from the installed one. null = unknown (not
+     *  installed, or installed without provenance metadata — pre-metadata installs and
+     *  hand-authored skills). */
+    val updateAvailable: Boolean? = null,
 )
 
 /** Response wrapper for GET /api/skills/catalog. [errors] carries per-source scan failures —

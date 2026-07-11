@@ -305,7 +305,13 @@ private fun StoreRow(
             }
         }
         if (installed) {
-            TextButton(onClick = { onInstall(true) }, enabled = !busy) { Text("Update") }
+            // Update only when the store actually has something newer. false = fingerprints
+            // match (no button); null = unknown provenance (pre-metadata install or
+            // hand-authored) — offer Update as a reinstall, which records the metadata and
+            // makes future checks precise.
+            if (entry.updateAvailable != false) {
+                TextButton(onClick = { onInstall(true) }, enabled = !busy) { Text("Update") }
+            }
             TextButton(onClick = onRemove, enabled = !busy) { Text("Remove") }
         } else {
             TextButton(onClick = { onInstall(false) }, enabled = !busy) { Text("Install") }

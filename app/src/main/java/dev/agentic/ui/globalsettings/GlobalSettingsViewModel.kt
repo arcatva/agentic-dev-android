@@ -252,6 +252,15 @@ class GlobalSettingsViewModel(
             try {
                 val refreshed = api.installSkill(source, update)
                 _uiState.update { it.copy(components = refreshed, busy = false, error = null) }
+                // Re-pull the catalog so per-entry updateAvailable reflects the fresh install
+                // (server cache hit — the annotation is computed per request, so this is cheap;
+                // without it an Update button would linger after a successful update).
+                try {
+                    val resp = api.getSkillCatalog(refresh = false)
+                    _uiState.update { it.copy(catalog = resp.skills, catalogErrors = resp.errors) }
+                } catch (_: Exception) {
+                    // Stale Update button until the next manual refresh — not worth surfacing.
+                }
             } catch (e: Exception) {
                 _uiState.update { it.copy(busy = false, error = "Failed to install skill: ${e.message}") }
             }
