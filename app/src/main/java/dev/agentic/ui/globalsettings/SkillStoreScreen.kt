@@ -384,10 +384,11 @@ private fun SourcesSheet(
  */
 internal fun githubRefQuery(q: String): String? {
     if (q.isBlank() || q.any { it.isWhitespace() }) return null
-    val isUrl = q.startsWith("https://github.com/") || q.startsWith("http://github.com/") ||
-        q.startsWith("github.com/")
-    if (isUrl) return q
-    val parts = q.trim('/').split('/')
+    // URL forms are validated the same way after stripping the prefix — a bare
+    // "https://github.com/" or ".../owner" must not offer an install.
+    val prefixes = listOf("https://github.com/", "http://github.com/", "github.com/")
+    val remaining = prefixes.firstOrNull { q.startsWith(it) }?.let { q.removePrefix(it) } ?: q
+    val parts = remaining.trim('/').split('/')
     if (parts.size < 2) return null
     val segOk = { s: String -> s.isNotEmpty() && s.all { it.isLetterOrDigit() || it == '-' || it == '_' || it == '.' } }
     return if (segOk(parts[0]) && segOk(parts[1])) q else null
