@@ -1,6 +1,5 @@
 package dev.agentic.ui.adopt
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -9,7 +8,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
@@ -55,9 +53,10 @@ import kotlinx.coroutines.delay
 /**
  * Modal bottom sheet showing the Claude Code sessions the server can adopt. Closed by [onDismiss].
  *
- * On a successful adopt the picker writes the new id to [AdoptPickerUiState.adoptedId]. The screen
- * listens for that emission and invokes [onAdopted] — a one-shot, then [AdoptPickerViewModel.acknowledgeAdopt]
- * clears it (guard against re-firing on recomposition). [onAdopted] navigates to the new session.
+ * On successful adopt, the picker writes the new id to [AdoptPickerUiState.adoptedId]. The screen
+ * listens for that emission and invokes [onAdopted] — a one-shot, then
+ * [AdoptPickerViewModel.acknowledgeAdopt] clears it (guard against re-firing on recomposition).
+ * [onAdopted] navigates to the new session.
  *
  * Scoped VM via `viewModel(key = "adoptPicker", factory = ...)` so a fresh sheet owns a fresh VM
  * instance (and the GET fires once per open).
@@ -78,18 +77,17 @@ fun AdoptPickerSheet(
     val s by vm.uiState.collectAsStateWithLifecycle()
     val sheetState = rememberModalBottomSheetState()
 
-    // First composition → fire the GET. Re-runs only on viewModel identity change (practically never).
     LaunchedEffect(vm) { vm.load() }
 
-    // The VM outlives this sheet (scoped to the Home back-stack entry), so cancel in-flight work and
-    // clear the one-shot adoptedId when the sheet is dismissed — otherwise an adopt that completes
-    // after dismiss would auto-navigate the next time the sheet opens.
+    // VM outlives this sheet (scoped to Home back-stack entry), so cancel in-flight work + clear
+    // the one-shot adoptedId on dismiss — otherwise an adopt that completes after dismiss would
+    // auto-navigate the next time the sheet opens.
     DisposableEffect(vm) { onDispose { vm.cancelAll() } }
 
     // Honor a successful adopt with a navigation; then ack so we don't re-navigate on recomposition.
     LaunchedEffect(s.adoptedId) {
         val id = s.adoptedId ?: return@LaunchedEffect
-        // Small grace period so any in-flight close animation finishes before we lose our parent.
+        // Small grace so any in-flight close animation finishes before we lose our parent.
         delay(150)
         onAdopted(id)
         vm.acknowledgeAdopt()
@@ -105,7 +103,6 @@ fun AdoptPickerSheet(
                 .windowInsetsPadding(WindowInsets.navigationBars)
                 .padding(bottom = 16.dp),
         ) {
-            // ── Header ──────────────────────────────────────────────────────────────────────
             Text(
                 "Adopt Claude Code session",
                 style = MaterialTheme.typography.titleMedium,
@@ -120,11 +117,9 @@ fun AdoptPickerSheet(
             )
             HorizontalDivider(Modifier.padding(top = 12.dp, bottom = 8.dp))
 
-            // ── Body ───────────────────────────────────────────────────────────────────────
             when {
                 s.loading -> {
                     Box(Modifier.fillMaxWidth().padding(32.dp), Alignment.Center) {
-                        // Expressive LoadingIndicator — the app-wide screen-level loading spinner.
                         LoadingIndicator()
                     }
                 }
@@ -164,9 +159,9 @@ fun AdoptPickerSheet(
                         modifier = Modifier.fillMaxWidth(),
                         contentPadding = PaddingValues(bottom = 24.dp),
                     ) {
-                        // An adopt() failure keeps the candidate list visible with an inline banner,
-                        // instead of replacing the whole list with the full-screen error state (which
-                        // is reserved for a load failure — items empty).
+                        // An adopt() failure keeps the candidate list visible with an inline banner
+                        // instead of replacing the whole list with the full-screen error state
+                        // (reserved for a load failure — items empty).
                         s.error?.let { err ->
                             item {
                                 Text(
@@ -196,8 +191,8 @@ fun AdoptPickerSheet(
 /**
  * One Claude Code session row in the picker. Tapping anywhere POSTs /api/sessions/adopt for this
  * candidate. Disabled visuals (reduced alpha) when [item.resumable] == false instead of a hard
- * disable — the user can still adopt, just as a read-only server session; the helper text below
- * the prompt spells that out.
+ * disable — the user can still adopt, just as a read-only server session; helper text below the
+ * prompt spells that out.
  */
 @Composable
 private fun AdoptRow(
@@ -214,7 +209,7 @@ private fun AdoptRow(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // State dot: resumable (resumable CAN be resumed when adopted) vs read-only.
+        // State dot: resumable vs read-only.
         Surface(
             color = if (muted)
                 MaterialTheme.colorScheme.surfaceVariant

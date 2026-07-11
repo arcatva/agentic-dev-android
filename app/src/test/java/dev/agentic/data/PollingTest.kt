@@ -17,7 +17,6 @@ class PollingTest {
     fun `pollFlow emits first value immediately`() = runTest {
         var callCount = 0
         val results = mutableListOf<Int>()
-        // Take only 1 emission so the flow terminates immediately.
         pollFlow(intervalMs = 1000L) { ++callCount }.take(1).toList(results)
         assertEquals(1, results.size)
         assertEquals(1, results[0])
@@ -26,7 +25,6 @@ class PollingTest {
     @Test
     fun `pollFlow emits again after each interval`() = runTest {
         var callCount = 0
-        // Collect 3 emissions: 0ms (immediate), 500ms, 1000ms.
         val results = pollFlow(intervalMs = 500L) { ++callCount }.take(3).toList()
         assertEquals(3, results.size)
         assertEquals(listOf(1, 2, 3), results)
@@ -39,15 +37,15 @@ class PollingTest {
         val job = launch {
             pollFlow(intervalMs = 1000L) {
                 calls++
-                if (calls == 2) throw RuntimeException("boom")   // second tick fails
+                if (calls == 2) throw RuntimeException("boom")
                 calls
             }.collect { results.add(it) }
         }
-        advanceTimeBy(1L)        // immediate first emit
+        advanceTimeBy(1L)
         assertEquals(listOf(1), results)
-        advanceTimeBy(1001L)     // tick 2 throws → flow stays alive, backs off (no emit)
+        advanceTimeBy(1001L)
         assertEquals(listOf(1), results)
-        advanceTimeBy(2001L)     // backoff (1000<<1 = 2000ms) elapses → tick 3 succeeds
+        advanceTimeBy(2001L)
         assertEquals(listOf(1, 3), results)
         job.cancel()
     }
@@ -56,17 +54,13 @@ class PollingTest {
     fun `pollFlow does not emit extra before interval elapses`() = runTest {
         var callCount = 0
         val results = mutableListOf<Int>()
-        // Collect asynchronously within the runTest coroutine scope so virtual time applies.
         val job = launch {
             pollFlow(intervalMs = 1000L) { ++callCount }.collect { results.add(it) }
         }
-        // Immediately: 1 emit (the flow emits before the first delay).
         advanceTimeBy(1L)
         assertEquals(1, results.size)
-        // After 999ms more (total 1000ms): still only 1 emit (interval not yet elapsed).
         advanceTimeBy(998L)
         assertEquals(1, results.size)
-        // Cross the interval boundary.
         advanceTimeBy(2L)
         assertEquals(2, results.size)
         job.cancel()

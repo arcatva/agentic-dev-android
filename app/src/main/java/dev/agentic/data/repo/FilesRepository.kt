@@ -9,17 +9,13 @@ import dev.agentic.data.net.RepoCommits
 import dev.agentic.data.net.runCatchingOutcome
 
 /**
- * Single access point for file operations: upload, download bytes, commit graph, and discard.
- *
- * Each method delegates directly to [AgenticApi]; error handling is intentionally minimal:
- * - [upload], [commits], and [commitFiles] return [Outcome] so callers can react to failures.
- * - [fileBytes] lets exceptions propagate — the caller (ViewModel) owns progress + error UX.
- * - [discard] is best-effort fire-and-forget; no Outcome needed.
+ * Single access point for file operations: upload, download bytes, commit graph, discard.
+ * - [upload]/[commits]/[commitFiles] return [Outcome] so callers can react.
+ * - [fileBytes] lets exceptions propagate — caller (VM) owns progress + error UX.
+ * - [discard] is best-effort fire-and-forget.
  */
 class FilesRepository(private val api: AgenticApi) {
 
-    /** Upload [bytes] as [name] for session [id]. Returns [Outcome.Success] with the server-side
-     *  path on success, or [Outcome.Failure] on any error. */
     suspend fun upload(id: String, bytes: ByteArray, name: String): Outcome<String> =
         runCatchingOutcome { api.uploadFile(id, bytes, name) }.also {
             when (it) {
@@ -28,8 +24,7 @@ class FilesRepository(private val api: AgenticApi) {
             }
         }
 
-    /** Download file bytes for [path] within session [id], with optional [onProgress] callback.
-     *  Throws on error — callers should handle exceptions (e.g. show a snackbar). */
+    /** Throws on error — caller handles (snackbar). */
     suspend fun fileBytes(
         id: String,
         path: String,
@@ -44,9 +39,7 @@ class FilesRepository(private val api: AgenticApi) {
         }
     }
 
-    /** Stream the file at [path] into [dest] with automatic mid-transfer resume (HTTP Range).
-     *  [onProgress] reports cumulative (bytesReceived, totalBytes-or-null). Throws on final failure —
-     *  the caller owns progress + error UX. */
+    /** Stream with automatic mid-transfer resume (HTTP Range). Throws on final failure. */
     suspend fun downloadTo(
         id: String,
         path: String,
@@ -62,7 +55,6 @@ class FilesRepository(private val api: AgenticApi) {
         }
     }
 
-    /** Returns the per-repo commit history for session [id], or [Outcome.Failure] on error. */
     suspend fun commits(id: String): Outcome<List<RepoCommits>> =
         runCatchingOutcome { api.commits(id) }.also {
             when (it) {
@@ -71,7 +63,6 @@ class FilesRepository(private val api: AgenticApi) {
             }
         }
 
-    /** Returns the changed files for [sha] in [repo] of session [id], or [Outcome.Failure] on error. */
     suspend fun commitFiles(id: String, repo: String, sha: String): Outcome<List<CommitFile>> =
         runCatchingOutcome { api.commitFiles(id, repo, sha) }.also {
             when (it) {
@@ -80,7 +71,6 @@ class FilesRepository(private val api: AgenticApi) {
             }
         }
 
-    /** Returns the line-level diff for one [path] in [sha] of [repo], or [Outcome.Failure] on error. */
     suspend fun commitDiff(id: String, repo: String, sha: String, path: String): Outcome<FileDiff> =
         runCatchingOutcome { api.commitDiff(id, repo, sha, path) }.also {
             when (it) {
@@ -98,7 +88,7 @@ class FilesRepository(private val api: AgenticApi) {
             }
         }
 
-    /** Discards pending changes for session [id]. Best-effort; ignores errors. */
+    /** Best-effort; ignores errors. */
     suspend fun discard(id: String) {
         runCatchingOutcome { api.discard(id) }.also {
             when (it) {

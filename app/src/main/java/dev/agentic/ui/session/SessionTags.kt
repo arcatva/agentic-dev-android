@@ -44,35 +44,18 @@ import dev.agentic.ui.fadingEdgeHorizontal
 import dev.agentic.ui.modelLabel
 import dev.agentic.ui.rememberUltracodeRipplePhase
 
-/** What a session annotation chip stands for — drives the chip's icon, tint, and (for ULTRA) look. */
+/** Chip kind — drives icon, tint, and (for ULTRA) animation. */
 internal enum class TagKind { ULTRA, FORK, ADOPTED, REPO, SKILL, MODEL, EFFORT }
 
 /** A single annotation chip for a session. */
 internal data class SessionTag(val label: String, val kind: TagKind)
 
-/**
- * The annotation tags for a session, in display order: an ultracode marker (only when the session ran
- * in ultracode mode), then a "fork" marker (only when the session branched off a parent), then an
- * "Adopted" marker (only for a session imported from a Claude Code CLI session), then repos,
- * skills, and the model + effort it ran with. Repo/skill blanks and duplicates are dropped; model and
- * effort are shown with the SAME friendly labels as the New request screen's sliders (e.g. "Sonnet 4.6",
- * "High" — see [modelLabel]/[effortLabel]); a null/blank model or effort contributes no tag. The effort
- * tag is suppressed for ultracode sessions, where effort is locked to xhigh and the ultracode pill
- * already conveys it.
- *
- * Empty `repos` (a skill-only task) and empty `skills` ("load all", no curation) each contribute no tag.
- */
+/** Annotation tags in display order. Effort suppressed on ultracode (xhigh is implied); model/effort use the slider-friendly labels. */
 internal fun sessionTags(session: Session): List<SessionTag> {
-    // The server normalizes legacy "ultra" to "ultracode" before serializing (store.ts normalizeMode),
-    // so the client only ever sees "ultracode" or null — matching NewRequestScreen's own check.
     val isUltra = session.mode == "ultracode"
     val ultra = if (isUltra) listOf(SessionTag("ultracode", TagKind.ULTRA)) else emptyList()
-    // A fork carries the id of the session it branched from; show it as a plain "fork" chip sitting with
-    // the other run markers (the Forked-from card lower in the screen still links to the parent).
-    // Blank-safe to match SessionViewModel.parentPreview's isNullOrBlank() gate — an empty parent id must
-    // not show a "fork" chip with no matching Forked-from card.
+    // Blank parent id must not show a "fork" chip with no matching Forked-from card.
     val fork = if (!session.parentSessionId.isNullOrBlank()) listOf(SessionTag("Fork", TagKind.FORK)) else emptyList()
-    // Provenance for a session imported from a Claude Code CLI session — same pill treatment as fork.
     val adopted = if (session.origin == "adopted") listOf(SessionTag("Adopted", TagKind.ADOPTED)) else emptyList()
     val repos = session.repos.filter { it.isNotBlank() }.distinct().map { SessionTag(it, TagKind.REPO) }
     val skills = session.skills.filter { it.isNotBlank() }.distinct().map { SessionTag(it, TagKind.SKILL) }
@@ -83,17 +66,7 @@ internal fun sessionTags(session: Session): List<SessionTag> {
     return ultra + fork + adopted + repos + skills + listOfNotNull(model, effort)
 }
 
-/**
- * Fork/repo/skill/model/effort annotation chips shown under the conversation title, plus an animated
- * "ultracode" pill for an ultracode session. The outlined chips each have their own leading icon and
- * tint — fork (branch, primary), repo (folder, neutral), skill (✦, primary), model (🤖, tertiary),
- * effort (⚡, tertiary); ultracode is the blue→violet [UltracodeChip] with a looping ripple highlight.
- *
- * The chips sit on a SINGLE line that scrolls horizontally and fades at whichever edge has more
- * off-screen content (rather than wrapping to a second row). The outlined chips are display-only:
- * disabled (no ripple / button role) and wrapped in a provider that drops the 48dp interactive touch
- * target each would otherwise reserve, so the row stays compact.
- */
+/** Annotation chip row under the title (scrolls horizontally with edge fades). Outlined chips are display-only with the 48dp touch target dropped to stay compact. */
 @Composable
 internal fun SessionTagRow(
     session: Session,
@@ -102,8 +75,6 @@ internal fun SessionTagRow(
 ) {
     val tags = remember(session) { sessionTags(session) }
     if (tags.isEmpty()) return
-    // The fork chip is tappable and opens the session it branched off — same destination the old
-    // standalone "Forked from …" chip had. Gated identically to the fork tag (non-blank parent id).
     val onForkClick: (() -> Unit)? = remember(session.parentSessionId, onOpenParent) {
         session.parentSessionId?.takeIf { it.isNotBlank() }?.let { pid -> { onOpenParent(pid) } }
     }
@@ -141,10 +112,7 @@ private fun SessionTagChip(tag: SessionTag, onClick: (() -> Unit)? = null) {
     }
 }
 
-// Without an [onClick] the chip is a pure label: `enabled = false` means no ripple and it isn't
-// announced as a button, while the overridden colours + the normal (enabled) border keep it looking
-// like a regular AssistChip. Pass an [onClick] (e.g. the fork chip) to make it a real, tappable chip;
-// the enabled/disabled label+icon colours are both pinned to `accent` so the look doesn't change.
+/** `enabled=false` keeps the chip border + look of a normal AssistChip without ripple/role; pass [onClick] to make it tappable. */
 @Composable
 internal fun DisplayChip(
     label: String,
@@ -172,21 +140,16 @@ internal fun DisplayChip(
     )
 }
 
-// Ultracode pill in the workflow accent violet — the dark container + light content the workflow
-// inline cards use — with a bright-violet highlight that ripples out from the centre to the edges,
-// forever.
+/** Ultracode pill: dark violet container + bright ripple bloom (shared with the Effort slider). */
 @Composable
 internal fun UltracodeChip(modifier: Modifier = Modifier) {
-    // Ripple clock + drawing are shared with the Effort slider — see [dev.agentic.ui.UltracodeRipple] —
-    // so the pill and the slider animate identically.
     val phase = rememberUltracodeRipplePhase()
     Row(
         modifier
             .height(32.dp)
             .clip(MaterialTheme.shapes.small)
             .drawBehind {
-                // Dark violet container, then the brighter violet ripple bloom on top of it. Reading
-                // phase.value here (draw phase) keeps frames to a redraw, not a recomposition.
+                // Reading phase.value in the draw phase keeps frames to a redraw, not a recomposition.
                 drawRect(AccentVioletContainer)
                 drawUltracodeRipple(phase.value, color = AccentViolet)
             }
@@ -194,7 +157,7 @@ internal fun UltracodeChip(modifier: Modifier = Modifier) {
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Label already says "Ultracode", so the icon is decorative (no TalkBack stutter).
+        // Decorative icon — label already says "Ultracode" (no TalkBack stutter).
         Icon(
             Icons.Rounded.Whatshot,
             contentDescription = null,

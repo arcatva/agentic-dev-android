@@ -9,29 +9,24 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
 
 /**
- * A [TextFieldState] kept in two-way sync with a hoisted plain-[String] `value` / `onValueChange`
- * pair, for fields whose text lives in a ViewModel `StateFlow` (the session composer's `input`, the
- * new-request `prompt` / `claudeMd`) but which ALSO get written from outside the IME — voice
- * dictation appends, prefill/restore, clear-on-send — and are recomposed by unrelated async emits
- * (token streaming, 2s/2.5s polls).
+ * A [TextFieldState] kept in two-way sync with a hoisted plain-[String] `value`/`onValueChange` —
+ * for fields whose text lives in a ViewModel `StateFlow` (session composer, new-request prompt) but
+ * which ALSO get written from outside the IME (voice dictation appends, prefill/restore, clear-on-send)
+ * and are recomposed by unrelated async emits.
  *
- * Why this exists: the plain `value: String` overload of `BasicTextField`/`OutlinedTextField` keeps
- * the caret (a `TextRange`) inside its own remembered `TextFieldValue` and, on an EXTERNAL value
- * swap, does `copy(text = value)` — it keeps the OLD caret offset and just swaps the text. So
- * appended/streamed text lands AFTER a stationary caret, and a poll re-emit arriving mid-IME-edit
- * (e.g. Chinese pinyin composition) freezes the caret. `TextFieldState` instead owns text + caret +
- * composing region together; this helper drives it so:
+ * Plain `value: String` overload keeps its caret (TextRange) inside its own remembered
+ * TextFieldValue and, on EXTERNAL value swap, does `copy(text = value)` — keeps OLD caret offset,
+ * just swaps text. Appended/streamed text lands AFTER a stationary caret; a poll re-emit mid-IME-edit
+ * freezes the caret. TextFieldState owns text+caret+composing together; this helper:
+ *  - PULL: when value changes from a non-IME source, text written with caret parked at END
+ *    ([setTextAndPlaceCursorAtEnd]). Keyed on value + guarded by `value != current`, so it NEVER
+ *    fires for the user's own keystroke (after which value already equals field text). That guard
+ *    keeps active IME composing region intact + stops same-string poll re-emit from disturbing it.
+ *  - PUSH: field edits flow back up via [onValueChange].
  *
- *  - PULL: when `value` changes from a non-IME source, the new text is written with the caret parked
- *    at the END ([setTextAndPlaceCursorAtEnd]), so appended/streamed text is followed by the caret.
- *    Keyed on `value` and guarded by `value != current`, so it NEVER fires for the user's own
- *    keystroke (after which `value` already equals the field text). That guard is exactly what keeps
- *    an active IME composing region intact and stops a same-string poll re-emit from disturbing it.
- *  - PUSH: the field's own edits flow back up to the hoisted String via [onValueChange].
- *
- * The two directions can't loop: an external pull sets text==value, so the push's resulting
- * `onValueChange(value)` is a no-op write; a user keystroke makes value==text, so the pull's guard
- * skips. [rememberUpdatedState] keeps the latest [onValueChange] without restarting the push.
+ * The two directions can't loop: external pull sets text==value (push's onValueChange(value) is a
+ * no-op write); user keystroke makes value==text (pull's guard skips).
+ * [rememberUpdatedState] keeps the latest [onValueChange] without restarting push.
  */
 @Composable
 fun rememberSyncedTextFieldState(
@@ -48,8 +43,7 @@ fun rememberSyncedTextFieldState(
     }
 
     LaunchedEffect(state) {
-        // Skip snapshotFlow's initial emission — it equals the seed `value`, so forwarding it would be
-        // a redundant onValueChange (e.g. a no-op draft write) at composition. Later emits are edits.
+        // Skip snapshotFlow's initial emission (equals seed value — would be a redundant onValueChange at composition).
         var isFirst = true
         snapshotFlow { state.text.toString() }
             .collect { text ->

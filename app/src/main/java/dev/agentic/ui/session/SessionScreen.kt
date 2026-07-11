@@ -126,28 +126,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
-/**
- * The core chat/transcript screen. Stateless: all state lives in [SessionViewModel] and is read via
- * `realVm.uiState.collectAsStateWithLifecycle()`; every action calls a VM event. No api/repo/network
- * calls live here.
- *
- * Two intentional chat-rendering upgrades over the old [dev.agentic.ui.SessionScreen]:
- *  1. The [Transcript] uses `reverseLayout` (see Transcript.kt) — no pin/alpha/scrollToItem loop.
- *  2. The input bar renders the instant `s.session != null`, so it no longer "appears last" after the
- *     transcript pins. Its enabled/placeholder/buttons are driven purely by the VM's derived flags.
- *
- * VM creation note (conventions CORRECTION): [appContainer] is @Composable so it is resolved in the
- * body first, then captured into the non-composable `initializer {}`. The nullable [vm] parameter
- * allows injection in tests/previews.
- *
- * DEFERRED (noted in /tmp/mvvm-sdd/ui3-report.md): the in-screen wide workflow rail (single-pane
- * here; workflows open full-screen via [onOpenWorkflows]) and AttachmentNode download/preview.
- *
- * Attachment UPLOAD is wired (06-23): the input bar's attach icon opens a system file picker, picks
- * upload in the background via the VM's `attachFiles`, and submit() composes a `[attached: ...]`
- * marker that the transcript reducer already parses into AttachmentNode cards. The DOWNLOAD side of
- * the round-trip is still pending.
- */
+/** Chat/transcript screen. Stateless; all state from [SessionViewModel]. Transcript uses `reverseLayout` (see Transcript.kt). */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SessionScreen(
@@ -170,30 +149,19 @@ onFork: () -> Unit,
         },
     )
     val s by realVm.uiState.collectAsStateWithLifecycle()
-    // The turn the user long-pressed to rewind to; non-null shows the confirm dialog (rendered by the
-    // shared SessionDetailOverlays below). Saveable so the dialog survives a rotation.
+    // Saveable so the rewind dialog survives rotation.
     var pendingRewindTurn by rememberSaveable { mutableStateOf<Int?>(null) }
-    // Discord-style: opening this session acknowledges its current "your turn" point.
-    // Keyed on session.unreadEventId so it fires AFTER the session is loaded (the ViewModel
-    // LaunchedEffect key fires before uiState emits session → ackEvent would return early).
+    // Keyed on unreadEventId (not session.id) so ack fires AFTER session loads; VM LaunchedEffect keyed on id races the uiState emit.
     LaunchedEffect(s.session?.unreadEventId) {
         val eid = s.session?.unreadEventId ?: return@LaunchedEffect
         realVm.ackEvent(eid)
     }
-    // Warm-return self-heal: on every ON_RESUME — the app foregrounded, OR this destination navigated
-    // back to from another session — force a fresh transcript reseed from the authoritative log. Without
-    // it, a parked AskUserQuestion's picker card that went missing on a background-time reconnect reseed
-    // stays gone until the app is killed (the cached flow is never re-loaded on warm re-entry). The
-    // destination's own NavBackStackEntry is the LifecycleOwner here, so this also fires on back-nav,
-    // not only on app foreground.
+    // Warm-return self-heal: reseed from authoritative log on ON_RESUME (back-nav too, NavBackStackEntry is the LifecycleOwner).
+    // Without this, a parked AskUserQuestion picker lost on a background-time reconnect reseed stays gone until app kill.
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { realVm.refresh() }
     val session = s.session
 
-    // Fork navigation: when the VM surfaces a new id, navigate once and clear. forkedTo is a
-    // StateFlow (not a plain var), so collecting it here fires reliably — it does NOT depend on the
-    // outer composable recomposing (forkState is read in a separate scope below, so the outer body
-    // wouldn't recompose on fork success and a plain-var read would be missed). acknowledgeFork
-    // resets it to null, which the null-guard ignores (no navigation loop).
+    // forkedTo is a StateFlow (not a plain var) so collection fires reliably even when the outer body doesn't recompose.
     LaunchedEffect(realVm) {
         realVm.forkedTo.collect { id ->
             if (id != null) {
@@ -203,8 +171,7 @@ onFork: () -> Unit,
         }
     }
 
-    // Outbox download: the VM fetches bytes off this one-shot channel; the screen (which has a
-    // Context) writes them to the device's Downloads and toasts the outcome.
+    // VM owns network fetch; View (with Context) writes to Downloads and toasts the outcome.
     val context = LocalContext.current
     LaunchedEffect(realVm) {
         realVm.downloads.collect { eff ->
@@ -212,7 +179,7 @@ onFork: () -> Unit,
                 is DownloadEffect.Started ->
                     Toast.makeText(context, "Downloading ${eff.name}…", Toast.LENGTH_SHORT).show()
                 is DownloadEffect.Ready -> {
-                    // The VM streamed into a temp file; copy it into Downloads and ALWAYS drop the temp.
+                    // VM streamed to temp; copy into Downloads and ALWAYS delete the temp.
                     val ok = withContext(Dispatchers.IO) {
                         try { saveToDownloads(context, eff.name, eff.file) } finally { eff.file.delete() }
                     }
@@ -228,8 +195,7 @@ onFork: () -> Unit,
         }
     }
 
-    // Fork failures: surface the server's error so a failed fork isn't silent. Without this the
-    // Fork button just re-enables and the user can't tell the fork didn't happen (404/409/500/etc.).
+    // Surface fork failures — without this a re-enabled Fork button masks 404/409/500.
     LaunchedEffect(realVm) {
         realVm.forkState.collect { st ->
             if (st is ForkState.Failed) {
@@ -248,22 +214,10 @@ onFork: () -> Unit,
                     }
                 },
                 title = {
-                    // fillMaxWidth is REQUIRED for the fade: the M3 TopAppBar title slot otherwise lets a
-                    // bare wrap-content Column take the prompt's full intrinsic width, so FadingText's
-                    // softWrap=false Text never reports hasVisualOverflow (the app bar hard-clips it
-                    // externally instead) and the fade never triggers. Filling the (bounded) title width
-                    // gives FadingText a real constraint to overflow against — like the weight(1f) the
-                    // Home/Workflows/card FadingTexts sit in.
-                    //
-                    // widthIn(max = 300.dp) keeps the title's right edge well clear of the actions
-                    // block (git / workflow / fork buttons, ~150dp wide) so the FadingText's right-edge
-                    // gradient lands on the prompt text, not under the buttons. Without the cap, in
-                    // landscape the title slot is ~650dp wide and a typical prompt fits without
-                    // overflowing — so the fade never fires at all.
+                    // fillMaxWidth + widthIn(max=300dp): gives FadingText a real overflow constraint.
+                    // TopAppBar's bare title slot is ~650dp wide in landscape so a typical prompt fits
+                    // without ever overflowing → fade never fires.
                     Column(Modifier.fillMaxWidth().widthIn(max = 300.dp)) {
-                        // FadingText (like the Home/Workflows titles): show as much of the prompt as
-                        // fits on one line and fade the right edge on overflow, instead of hard-clipping.
-                        // No style/color passed, so it inherits the TopAppBar title text style + color.
                         FadingText((session?.prompt ?: "").ifBlank { "Session" })
                         Text(
                             realVm.sessionId.take(8),
@@ -273,24 +227,18 @@ onFork: () -> Unit,
                     }
                 },
                 actions = {
-                    // Commit history (commit graph) — always available now. When the session is still
-                    // running we pass live=true so the graph screen flags that the worktree may change.
+                    // live=true while not terminal so the graph screen warns the worktree may change.
                     IconButton(onClick = { onOpenHistory(!s.terminal) }) {
                         Icon(
                             Icons.Rounded.Commit, "commit history",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    // Workflows open full-screen (the side-by-side rail now lives at the app level
-                    // in AdaptiveHome, not in this screen).
                     if (s.hasRuns) {
                         IconButton(onClick = onOpenWorkflows) {
                             Icon(Icons.Rounded.AccountTree, "workflows")
                         }
                     }
-                    // Fork — independent session branched off this one. Disabled while the
-                    // request is in flight; on success, onForked receives the new id and the
-                    // caller navigates to it.
                     val forkState by realVm.forkState.collectAsStateWithLifecycle()
                     IconButton(
                         onClick = onFork,
@@ -302,7 +250,6 @@ onFork: () -> Unit,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    // Move session to a group.
                     IconButton(onClick = onMoveToGroup) {
                         Icon(
                             Icons.Rounded.Folder,
@@ -324,8 +271,7 @@ onOpenParent = onOpenParent,
         )
     }
 
-    // Shared chrome: the destructive Rewind confirm dialog + the rewind toast. Identical wiring to the
-    // wide WideThreePaneHome right pane (single source of truth).
+    // Shared chrome with the wide WideThreePaneHome right pane (single source of truth for rewind).
     SessionDetailOverlays(
         vm = realVm,
         pendingRewindTurn = pendingRewindTurn,
@@ -333,16 +279,7 @@ onOpenParent = onOpenParent,
     )
 }
 
-/**
- * The chat column — the busy indicator, repos row, resume banner, transcript and input bar — as a
- * Scaffold-free composable so it can be hosted either inside the narrow [SessionScreen]'s Scaffold or
- * directly as the right pane of the app-level 3-pane layout (AdaptiveHome). All state comes from [s];
- * every action calls a [realVm] event. The download SAVE effect (which needs a Context) stays in the
- * [SessionScreen] wrapper, not here. By default the root Column applies `.imePadding()` so the input
- * bar lifts above the keyboard. The 3-pane host (AdaptiveHome) sets [applyImePadding] = false and
- * applies the IME inset to the whole pane Row instead, so the splitter and side panes lift too —
- * avoiding double padding.
- */
+/** Chat column (Scaffold-free) hostable by narrow [SessionScreen] or the 3-pane AdaptiveHome right pane. Set [applyImePadding]=false to apply IME inset at the pane row instead. */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun SessionContent(
@@ -359,21 +296,12 @@ onOpenParent: (String) -> Unit = {},
     val session = s.session
     val dl by realVm.downloadProgress.collectAsStateWithLifecycle()
 
-    // Tap the transcript / empty composer chrome to blur the chat input and drop the keyboard.
-    // Transcript card taps, long-press text selection, and scrolling still win (children consume
-    // their pointers first). Covers both the narrow SessionScreen host and the AdaptiveHome chat pane.
-    // key(realVm.sessionId) so the entire content subtree is destroyed and rebuilt on session switch.
-    // No composable state (AnimatedVisibility, animateContentHeight, MutableTransitionState, etc.)
-    // survives across sessions — every animation seeds to its final value and nothing slides.
+    // key(realVm.sessionId) so the entire content subtree is destroyed+rebuilt on session switch —
+    // AnimatedVisibility/animateContentHeight/MutableTransitionState must not slide across switches.
     key(realVm.sessionId) {
     Column((if (applyImePadding) modifier.imePadding() else modifier).clearFocusOnTap()) {
-        // Live indicator — the expressive wavy bar runs while a turn is generating.
         if (s.busy) LinearWavyProgressIndicator(Modifier.fillMaxWidth())
 
-        // Info row — the run markers for this session, annotated as chips under the title: ultracode,
-        // fork (when branched off a parent), the repos (folder) + skills (✦) it used, model and effort.
-        // The fork chip replaces the old standalone "Forked from …" chip; the parent is still reachable
-        // through the collapsible Forked-from card below.
         session?.let {
             SessionTagRow(
                 it,
@@ -382,21 +310,10 @@ onOpenParent: (String) -> Unit = {},
             )
         }
 
-        // Error banner — shown for any session that currently carries a (non-benign) error, whether
-        // terminal OR idle-streaming. In streaming mode a usage/rate/claude error leaves the session
-        // idle (status="running") with errorKind set rather than going "failed", so we surface it via
-        // domain.hasError, not from terminal status. Watchdog caps (wall/idle timeout) and a manual
-        // Stop are not errors → no banner (the input bar lets the user just type to continue).
-        // Captured into a local val so the AnimatedVisibility content (which also renders during the
-        // exit animation) keeps a smart-cast non-null session after the error clears.
+        // domain.hasError surfaces streaming errors too (status="running" + errorKind set); watchdog caps and manual Stop are not errors.
         val errSession = session
         val errVisible = errSession != null && hasError(errSession.status, errSession.errorKind)
-        // Seed the transition state per session so the banner does NOT play its expand-in on a session
-        // SWITCH (landing on an already-errored session otherwise slid the transcript down — the "下滑"
-        // bug). It still animates when an error appears DURING a session (id stable → state persists).
-        // When MutableTransitionState is freshly created (session switch) with initial == target,
-        // AnimatedVisibility observes no change and snaps — so the banner lands at its full height
-        // in one frame with no slide. In-session state changes animate normally (expandVertically).
+        // Seed per-session so a freshly-created state with initial==target snaps with no slide on session switch.
         val errState = remember(session?.id) { MutableTransitionState(errVisible) }
         errState.targetState = errVisible
         AnimatedVisibility(
@@ -415,10 +332,7 @@ onOpenParent: (String) -> Unit = {},
                         errSession.error?.let {
                             Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        // Recover button for any errored, no-longer-progressing session — terminal (failed/
-                        // killed) OR a still-"running" session whose last turn errored and is now idle
-                        // (awaitingInput=true), e.g. "Not logged in". Resume continues via --resume; Retry
-                        // re-runs the prompt fresh. (The input bar below also stays enabled to just type on.)
+                        // Resume reuses claudeSessionId via --resume; Retry re-runs the prompt fresh.
                         if (recover != RecoverAction.NONE) {
                             val retrying = recover == RecoverAction.RETRY
                             Button(
@@ -434,19 +348,11 @@ onOpenParent: (String) -> Unit = {},
             }
         }
 
-        // Stuck terminal — a session that ended with no claudeSessionId to --resume and no live process
-        // to type into (e.g. the watchdog reaped a turn that stalled before Claude initialized:
-        // status="done", no error, no claudeSessionId). Neither the input bar (no canFollowUp) nor the
-        // error banner above (no error) shows any button, so offer a Retry that re-runs the original
-        // prompt fresh. Gated on !composable so a still-actionable session (e.g. a live workflow) never
-        // sees it.
+        // Gated on !composable so a still-actionable session (e.g. live workflow) never sees it.
         val stuckSession = session
         val stuckVisible = stuckSession != null && !s.composable &&
             !hasError(stuckSession.status, stuckSession.errorKind) &&
             isStuckTerminal(stuckSession.status, stuckSession.claudeSessionId)
-        // Same per-session MutableTransitionState pattern as the error banner — on switch the
-        // fresh state (initial == target) snaps to full height with no slide; in-session changes
-        // animate the expand normally.
         val stuckState = remember(session?.id) { MutableTransitionState(stuckVisible) }
         stuckState.targetState = stuckVisible
         AnimatedVisibility(
@@ -470,25 +376,14 @@ onOpenParent: (String) -> Unit = {},
             }
         }
 
-        // Forked-from: a collapsible, read-only preview of the parent conversation, shown at the top
-        // so a fork makes clear where it branched from. Collapsed by default; the live transcript
-        // renders below. Null (nothing shown) unless this session is a fork.
         val parentPreview by realVm.parentPreview.collectAsStateWithLifecycle()
         parentPreview?.let { pp -> ForkedHistoryCard(preview = pp, onOpenParent = onOpenParent) }
 
-        // Transcript — reverseLayout best-practice rendering (Transcript.kt). During the initial
-        // connect we show a centered MD3E flywheel instead of the transcript.
         Box(Modifier.weight(1f).fillMaxWidth()) {
-            // "Loading" = the real conversation hasn't seeded yet. We can NOT key on s.nodes.isEmpty():
-            // the outbox poll (pollFlow emits its first block immediately) usually returns the session's
-            // download cards BEFORE the transcript stream connects, and interleaveShared(emptyTranscript,
-            // shared) then yields a list of lone AttachmentNodes — which made the chat flash a bare
-            // "download card" under the fallback title. Key on "still connecting AND nothing but
-            // attachment cards so far" so the flywheel covers the whole connect, download cards included.
+            // Don't key on s.nodes.isEmpty(): outbox poll fires before the transcript stream, so the
+            // first frame can show lone AttachmentNodes — flash a bare "download card" under the fallback title.
             val loadingTranscript = s.connecting && s.nodes.all { it is AttachmentNode }
             if (s.loadError && s.session == null) {
-                // First load failed (server unreachable on open). Show an error + retry instead of a
-                // permanent blank/spinner — realVm.reload() re-runs the fetch on the same cached flow.
                 Box(Modifier.fillMaxSize(), Alignment.Center) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -503,8 +398,7 @@ onOpenParent: (String) -> Unit = {},
                     }
                 }
             } else if (loadingTranscript) {
-                // Reveal the flywheel only if the connect is genuinely slow (>150ms) — a fast connect
-                // renders the transcript directly, with no loading->content flash.
+                // 150ms threshold: a fast connect renders the transcript directly, no loading->content flash.
                 val showSpinner by produceState(initialValue = false, loadingTranscript) {
                     value = false
                     delay(150)
@@ -547,12 +441,9 @@ onOpenParent: (String) -> Unit = {},
             }
         }
 
-        // Input bar — rendered instantly whenever a session exists (no gating on transcript/pin).
         if (session != null) {
             val ctx = LocalContext.current
-            // Captured here (not inside InputBar) so the ContentResolver comes from the SAME context
-            // that owns the activity result that produced the URIs — guarantees the read grant is in
-            // scope when the VM's upload coroutine opens the stream.
+            // ContentResolver from the SAME context that produced the URIs — read grant is in scope for the upload stream.
             val onAttachFiles: (List<Uri>) -> Unit = { uris -> realVm.attachFiles(uris, ctx.contentResolver) }
             val mentionCandidates by realVm.mentionCandidates.collectAsStateWithLifecycle()
             InputBar(
@@ -578,22 +469,7 @@ onOpenParent: (String) -> Unit = {},
     }
 }
 
-/**
- * The chat-input surface: a single rounded surface laid out as a two-row composer — the pending-
- * attachment chips and the full-width text field stack on top, and an action bar sits below holding
- * the attach button (opens the system file picker) and session-settings on the left, then a mic
- * dictation button and send/stop on the right. Stacking the field above its own action bar keeps the
- * chips, the text and the leading icons on one shared left margin, and lets multi-line text use the
- * full width (it grows upward while the action bar stays put) — md3 chat-input style.
- * Purely flag-driven from VM state — no local input-state-machine logic. Attach is gated on
- * [composable] (same gate as Send) because only an actionable session can take the next turn; the
- * pending chips row is shown whenever the user has attachments, regardless of [composable], so a
- * user who attached files and then the session went terminal can still see (and remove) them.
- *
- * Mic dictation: the recognizer + its launcher/listener are created with unconditional `remember`/
- * `DisposableEffect`/`rememberLauncherForActivityResult` (Compose rules-of-hooks) and only used inside
- * the conditional rendering below. Recognized speech is appended to the current input via [onInput].
- */
+/** Two-row composer surface: pending chips + full-width text field stack above, action bar (attach/settings/mic/send-stop) below. Flag-driven from VM state. */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun InputBar(
@@ -614,32 +490,18 @@ private fun InputBar(
     mentionCandidates: List<Session> = emptyList(),
     onMentionActive: () -> Unit = {},
 ) {
-    // All dictation logic (engine choice, permission, first-run model download, live results) lives
-    // in this shared controller. On arm64 it uses sherpa-onnx (bilingual zh-en, offline); otherwise
-    // it falls back to the platform SpeechRecognizer. Recognized speech is appended to `input`.
+    // Dictation lives in a shared controller; arm64 → sherpa-onnx offline, else platform SpeechRecognizer.
     val dict = rememberDictationController(currentText = { input }, onText = onInput)
-    // TextFieldState bridge: the composer text lives in the ViewModel's `input` StateFlow, which
-    // re-emits on unrelated combine ticks (per-token transcript stream, 2s session poll, 2.5s
-    // workflow polls) and is also written by dictation (onText above). A TextFieldState owns text +
-    // caret + composing region together, so those re-emits no longer rebuild a stale caret while the
-    // user types (the String-overload bug: appended/poll-fed text landing behind a frozen caret).
+    // TextFieldState owns text + caret + composing together, so unrelated VM re-emits (poll ticks, dictation writes) don't rebuild a stale caret behind the user's typing.
     val inputState = rememberSyncedTextFieldState(input, onInput)
-    // System file picker — Storage Access Framework (SAF) so no runtime permission is needed on any
-    // API level we ship (minSdk 26). The contract hands us read-granted URIs scoped to our activity;
-    // SessionScreen captures the ContentResolver from the same context and hands both to the VM in
-    // attachFiles() so the upload coroutine can openInputStream().
+    // SAF picker: no runtime permission needed; URIs are read-granted only for our activity.
     val attachLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenMultipleDocuments(),
     ) { uris: List<Uri> ->
         if (uris.isNotEmpty()) onAttachFiles(uris)
     }
 
-    // @-mention state: reading inputState.text/selection here is snapshot-aware, so this block
-    // re-evaluates as the user types or moves the caret. A mention is active while the caret sits
-    // inside an `@`-word (see activeMentionQuery); the panel shows only when something matches.
-    // Gated on !dict.listening like manual editing (readOnly above): while the recognizer streams,
-    // every partial result rewrites the whole field through the sync bridge, which would clobber a
-    // just-picked mention token — so no picking mid-dictation.
+    // Block @-mention picking while the recognizer streams — each partial result rewrites the field through the sync bridge and would clobber a just-picked token.
     val mentionActive = !dict.listening && inputState.selection.collapsed &&
         activeMentionQuery(inputState.text.toString(), inputState.selection.end) != null
     val mentionMatches =
@@ -647,8 +509,7 @@ private fun InputBar(
         else activeMentionQuery(inputState.text.toString(), inputState.selection.end)
             ?.let { filterMentionCandidates(mentionCandidates, it.query) }
             .orEmpty()
-    // Refresh the candidates list once per activation (not per keystroke) — the panel renders
-    // instantly from the VM's last list while the refresh is in flight.
+    // Refresh once per activation, not per keystroke; panel renders instantly from the VM's last list.
     LaunchedEffect(mentionActive) { if (mentionActive) onMentionActive() }
 
     Column(Modifier.fillMaxWidth()) {
@@ -656,8 +517,7 @@ private fun InputBar(
         MentionCandidatesPanel(
             candidates = mentionMatches,
             onPick = { picked ->
-                // Recompute the mention from the CURRENT field state (never a stale composition
-                // capture): replace `@<query>` with the literal token and park the caret after it.
+                // Recompute from CURRENT field state — never a stale composition capture.
                 val caret = inputState.selection.end
                 activeMentionQuery(inputState.text.toString(), caret)?.let { m ->
                     val token = mentionToken(picked.id)
@@ -681,7 +541,7 @@ private fun InputBar(
             ) else if (dict.listening) LinearWavyProgressIndicator(
                 Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
             )
-            // Dictation status: permission prompt, first-run model download %, or an error.
+            // Dictation status: permission prompt, first-run download %, or error.
             dict.status?.let { msg ->
                 Text(
                     msg,
@@ -690,10 +550,8 @@ private fun InputBar(
                     modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 2.dp),
                 )
             }
-            // First-run model-download chooser (Standard / High accuracy).
             DictationDownloadDialog(dict)
-            // A send failed (e.g. network, or the session couldn't take the turn) — tell the user; the
-            // input keeps their text so they can retry. Cleared on the next submit.
+            // queueError keeps the input text so the user can retry; cleared on next submit.
             if (queueError != null) {
                 Text(
                     queueError,
@@ -702,11 +560,7 @@ private fun InputBar(
                     modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 4.dp),
                 )
             }
-            // Pending attachment chips — shown whenever the user has picked files, regardless of
-            // `composable`, so they can still see (and remove) attachments even if the session goes
-            // terminal. Each chip shows the upload state; remove is always available so a stuck
-            // upload can be cancelled. The left padding matches the text field below so the chips, the
-            // typed text and the leading action icon all sit on the same left margin.
+            // Chips show regardless of `composable` so a terminal session still lets the user see/remove attachments.
             if (attachments.isNotEmpty()) {
                 LazyRow(
                     modifier = Modifier.fillMaxWidth().padding(start = 12.dp, top = 4.dp, bottom = 2.dp),
@@ -717,15 +571,9 @@ private fun InputBar(
                     }
                 }
             }
-            // Two-row composer: the text field gets its own full-width row ABOVE the action bar. This
-            // fixes the two reported layout issues — (1) the chips above and the action icons below now
-            // share this field's left margin, so attachments / input / controls all line up; and (2)
-            // multi-line text uses the FULL width (wraps onto fewer lines) and grows upward while the
-            // action row stays pinned at the bottom, instead of competing with the icons for width.
             BasicTextField(
                 state = inputState,
-                // Lock manual editing while the recognizer streams text in, so keystrokes and the
-                // live rewrite don't fight (the "jumping text" bug). Editable again once stopped.
+                // readOnly while listening: keystrokes would fight the live rewrite ("jumping text" bug).
                 readOnly = dict.listening,
                 textStyle = MaterialTheme.typography.bodyLarge.copy(
                     color = MaterialTheme.colorScheme.onSurface,
@@ -733,17 +581,10 @@ private fun InputBar(
                 cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                 lineLimits = TextFieldLineLimits.MultiLine(maxHeightInLines = 6),
                 modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 6.dp),
-                // No placeholder text in the input field (per request) — just the cursor when empty.
-                // No decorator: a null decorator renders the inner text field directly (a passthrough
-                // decorator would only add per-recomposition allocation).
+                // No decorator: a null decorator renders the inner field directly without per-recomposition allocation.
             )
-            // Action bar: leading attach + settings, a flexible spacer, then mic / stop / send. The
-            // spacer keeps the send cluster hugging the right edge no matter how tall the field grew.
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                // Attach — opens the system file picker. Gated on `composable` (same gate as Send):
-                // only an actionable session can take a turn, so picking files into a terminal one
-                // would be misleading. The VM keeps attachments alive across composable flips so they
-                // re-show when the session resumes.
+                // Attach gated on `composable` (same gate as Send) — VM keeps attachments alive across composable flips.
                 IconButton(
                     onClick = { attachLauncher.launch(arrayOf("*/*")) },
                     enabled = composable,
@@ -754,16 +595,12 @@ private fun InputBar(
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                // ⚙ session settings — opens the SessionSettingsScreen so the user can override
-                // model/effort/mode/permissionMode for the NEXT turn. Gated on `composable` (the same
-                // gate that exposes Send) because only an actionable session has a "next turn".
                 if (composable) {
                     IconButton(onClick = onOpenSettings) {
                         Icon(Icons.Rounded.Tune, contentDescription = "session settings")
                     }
                 }
                 Spacer(Modifier.weight(1f))
-                // Mic — shown when a dictation engine is available.
                 if (dict.available) {
                     IconButton(onClick = { dict.onMicClick() }) {
                         Icon(
@@ -773,8 +610,7 @@ private fun InputBar(
                         )
                     }
                 }
-                // Stop is offered while a turn is actively generating — onStop interrupts the turn
-                // (the session stays alive and idle, ready for the next message).
+                // Stop interrupts the turn; session stays alive (not kill()).
                 if (busy) {
                     FilledIconButton(
                         onClick = onStop,
@@ -787,8 +623,7 @@ private fun InputBar(
                 }
                 if (composable) {
                     FilledIconButton(
-                        // Sending auto-ends an in-progress dictation (and mutes its trailing result so
-                        // it can't repopulate the field after submit clears it).
+                        // stopForSend mutes the trailing partial so it can't repopulate after submit clears the field.
                         onClick = { dict.stopForSend(); if (canSend) onSubmit() },
                         enabled = canSend,
                         modifier = Modifier.padding(start = 4.dp),
@@ -800,13 +635,7 @@ private fun InputBar(
     } // mention panel + composer column
 }
 
-/**
- * Save [file]'s contents as [name] into the device's public Downloads — a streamed 64 KB-chunk
- * copy, so a 44 MB APK never materializes as one ByteArray. API 29+ uses MediaStore (no runtime
- * permission needed); older devices fall back to the app-specific external Downloads dir (also no
- * permission). Returns true on success. Call off the main thread (it does blocking IO). The caller
- * owns [file]'s lifetime (delete it after this returns).
- */
+/** Streamed 64 KB-chunk copy to device Downloads (MediaStore on API 29+, app-external dir on older). Caller owns [file]'s lifetime; call off the main thread. */
 internal fun saveToDownloads(context: Context, name: String, file: File): Boolean {
     return try {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -838,8 +667,7 @@ internal fun saveToDownloads(context: Context, name: String, file: File): Boolea
     }
 }
 
-/** Best-effort MIME type from a filename extension — drives how Downloads/installers treat the file
- *  (notably .apk → the package-installer MIME). Falls back to a generic binary type. */
+/** Best-effort MIME from filename extension; falls back to binary octet-stream. */
 private fun mimeOf(name: String): String = when (name.substringAfterLast('.', "").lowercase()) {
     "apk" -> "application/vnd.android.package-archive"
     "pdf" -> "application/pdf"
@@ -855,19 +683,12 @@ private fun mimeOf(name: String): String = when (name.substringAfterLast('.', ""
     else -> "application/octet-stream"
 }
 
-/**
- * Collapsible, read-only card showing the parent (forked-from) conversation at the top of a fork.
- * Collapsed by default (a one-line header); expanding reveals the parent's user/assistant messages
- * in a bounded, internally-scrolling column so it never fights the live transcript's scroll. The
- * full parent (with tool calls etc.) is one tap away via "Open full conversation".
- */
+/** Collapsible read-only card showing the parent (forked-from) conversation at the top of a fork. */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun ForkedHistoryCard(preview: ForkParentPreview, onOpenParent: (String) -> Unit) {
     var expanded by rememberSaveable(preview.parentId) { mutableStateOf(false) }
-    // Expressive motion specs for the expand — the SAME spring family WorkflowScreen's per-run accordion
-    // uses, so the two reveals feel consistent. expandFrom/shrinkTowards Top anchors the body under the
-    // header so it unrolls downward instead of snapping in.
+    // Top-anchored expand so the body unrolls downward, matching WorkflowScreen's per-run accordion.
     val motion = MaterialTheme.motionScheme
     val sizeSpec = remember(motion) { motion.defaultSpatialSpec<IntSize>() }
     val fadeSpec = remember(motion) { motion.defaultEffectsSpec<Float>() }

@@ -24,14 +24,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.util.concurrent.ConcurrentHashMap
 
-// A small, dependency-free Markdown renderer covering what the agent transcript uses: headings,
-// bold, inline code, fenced code blocks, bullet/numbered lists, and paragraphs.
-//
-// PERF: the inline span work (bold/code -> AnnotatedString) is done ONCE here at parse time and
-// stored in the Block, so a recomposition / scroll-in just hands the prebuilt AnnotatedString to
-// Text — it never re-runs inline(). Parsing itself is memoized process-wide by content string (see
-// [parseMarkdown]) so the SAME message text is parsed only once even as its LazyColumn slot is
-// recycled across scrolls. The regexes are top-level vals (compiled once), not rebuilt per line.
+// Small, dependency-free renderer: headings, bold, inline code, fenced code, bullet/numbered lists,
+// paragraphs, GFM tables. Inline spans built ONCE at parse time → stored in the Block, so
+// recomposition just hands the prebuilt AnnotatedString to Text. Parsing is memoized process-wide
+// by content string so the same message parses once even as its LazyColumn slot is recycled.
 internal sealed interface Block {
     data class Heading(val text: String) : Block
     data class Code(val text: String) : Block
@@ -40,8 +36,7 @@ internal sealed interface Block {
     data class Table(val header: List<AnnotatedString>, val rows: List<List<AnnotatedString>>) : Block
 }
 
-// Compiled once. Was previously `Regex(...)` constructed inside the per-line parse loop (twice per
-// matching line) — regex compilation on the scroll hot path. Hoisted to top-level vals.
+// Compiled once; was previously constructed inside the per-line parse loop.
 private val BULLET_REGEX = Regex("^\\s*([-*]|\\d+\\.)\\s+")
 
 private val EMPTY_ANNOTATED = AnnotatedString("")
@@ -49,7 +44,7 @@ private val EMPTY_ANNOTATED = AnnotatedString("")
 private fun cells(line: String): List<String> =
     line.trim().trim('|').split("|").map { it.trim() }
 
-// A GFM separator row: every cell is dashes with optional leading/trailing colons (e.g. |---|:--:|).
+// GFM separator: every cell dashes with optional leading/trailing colons.
 private fun isTableSeparator(line: String): Boolean {
     val c = cells(line)
     return c.isNotEmpty() && c.all { it.isNotEmpty() && it.all { ch -> ch == '-' || ch == ':' } }
@@ -71,7 +66,6 @@ private fun parseBlocks(md: String): List<Block> {
                 out.add(Block.Code(code.toString().trimEnd())); i++
             }
             line.trimStart().startsWith("#") -> { flush(); out.add(Block.Heading(line.trimStart().trimStart('#').trim())); i++ }
-            // table: a "| … |" header line immediately followed by a |---|---| separator row
             line.trimStart().startsWith("|") && i + 1 < lines.size && isTableSeparator(lines[i + 1]) -> {
                 flush()
                 val header = cells(line).map { inline(it) }; i += 2
@@ -107,32 +101,23 @@ private fun inline(s: String): AnnotatedString = buildAnnotatedString {
     }
 }
 
-// Process-wide memoization of parsed markdown, keyed by the raw content string. Committed transcript
-// nodes have stable text, so the same string is parsed exactly once and reused as its LazyColumn slot
-// is recycled across scrolls (the per-composition remember(md) below only caches within one slot).
-// Bounded so streaming (each token = a new trailing string) can't grow it without limit; computeIfAbsent
-// keeps it atomic. The live trailing node still re-parses per token, but that is one node, not the list.
+// Process-wide memoization, keyed by raw content. Streaming trailing node still re-parses per token
+// but that is one node, not the list. Bounded so streaming can't grow it without limit.
 private const val CACHE_MAX = 256
 private const val CACHE_TRIM_TO = 128
 private val blockCache = ConcurrentHashMap<String, List<Block>>()
 
 internal fun parseMarkdown(md: String): List<Block> {
     if (blockCache.size > CACHE_MAX) {
-        // Arbitrary eviction (ConcurrentHashMap has no order) — just cap the size; an evicted, still-
-        // visible message simply re-parses once on its next scroll-in. Fine for the very oldest.
         blockCache.keys.take(blockCache.size - CACHE_TRIM_TO).forEach { blockCache.remove(it) }
     }
     return blockCache.computeIfAbsent(md) { parseBlocks(md) }
 }
 
 /**
- * Renders the transcript's markdown subset. Body text (headings, bullets, paragraphs, inline code) is
- * NOT given an explicit color — it inherits `LocalContentColor.current`, so a caller that sets a content
- * color (e.g. a Card with `contentColor`, like [dev.agentic.ui.session.PrCard]) tints the prose
- * for free. The few blocks that need their own background — fenced code and tables — take their surface
- * colors as parameters ([codeBackground] / [tableBackground] / [tableHeaderBackground] / [tableDivider])
- * so they can stay in the caller's color family instead of reverting to the neutral defaults; omit them
- * for the standalone transcript look.
+ * Renders the transcript's markdown subset. Body text inherits [LocalContentColor] so a caller that
+ * sets a content color tints the prose for free; blocks needing their own surface (code/tables) take
+ * colors as parameters.
  */
 @Composable
 fun MarkdownText(
@@ -172,7 +157,6 @@ private fun TableBlock(t: Block.Table, surface: Color, headerBackground: Color, 
             t.rows.forEach { row ->
                 HorizontalDivider(color = divider)
                 Row(Modifier.fillMaxWidth()) {
-                    // pad the row out to the header width so cells stay aligned
                     val n = t.header.size.coerceAtLeast(row.size)
                     for (j in 0 until n) {
                         Text(row.getOrElse(j) { EMPTY_ANNOTATED }, style = MaterialTheme.typography.bodySmall,

@@ -17,21 +17,16 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 
 /**
- * Inline filter-as-you-type search field: a flat, filled "pill" [TextField] with a leading magnifier
- * and no trailing icon (clearing is by backspace). Stateless — the caller owns the query.
+ * Inline filter-as-you-type search field: a flat filled "pill" [TextField] with a leading magnifier,
+ * no trailing icon (clearing by backspace). Stateless — caller owns the query.
  *
- * Why a plain [TextField] and NOT Material3 `SearchBar`/`DockedSearchBar`: the native search bar has a
- * fixed minimum width and ignores a weighted layout slot, so inline in the top bar it overran the
- * action buttons. A plain TextField respects `weight(1f).fillMaxWidth()` — fills exactly the space left
- * after the title + actions, full-width in any orientation, no overlap. With no trailing icon there's
- * nothing in the (vertically-biased) trailing slot to look crooked. Results render in the list body.
+ * Plain [TextField], NOT material3 SearchBar/DockedSearchBar: the native search bar has a fixed
+ * min-width and ignores a weighted slot, so inline in the top bar it overran action buttons. A
+ * plain TextField respects `weight(1f).fillMaxWidth()` — fills the space left after title+actions.
  *
- * Note: the unprompted-keyboard-on-entry (the list/pane scaffold auto-focusing this field on
- * composition) is handled by the host clearing focus when it lands on the list — see
- * `NarrowScaffoldHome`. A plain field keeps tap-to-focus working normally.
+ * Auto-focus-on-entry is handled by the host clearing focus when the scaffold lands on the list.
  *
- * @param searching accepted for API stability; loading feedback belongs OUTSIDE the field.
- * @param onSearch optional IME "Search" action handler.
+ * @param searching kept for API stability; loading feedback belongs OUTSIDE the field.
  */
 @Composable
 fun SearchBar(

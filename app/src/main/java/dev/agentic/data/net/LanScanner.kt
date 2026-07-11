@@ -16,10 +16,9 @@ data class DiscoveredServer(
     val ip: String,
     val port: Int = 7420,
     val latencyMs: Long,
-    /** Whether the server answered over TLS (the default) vs plain HTTP (AGENTIC_TLS=off). */
+    /** Server answered over TLS (default) vs plain HTTP (AGENTIC_TLS=off). */
     val https: Boolean = true,
 ) {
-    /** Full base URL the auth layer expects, e.g. "https://192.168.1.10:7420". */
     val baseUrl: String get() = "${if (https) "https" else "http"}://$ip:$port"
 }
 
@@ -31,29 +30,21 @@ sealed interface ScanUpdate {
     data object NotOnLan : ScanUpdate
 }
 
-/** The device's local IPv4 address and subnet prefix length. */
 data class LocalNet(val ip: String, val prefixLen: Int)
 
-/** Resolves the device's local private-IPv4 network (null when not on a usable LAN). */
 interface NetworkInfoProvider {
     fun localNet(): LocalNet?
 }
 
-/** Probes a single host: returns a [DiscoveredServer] iff it is an agentic-dev server. */
 interface ServerProbe {
     suspend fun probe(ip: String): DiscoveredServer?
 }
 
-/** Scans the local LAN for agentic-dev servers, emitting results as they are found. */
 interface LanScanner {
     fun scan(): Flow<ScanUpdate>
 }
 
-/**
- * Host addresses to probe for the /24 containing [localNet].ip, excluding the network address
- * (.0), the broadcast address (.255), and the device's own address. Capped at a /24 regardless
- * of the real prefix so a wide subnet can never blow up into thousands of probes.
- */
+/** Probe candidates for the /24 containing [localNet].ip (excluding .0, .255, and own address). Capped at /24 regardless of the real prefix so a wide subnet never blows up into thousands of probes. */
 fun candidateIps(localNet: LocalNet): List<String> {
     val octets = localNet.ip.split(".").mapNotNull { it.toIntOrNull() }
     if (octets.size != 4 || octets.any { it !in 0..255 }) return emptyList()
@@ -63,14 +54,11 @@ fun candidateIps(localNet: LocalNet): List<String> {
 }
 
 /**
- * Default [LanScanner]: enumerates the local /24, probes each host on a bounded thread pool, and
- * emits each [ScanUpdate.Found] the instant it is discovered (so the UI fills in live) plus a
- * [ScanUpdate.Progress] per completed probe, then a terminal [ScanUpdate.Done]. Emits
- * [ScanUpdate.NotOnLan] (and nothing else) when no usable local network is found.
- *
- * channelFlow's [send] is concurrency-safe, so the fan-out coroutines can publish freely.
- * Probing runs inside a [coroutineScope] so the flow only completes once every probe has finished,
- * and cancelling the collector cancels all in-flight probes (structured concurrency).
+ * Default [LanScanner]: enumerates the local /24, probes each host on a bounded pool, and emits each
+ * [ScanUpdate.Found] the instant it is found (UI fills in live) + a [ScanUpdate.Progress] per
+ * completed probe, then [ScanUpdate.Done]. Emits [ScanUpdate.NotOnLan] (alone) when no usable
+ * local network is found. channelFlow's send is concurrency-safe; coroutineScope ensures the
+ * collector cancels all in-flight probes on dispose (structured concurrency).
  */
 class DefaultLanScanner(
     private val networkInfo: NetworkInfoProvider,

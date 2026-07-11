@@ -1,26 +1,16 @@
 package dev.agentic.domain
 
-/** One sampled reading of download pace: smoothed speed (null until measurable) + stall flag. */
+/** One sampled reading: smoothed speed (null until measurable) + stall flag. */
 data class Pace(val bytesPerSec: Long?, val stalled: Boolean)
 
-/** What the UI needs to render one in-flight download: completed fraction (null while the size is
- *  unknown), current transfer speed, and whether the transfer has visibly stalled. */
+/** UI render state for an in-flight download: fraction (null while size unknown) + speed + stalled. */
 data class DownloadUi(
     val fraction: Float? = null,
     val bytesPerSec: Long? = null,
     val stalled: Boolean = false,
 )
 
-/**
- * Tracks a download's pacing from (cumulativeBytes, timestamp) progress events: sliding-window
- * average speed plus "no bytes for a while" stall detection. The caller supplies all timestamps,
- * so it unit-tests without clocks or coroutines.
- *
- * Methods are @Synchronized because production drives it from two threads at once: onProgress
- * fires on the downloader's IO thread while the VM's ticker samples on Main — an unsynchronized
- * ArrayDeque would race (corruption / ConcurrentModificationException). Calls are a few per
- * second, so the lock is uncontended noise.
- */
+/** Sliding-window speed + stall detection from (cumulativeBytes, timestamp) events. Caller supplies timestamps → unit-tests without clocks. @Synchronized: IO thread onProgress races VM-Main ticker sampler; calls are few/sec (uncontended noise). */
 class DownloadPace(
     private val stallAfterMs: Long = 3_000,
     private val windowMs: Long = 4_000,
@@ -30,7 +20,7 @@ class DownloadPace(
     private var lastAdvanceAt = -1L
     private var lastBytes = -1L
 
-    /** Marks the download as started at [nowMs]; a hang before the first byte counts as a stall. */
+    /** Started at [nowMs]; hang before first byte counts as a stall. */
     @Synchronized
     fun start(nowMs: Long) {
         startAt = nowMs
@@ -39,7 +29,7 @@ class DownloadPace(
         points.clear()
     }
 
-    /** Records that [totalBytes] have arrived by [nowMs]. */
+    /** Record [totalBytes] arrived by [nowMs]. */
     @Synchronized
     fun onProgress(totalBytes: Long, nowMs: Long) {
         if (totalBytes != lastBytes) {
@@ -50,7 +40,7 @@ class DownloadPace(
         while (points.size > 1 && points.first().first < nowMs - windowMs) points.removeFirst()
     }
 
-    /** Current pace as of [nowMs]. Stalled → speed reads 0 (the bar is frozen, say so). */
+    /** Pace as of [nowMs]; stalled → speed reads 0 (bar frozen, say so). */
     @Synchronized
     fun sample(nowMs: Long): Pace {
         val quietSince = if (lastAdvanceAt >= 0) lastAdvanceAt else startAt

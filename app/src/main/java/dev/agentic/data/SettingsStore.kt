@@ -5,31 +5,24 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-// No baked-in default host: first-run primary path is the LAN scan; the manual Host field shows
-// a placeholder example and the Log-in button stays disabled until a host is typed.
+// No baked-in default host: first-run path is LAN scan; manual Host field shows placeholder and Log-in stays disabled until typed.
 private const val DEFAULT_HOST = ""
 
 /** Holds persistent user settings: auth token and backend host. */
 interface SettingsStore {
-    /** Current auth token, exposed as a cold-read StateFlow so observers are notified on change. */
     val token: StateFlow<String?>
-    /** Current backend host URL. */
     val host: String
     fun setToken(t: String?)
     fun setHost(h: String)
-    /** Per-session composer draft, persisted so an un-sent message survives process death
-     *  (the OS killing a backgrounded app). null/empty means no draft. */
+    /** Per-session composer draft — persists across process death so an un-sent message survives. */
     fun draft(id: String): String?
     fun setDraft(id: String, text: String?)
-    /** The pinned server-cert fingerprint (colon-free lowercase SHA-256) for [hostKey], if the user
-     *  has trusted a self-signed cert for that host (trust-on-first-use). null = not pinned. */
+    /** Pinned server-cert fingerprint (colon-free lowercase SHA-256) for [hostKey] under TOFU. null = not pinned. */
     fun pinnedCert(hostKey: String): String?
     fun setPinnedCert(hostKey: String, fingerprint: String?)
 }
 
-/** SharedPreferences-backed implementation. Persists token and host across app restarts.
- *  Ported from [dev.agentic.data.Store]; adds a [MutableStateFlow] so consumers can
- *  react to token changes without polling. */
+/** SharedPreferences-backed settings. StateFlow on token so consumers react to changes without polling. */
 class SharedPrefsSettingsStore(context: Context) : SettingsStore {
     private val prefs = context.getSharedPreferences("agentic", Context.MODE_PRIVATE)
 

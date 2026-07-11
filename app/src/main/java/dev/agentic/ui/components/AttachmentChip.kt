@@ -27,13 +27,9 @@ import dev.agentic.domain.PendingAttachment
 import dev.agentic.domain.UploadState
 
 /**
- * One chip in a pending-attachment row. Shows the file name (truncated), a state indicator (spinner
- * for in-flight, check for done, error for failed), and an X to remove. Shared by the session
- * composer ([dev.agentic.ui.session.SessionScreen]) and the New-request form
- * ([dev.agentic.ui.newrequest.NewRequestScreen]) so attachments render identically in both places.
- *
- * Built with Surface + Row rather than AssistChip because we need a tightly sized leading state slot
- * (16dp) and a short 28dp X button — the chip defaults fight those.
+ * One chip in a pending-attachment row: filename (truncated), state (spinner/check/error), and an
+ * X to remove. Shared by SessionScreen and NewRequestScreen so attachments render identically.
+ * Surface+Row, not AssistChip — chip defaults fight the tightly-sized 16dp state slot and 28dp X.
  */
 @Composable
 fun AttachmentChip(att: PendingAttachment, onRemove: () -> Unit, modifier: Modifier = Modifier) {
@@ -46,8 +42,7 @@ fun AttachmentChip(att: PendingAttachment, onRemove: () -> Unit, modifier: Modif
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(start = 8.dp, end = 2.dp, top = 2.dp, bottom = 2.dp),
         ) {
-            // 16dp state slot — same column width regardless of state so the name doesn't reflow
-            // when Pending → Uploading → Done lands.
+            // 16dp state slot — fixed width so the name doesn't reflow across Pending/Uploading/Done.
             Box(
                 modifier = Modifier.size(16.dp),
                 contentAlignment = Alignment.Center,

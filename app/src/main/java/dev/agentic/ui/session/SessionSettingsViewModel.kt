@@ -20,15 +20,15 @@ data class SessionSettingsUiState(
     val pendingEffort: String? = null,
     val pendingMode: String? = null,
     val pendingPermissionMode: String? = null,
-    /** null = session not loaded yet → PATCH omits the field (never flip a value we never saw). */
+    /** null = session not loaded yet; PATCH omits the field (never flip an unseen value). */
     val pendingAutoResume: Boolean? = null,
     val saving: Boolean = false,
     val error: String? = null,
-    /** Set when the session is still loading (initial fetch from store). */
+    /** Set while the initial session fetch is in flight. */
     val loading: Boolean = true,
     /** A hand-off (detach) request is in flight. */
     val detaching: Boolean = false,
-    /** The `claude --resume …` command from the last successful hand-off, shown for copy. */
+    /** `claude --resume …` command from the last successful hand-off, shown for copy. */
     val resumeCmd: String? = null,
 )
 
@@ -41,9 +41,7 @@ class SessionSettingsViewModel(
     val uiState: StateFlow<SessionSettingsUiState> = _uiState.asStateFlow()
 
     init {
-        // Best-effort: make sure the Claude-only session-start catalog is loaded so the Model
-        // slider offers real options even when this screen is the first catalog consumer in the
-        // process (repo caches it in ModelCatalog; failure just leaves the "Default" notch).
+        // Best-effort: warm the session-start catalog so the Model slider has real options if this is the first consumer.
         viewModelScope.launch {
             try {
                 sessionsRepo.sessionStartModelCatalog()
@@ -52,9 +50,6 @@ class SessionSettingsViewModel(
             }
         }
         viewModelScope.launch {
-            // Reuse the public engine.get path on the repo if it has one; otherwise expose one.
-            // For now, assume SessionsRepository.get(id) returns Outcome<Session> (verify — if not,
-            // add it: `suspend fun get(id: String): Outcome<Session> = runCatchingOutcome { api.get(id) }`)
             when (val r = sessionsRepo.get(sessionId)) {
                 is Outcome.Success -> {
                     val s = r.value
@@ -86,7 +81,7 @@ class SessionSettingsViewModel(
     fun setPendingPermissionMode(p: String?) { _uiState.update { it.copy(pendingPermissionMode = p) } }
     fun setPendingAutoResume(v: Boolean) { _uiState.update { it.copy(pendingAutoResume = v) } }
 
-    /** Save the pending values to the session (PATCH /api/sessions/:id). */
+    /** PATCH /api/sessions/:id with the pending values. */
     fun saveToSession() {
         val s = _uiState.value
         if (s.saving) return
@@ -116,8 +111,7 @@ class SessionSettingsViewModel(
         }
     }
 
-    /** Hand this session off to a terminal `claude --resume`: POST /api/sessions/:id/detach.
-     *  The server hard-stops the live process (single-writer) and returns the resume command. */
+    /** Hand this session off to a terminal `claude --resume` (POST /api/sessions/:id/detach). Server hard-stops the live process (single-writer). */
     fun detach() {
         if (_uiState.value.detaching) return
         _uiState.update { it.copy(detaching = true, error = null) }

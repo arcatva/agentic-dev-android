@@ -1,6 +1,5 @@
 package dev.agentic.ui.tree
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -78,7 +77,7 @@ import dev.agentic.domain.relativeAge
 private val AddFg = Color(0xFF7EC891)
 private val DelFg = Color(0xFFE07070)
 
-/** Normalise the backend status (full word or a letter) to a single display letter. */
+/** Normalise the backend status (full word or letter) to a single display letter. */
 private fun statusLetter(status: String): String = when (status.lowercase()) {
     "added", "a" -> "A"
     "deleted", "d" -> "D"
@@ -91,26 +90,24 @@ private fun statusLetter(status: String): String = when (status.lowercase()) {
 private const val WORKING_SHA = "working"
 
 /**
- * Full-screen per-repo commit-graph view. Stateless: all state lives in [CommitGraphViewModel].
+ * Full-screen per-repo commit-graph view. Stateless: state lives in [CommitGraphViewModel].
  *
- * Layout:
  *   TopAppBar (back + title)
  *   Loading spinner / error + Retry / per-repo sections
- *   Each repo section: a header + a LazyColumn of rows (optional "Uncommitted changes" node on top,
- *     then commits newest-first). Each commit row draws a single-lane graph gutter (dot + line;
- *     session commits accent-coloured + a "session" chip; 2-parent merges a small curve; complex
- *     merges a labelled dot).
- *   Tap a row → a ModalBottomSheet listing that commit's changed files.
+ *   Each repo: header + LazyColumn of rows (optional "Uncommitted changes" node, then commits
+ *     newest-first). Each commit row draws a single-lane graph gutter (dot + line; session commits
+ *     accent-coloured + "session" chip; 2-parent merges a small curve; complex merges a labelled dot).
+ *   Tap row → ModalBottomSheet listing that commit's changed files.
  *
- * VM creation note: [appContainer] is @Composable so it is resolved in the body first, then captured
- * into the non-composable initializer. The nullable [vm] parameter allows injection in tests/previews.
+ * VM creation: [appContainer] is @Composable so resolved in body first, captured into non-composable
+ * initializer. Nullable [vm] allows injection in tests/previews.
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun CommitGraphScreen(
     onBack: () -> Unit,
     live: Boolean = false,
-    /** Open the full-screen line-level diff for one (repo, sha, path). Default no-op for previews/tests. */
+    /** Open full-screen line-level diff for one (repo, sha, path). Default no-op for previews/tests. */
     onOpenDiff: (repo: String, sha: String, path: String) -> Unit = { _, _, _ -> },
     vm: CommitGraphViewModel? = null,
 ) {
@@ -159,7 +156,7 @@ fun CommitGraphScreen(
     ) { pad ->
         Column(Modifier.fillMaxSize().padding(pad)) {
             if (live) LiveWorktreeBanner()
-            // Precompute the multi-lane graph layout once per repo set (cheap; ≤30 commits each).
+            // Precompute multi-lane graph layout once per repo set (cheap; ≤30 commits each).
             val graphsByRepo = remember(s.repos) {
                 s.repos.associate { it.repo to buildCommitGraph(it.commits, it.uncommitted != null) }
             }
@@ -245,14 +242,12 @@ fun CommitGraphScreen(
                                 CommitFileRow(
                                     file = file,
                                     // Close the changed-files sheet BEFORE opening the diff. The sheet's
-                                    // open state (detail) lives in the VM, which is scoped to this History
-                                    // back-stack entry and SURVIVES navigating to the diff. If we leave it
-                                    // set, popping back from the diff recomposes this screen with detail
-                                    // still non-null, so the ModalBottomSheet re-animates open over the
-                                    // commit list (the "返回出现 ui bug"). It also overlays the forward slide
-                                    // transition, since a modal sheet draws in its own full-screen layer.
-                                    // `detail` here is a captured local, so reading .repo/.sha after
-                                    // closeDetail() nulls the flow is still safe.
+                                    // open state (detail) lives in the VM, scoped to this History back-stack
+                                    // entry and SURVIVES navigating to the diff. If left set, popping back
+                                    // recomposes this screen with detail still non-null, so the sheet
+                                    // re-animates open over the commit list ("返回出现 ui bug"). `detail`
+                                    // here is a captured local, so reading .repo/.sha after closeDetail()
+                                    // nulls the flow is still safe.
                                     onClick = {
                                         realVm.closeDetail()
                                         onOpenDiff(detail.repo, detail.sha, file.path)
@@ -267,8 +262,8 @@ fun CommitGraphScreen(
     }
 }
 
-/** Info banner shown when the session is still running: the worktree (and therefore the commit
- *  graph below) is still changing, so what's displayed may not be the final state. */
+/** Info banner while the session is still running: the worktree (and therefore the graph below)
+ *  is still changing, so what's displayed may not be the final state. */
 @Composable
 private fun LiveWorktreeBanner() {
     Surface(
@@ -331,7 +326,7 @@ private fun UncommittedRow(
             .clickable(onClick = onClick)
             .padding(end = 8.dp),
     ) {
-        // Gutter: the working-tree tip — a hollow tertiary dot with the trunk line running down to HEAD.
+        // Gutter: working-tree tip — hollow tertiary dot + trunk line down to HEAD.
         Box(
             Modifier
                 .width(gutterWidth)
@@ -400,7 +395,7 @@ private fun CommitRow(
             .padding(end = 8.dp),
     ) {
         // Multi-lane gutter: each branch is a coloured lane; merges/branches curve between columns;
-        // the node sits on its lane. >2-parent (octopus) merges keep the hollow dot + "M" label.
+        // >2-parent (octopus) merges keep the hollow dot + "M" label.
         Box(
             Modifier
                 .width(gutterWidth)
@@ -436,18 +431,17 @@ private fun CommitRow(
                     color = if (commit.isSession) accent else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.width(8.dp))
-                // Refs + subject share the space left AFTER the trailing "session" chip is
-                // reserved. Keeping this a single weighted child means the outer row's only
-                // non-weighted trailing item is the session chip, so it always measures at its
-                // full width instead of being starved to a near-zero constraint (which used to
-                // wrap "session" one character per line). Inside here the subject flexes and
-                // ellipsizes; if the ref chips still overflow, each clamps on one line.
+                // Refs + subject share the space left AFTER the trailing "session" chip is reserved.
+                // Keeping this a single weighted child means the outer row's only non-weighted
+                // trailing item is the session chip, so it always measures at its full width instead
+                // of being starved to a near-zero constraint (which used to wrap "session" one char
+                // per line). Inside, the subject flexes and ellipsizes; ref chips clamp on one line.
                 Row(
                     modifier = Modifier.weight(1f),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    // Branch / tag / HEAD labels pointing at this commit. Cap the count so a
-                    // heavily-decorated commit can't push the subject off this single-line row.
+                    // Cap ref-chip count so a heavily-decorated commit can't push the subject off this
+                    // single-line row.
                     commit.refs.take(MAX_REF_CHIPS).forEach { ref ->
                         RefChip(ref)
                         Spacer(Modifier.width(4.dp))
@@ -507,8 +501,8 @@ private fun SessionChip(accent: Color) {
     }
 }
 
-/** A branch / tag / HEAD / remote label pointing at a commit (git %D). HEAD reads as the brand
- *  trunk colour (matching lane 0), tags gold, remotes muted, plain branches the tertiary container. */
+/** Branch/tag/HEAD/remote label pointing at a commit (git %D). HEAD reads as the brand trunk colour
+ *  (matching lane 0), tags gold, remotes muted, plain branches the tertiary container. */
 @Composable
 private fun RefChip(ref: GitRef) {
     val scheme = MaterialTheme.colorScheme
@@ -533,8 +527,8 @@ private fun RefChip(ref: GitRef) {
     }
 }
 
-/** One changed-file row in the detail sheet: status letter + path (mono) + "+a -d". Tapping opens
- *  the full-screen line-level diff for this file. */
+/** One changed-file row: status letter + path (mono) + "+a -d". Tapping opens the full-screen
+ *  line-level diff for this file. */
 @Composable
 private fun CommitFileRow(file: CommitFile, onClick: () -> Unit = {}) {
     val letter = statusLetter(file.status)
@@ -573,21 +567,21 @@ private fun CommitFileRow(file: CommitFile, onClick: () -> Unit = {}) {
     }
 }
 
-// Gutter sizing (dp values are converted to px inside drawBehind via the DrawScope density).
+// Gutter sizing (dp values converted to px inside drawBehind via DrawScope density).
 private val ROW_HEIGHT = 56.dp
 private val LANE_SPACING = 18.dp   // horizontal distance between adjacent lane centres
 private val LANE_INSET = 6.dp      // left padding before lane 0's centre
 private const val MAX_LANES = 6    // columns drawn before overflow clamps to the last lane (dimmed)
-private const val MAX_REF_CHIPS = 3 // ref labels shown per row before collapsing the rest into "+N"
+private const val MAX_REF_CHIPS = 3 // ref labels per row before collapsing the rest into "+N"
 private const val LANE_STROKE = 3f
 private const val DOT_RADIUS = 9f
 
 /**
- * Draw one row's slice of the multi-lane graph: lane edges first (straight verticals, curved column
- * transitions, faded off-window stubs), then the node on top. Adjacent rows line up seamlessly
- * because the layout engine guarantees a lane's bottom column on one row equals its top column on the
- * next. [trunk] colours lane 0 (HEAD/first-parent); [tipColor] is the hollow working-tree dot;
- * [sessionRing] rings session commits so the emphasis is independent of the lane's hue.
+ * Draw one row's slice of the multi-lane graph: lane edges first (verticals, curved column transitions,
+ * faded off-window stubs), then the node on top. Adjacent rows line up seamlessly because the layout
+ * engine guarantees a lane's bottom column on one row equals its top column on the next.
+ * [trunk] colours lane 0 (HEAD/first-parent); [tipColor] is the hollow working-tree dot;
+ * [sessionRing] rings session commits so emphasis is independent of lane hue.
  */
 private fun DrawScope.drawGraphRow(
     row: GraphRow,
@@ -610,7 +604,7 @@ private fun DrawScope.drawGraphRow(
         val y1 = if (e.toBottom) h else cy
         val alpha = if (overflow(e.fromColumn) || overflow(e.toColumn)) 0.5f else 1f
         val color = laneColor(e.laneId, trunk).copy(alpha = alpha)
-        // Off-window edges fade toward the bottom; the gradient clamps above startY so the upper half
+        // Off-window edges fade toward the bottom; gradient clamps above startY so the upper half
         // (and the seam with the row above) stays solid.
         val brush = if (e.fadeBottom)
             Brush.verticalGradient(0f to color, 1f to color.copy(alpha = 0f), startY = cy, endY = h)

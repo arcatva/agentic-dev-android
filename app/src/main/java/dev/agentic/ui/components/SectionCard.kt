@@ -22,21 +22,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 /**
- * Shared tonal containment card — the single source of truth for section cards across the app.
- * Sits one tonal step above the page canvas (surfaceContainer on the background), uses shapes.medium
- * corners, and carries an emphasized section header. Used by NewRequest / Models / Session settings /
- * Global settings / Diagnostics so they never drift apart.
+ * Shared tonal containment card — single source for section cards. One tonal step above the page
+ * canvas (surfaceContainer on the background); shapes.medium corners; emphasized header. Used by
+ * NewRequest / Models / Session settings / Global settings / Diagnostics so they never drift apart.
  *
- * Heading hierarchy (app-wide): TopAppBar page title (titleLarge) → this card header
- * (titleMedium SemiBold) → in-card subsection headers (titleSmall SemiBold). Keep the card header
- * one step above the subsections so nested headers don't read as siblings.
+ * Heading hierarchy: TopAppBar page title (titleLarge) → this card header (titleMedium SemiBold) →
+ * in-card subsection headers (titleSmall SemiBold). Keep the card header one step above subsections
+ * so nested headers don't read as siblings.
  *
- * [trailing] is an optional slot rendered at the end of the header row — an "Add" TextButton,
- * a Switch, etc. — so callers don't rebuild their own header rows outside the card.
- *
- * MD3 Expressive pattern: related controls sit inside a single tonal card instead of floating as
- * uncontained rows. The card's own background steps one level up from the page, and fields inside
- * the card step one more level up (surfaceContainerHigh) — a clear tonal elevation hierarchy.
+ * [trailing] is an optional slot in the header row (an Add TextButton, a Switch) so callers don't
+ * rebuild their own header rows. MD3 Expressive: fields inside the card step one more level up
+ * (surfaceContainerHigh) for clear tonal elevation hierarchy.
  */
 @Composable
 fun SectionCard(
@@ -65,12 +61,9 @@ fun SectionCard(
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.weight(1f),
                     )
-                    // The trailing control occupies only a 32dp LAYOUT slot so its 48dp minimum
-                    // touch target doesn't inflate the header row (which read ~12dp taller than
-                    // on cards without a trailing control). height(32) fixes the slot;
-                    // wrapContentHeight(unbounded) lets the control keep its full natural size —
-                    // touch target stays ≥48dp (a11y) — centered over the slot, overflowing
-                    // invisibly into the card padding (only the pressed ripple shows there).
+                    // Trailing control gets a fixed 32dp LAYOUT slot so its 48dp min touch target
+                    // doesn't inflate the header row; wrapContentHeight(unbounded) keeps the full
+                    // natural size centered, touch target stays ≥48dp, overflow hides in card padding.
                     Box(
                         Modifier
                             .height(32.dp)
@@ -95,15 +88,13 @@ fun SectionCard(
 /**
  * Filled, borderless, rounded field colors for inputs INSIDE a [SectionCard].
  *
- * The fill is surfaceContainerHigh — one tonal step above the card's surfaceContainer — so the
- * field reads as a raised element within the card, not a flat patch. The unfocused border is
- * transparent (filled look, not a bordered box); focus shows a thin primary ring. Paired with
- * shapes.small (12dp symmetric radius) this yields a rounded filled field WITHOUT the stock
- * OutlinedTextField's square-bottom anatomy or the roundedShape API (only in material3 1.5+).
+ * Fill = surfaceContainerHigh (one step above the card's surfaceContainer) so the field reads as
+ * raised. Unfocused border transparent (filled look); focus shows a thin primary ring. Paired with
+ * shapes.small (12dp symmetric) for a rounded filled field without stock OutlinedTextField's
+ * square-bottom anatomy or the roundedShape API (only in material3 1.5+).
  *
- * [mutedUnfocusedText]: when true, unfocused text renders in onSurfaceVariant (de-emphasized)
- * instead of full-emphasis onSurface. Use for pre-filled defaults / boilerplate that should read
- * as background until the user focuses the field.
+ * [mutedUnfocusedText]: unfocused text in onSurfaceVariant (de-emphasized) instead of onSurface —
+ * for pre-filled defaults / boilerplate that should read as background until focus.
  */
 @Composable
 fun cardFieldColors(mutedUnfocusedText: Boolean = false): TextFieldColors =

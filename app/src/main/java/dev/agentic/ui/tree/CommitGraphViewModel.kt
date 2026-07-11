@@ -14,10 +14,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/**
- * Open detail sheet for one commit (or the uncommitted "working" node): the (repo, sha) it was
- * opened for, plus the loaded changed-file list and its loading/error state.
- */
+/** Open detail sheet for one commit (or the uncommitted "working" node): (repo, sha) it was opened
+ *  for, plus the loaded changed-file list and its loading/error state. */
 data class CommitDetail(
     val repo: String,
     val sha: String,
@@ -28,12 +26,9 @@ data class CommitDetail(
     val error: String? = null,
 )
 
-/**
- * UI state for the commit-graph screen. Loaded on demand (not a continuous stream), so a plain
- * MutableStateFlow is appropriate here — no stateIn/WhileSubscribed needed.
- *
- * [detail] is non-null while the changed-file bottom sheet is open.
- */
+/** UI state for the commit-graph screen. Loaded on demand (not a stream), so a plain [MutableStateFlow]
+ *  is appropriate — no stateIn/WhileSubscribed needed. [detail] is non-null while the changed-file
+ *  bottom sheet is open. */
 data class CommitGraphUiState(
     val repos: List<RepoCommits> = emptyList(),
     val loading: Boolean = true,
@@ -44,12 +39,12 @@ data class CommitGraphUiState(
 /**
  * ViewModel for the commit-graph screen.
  *
- * Design note: uses a plain [MutableStateFlow] (not stateIn/WhileSubscribed) because the data is
- * fetched on demand — there is no infinite stream. [load] / [loadFilesFor] are bounded one-shot
- * coroutines; tests can safely use advanceUntilIdle. Cancellation is rethrown by the repo's
- * runCatchingOutcome (structured-concurrency rule), so ordinary navigation never runs a failure tail.
+ * Plain [MutableStateFlow] (not stateIn/WhileSubscribed): data is fetched on demand — no infinite
+ * stream. [load] / [loadFilesFor] are bounded one-shot coroutines; tests can advanceUntilIdle.
+ * Cancellation is rethrown by the repo's runCatchingOutcome (structured-concurrency rule), so
+ * ordinary navigation never runs a failure tail.
  *
- * [init] triggers the initial load so the screen shows data immediately on first composition.
+ * [init] triggers initial load so the screen shows data immediately on first composition.
  * [discard] issues a best-effort discard call then reloads.
  */
 class CommitGraphViewModel(
@@ -88,10 +83,8 @@ class CommitGraphViewModel(
         }
     }
 
-    /**
-     * Open the changed-file detail sheet for a commit (or the uncommitted "working" node) and load
-     * its files. [title] is the label shown in the sheet header.
-     */
+    /** Open the changed-file detail sheet for a commit (or the uncommitted "working" node) and load
+     *  its files. [title] is the label shown in the sheet header. */
     fun loadFilesFor(repo: String, sha: String, title: String = "") {
         _uiState.update { it.copy(detail = CommitDetail(repo = repo, sha = sha, title = title)) }
         viewModelScope.launch {

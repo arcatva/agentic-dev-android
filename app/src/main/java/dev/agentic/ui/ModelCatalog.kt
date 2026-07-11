@@ -3,22 +3,15 @@ package dev.agentic.ui
 import dev.agentic.data.net.ModelEntry
 
 /**
- * Global cache for the model catalog fetched from GET /api/models at startup.
- *
- * The Android client no longer hardcodes which Claude models exist or what they're called — the
- * backend is the single source of truth. [ModelCatalog] holds the last-fetched list so
- * [modelLabel] and [MODEL_OPTIONS] stay available as simple non-suspend calls from any composable.
- *
- * Cache invalidation: call [invalidate] after adding or removing a BYOK provider so the next
- * [modelOptions] / [modelLabel] call against a freshly-loaded catalog picks up the change.
+ * Global cache for the model catalog from GET /api/models — backend is the source of truth; this
+ * holds the last-fetched list so [modelLabel] and [MODEL_OPTIONS] stay simple non-suspend calls.
+ * Call [invalidate] after BYOK provider changes so the next read picks up the new catalog.
  */
 object ModelCatalog {
     @Volatile
     private var cached: List<ModelEntry>? = null
 
-    /** Claude-only catalog from GET /api/models?scope=session_start — the main-thread model
-     *  pickers (New Request, Session Settings) read this, never the full catalog, so BYOK
-     *  provider models (MiniMax/DeepSeek/…) can't be selected as a session's model. */
+    /** Claude-only catalog from GET /api/models?scope=session_start — keeps BYOK provider models out of session-level pickers. */
     @Volatile
     private var sessionStartCached: List<ModelEntry>? = null
 
@@ -40,8 +33,7 @@ object ModelCatalog {
     /** The model key pre-selected for new sessions (the entry with `default: true`). */
     fun defaultModelKey(): String? = cached?.firstOrNull { it.default }?.key
 
-    /** Ordered weakest → strongest, with "Default" as the first notch. Claude/native entries
-     *  only — empty, unloaded, or failed catalog degrades to just the "Default" notch. */
+    /** Claude/native-only options; empty/unloaded/failed catalog degrades to just "Default". */
     fun sessionStartModelOptions(): List<Pair<String, String>> {
         val entries = sessionStartCached.orEmpty().filter { it.native }
         if (entries.isEmpty()) return listOf("" to "Default")
@@ -52,7 +44,7 @@ object ModelCatalog {
     fun defaultSessionStartModelKey(): String? =
         sessionStartCached.orEmpty().firstOrNull { it.native && it.default }?.key
 
-    /** Friendly display label for a raw model key. Falls back to stripping a "claude-" prefix. */
+    /** Friendly display label for a raw model key; falls back to stripping a "claude-" prefix. */
     fun modelLabel(rawModel: String): String {
         if (rawModel.isEmpty()) return "Default"
         val entries = cached

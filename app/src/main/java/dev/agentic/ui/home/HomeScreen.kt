@@ -121,16 +121,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
-/**
- * Home screen. Stateless: all state lives in [HomeViewModel]; this composable reads
- * [HomeUiState] and calls VM event handlers.
- *
- * Shows a single-pane session list (no list+detail split — detail opens via [onOpenSession]).
- * Card look mirrors [dev.agentic.ui.SessionListPane] from old Home.kt.
- *
- * VM creation note: [appContainer] is a @Composable helper; it is called in the composable
- * body so LocalContext is available. The [vm] nullable parameter allows injection for tests.
- */
+/** Home screen — stateless; reads HomeUiState, calls VM handlers. Single-pane session list (no list+detail split — detail opens via onOpenSession). [vm] is nullable for test injection. */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun HomeScreen(
@@ -151,7 +142,7 @@ fun HomeScreen(
     val listState = rememberLazyListState()
     var searching by rememberSaveable { mutableStateOf(false) }
     var moveSelectedOpen by rememberSaveable { mutableStateOf(false) }
-    // FAB label collapses to icon-only as user scrolls down (MD3 Expressive pattern).
+    // FAB collapses to icon-only when scrolled (MD3 Expressive).
     val fabExpanded by remember {
         derivedStateOf {
             listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset < 50
@@ -212,8 +203,7 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(pad)
-                // Tap anywhere on the list (empty rows, gaps, the "no match" panel) to blur the
-                // top-bar search field and drop the keyboard. Row taps/scroll/swipe still win.
+                // Tap anywhere (empty rows, gaps, "no match") blurs the search field + drops the keyboard. Row taps/scroll/swipe still win.
                 .clearFocusOnTap(),
             listState = listState,
         )
@@ -234,20 +224,7 @@ fun HomeScreen(
 
 }
 
-/**
- * Top bar for the session list. In its normal (non-selection) state it shows the app title plus a
- * logout action ([onLogout]) that opens a confirm dialog before signing out. Swaps to a contextual
- * action bar while in multi-select mode: a close (✕) navigation icon, an "N selected" title, a
- * "Select all" action and a delete action that opens the batch-delete confirm dialog. Owns both
- * confirm dialogs and the [BackHandler] that makes the system-back gesture leave selection mode
- * first, so both [HomeScreen] and [AdaptiveHome] get identical chrome from one place.
- *
- * Task 8: in non-selection mode the title row now hosts the session-list [SessionSearchBar] in
- * the middle, between the title and the actions slot. The search bar is hidden entirely while
- * selection mode is on (the contextual bar takes the full width); tapping a hit calls
- * [onOpenSession]. The search bar's `LaunchedEffect` drives [onSearchExpandedChange] so the
- * host can hide its FAB while the results panel is on screen.
- */
+/** Top bar: non-selection = app title + logout; multi-select = contextual bar (close, "N selected", select-all, delete). Owns both confirm dialogs + the BackHandler that makes system-back exit selection first. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun HomeTopBar(
@@ -273,8 +250,7 @@ internal fun HomeTopBar(
     // While selecting, system/gesture back exits selection mode instead of leaving the screen.
     BackHandler(enabled = selectionMode, onBack = onCloseSelection)
 
-    // Keyed on selectionMode so the confirm flag can't survive leaving selection mode and then
-    // re-open the dialog unprompted when the user re-enters selection later.
+    // Keyed on selectionMode so the confirm flag can't survive leaving selection mode and re-open the dialog unprompted on re-entry.
     var confirm by remember(selectionMode) { mutableStateOf(false) }
     if (confirm && selectionMode) {
         AlertDialog(
@@ -292,8 +268,7 @@ internal fun HomeTopBar(
         )
     }
 
-    // Logout confirm — independent of the delete `confirm` flag (which is keyed on selection
-    // mode). Lives in the non-selection top bar. Mirrors the delete dialog's structure/styling.
+    // Logout confirm — independent of delete's selectionMode-keyed flag.
     var confirmLogout by remember { mutableStateOf(false) }
     if (confirmLogout) {
         AlertDialog(
@@ -327,7 +302,7 @@ internal fun HomeTopBar(
             actions = {
                 val hasSelection = selectedCount > 0
                 val allSelected = totalCount > 0 && selectedCount == totalCount
-                // MD3E tonal icon buttons — same style as the non-selection settings/debug row.
+                // MD3E tonal icon buttons (parity with non-selection settings/debug row).
                 FilledTonalIconButton(
                     onClick = if (allSelected) onCloseSelection else onSelectAll,
                 ) {
@@ -355,17 +330,14 @@ internal fun HomeTopBar(
         TopAppBar(
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    // MD3E motion: the brand title gracefully yields its width to the search field the
-                    // moment the user starts typing (expressive spatial expand/shrink), then returns
-                    // when the query is cleared.
+                    // MD3E: brand title gracefully yields its width to the search field while typing (spatial expand/shrink).
                     AnimatedVisibility(
                         visible = searchQuery.isEmpty(),
                         enter = expandHorizontally(appSpatialSpec(), expandFrom = Alignment.Start) + fadeIn(appEffectsSpec()),
                         exit = shrinkHorizontally(appSpatialSpec(), shrinkTowards = Alignment.Start) + fadeOut(appEffectsSpec()),
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            // Image (not Icon): the brand mark is multi-color gradient art; Icon
-                            // would tint it to a single color.
+                            // Image (not Icon): brand mark is multi-color gradient art; Icon would tint it to a single color.
                             Image(
                                 painterResource(R.drawable.ic_brand_logo),
                                 contentDescription = "agentic-dev",
@@ -382,19 +354,13 @@ internal fun HomeTopBar(
                         selectionMode = false,
                         onOpen = onOpenSession,
                         onExpandedChange = onSearchExpandedChange,
-                        // end gap so the pill never touches the action buttons (their tonal circles
-                        // extend a bit left of their icons).
+                        // end gap so the pill never touches the action buttons (their tonal circles extend left of their icons).
                         modifier = Modifier.weight(1f).padding(end = 12.dp),
                     )
                 }
             },
             actions = {
-                // Compact widths (portrait phone / folded) can't fit the title + search + 3 icons, so
-                // the search box gets squeezed to a stub. Collapse the actions into a single overflow
-                // menu there to give the search field the width; on wider screens show them inline.
-                // MD3E: actions are expressive tonal icon buttons (filled tonal containers). Compact
-                // widths (portrait phone / folded) can't fit the title + search + 3 buttons, so there
-                // they collapse into a single overflow ⋮ button + menu, freeing the search field's width.
+                // Compact widths (portrait phone / folded) can't fit title + search + 3 icons — collapse into a single ⋮ overflow menu so the search field has the width.
                 val compact = LocalConfiguration.current.screenWidthDp < 600
                 if (compact) {
                     var menuOpen by remember { mutableStateOf(false) }
@@ -447,19 +413,7 @@ internal fun HomeTopBar(
     }
 }
 
-/**
- * Scaffold-free body of the session list: server-unreachable banner, usage meters and the
- * LazyColumn of session cards with swipe-to-delete + delete-confirm dialog.
- *
- * Stateless: reads [HomeUiState] and reports events via [onOpen] / [onDelete]. Reusable in both
- * the single-pane [HomeScreen] and the wide 3-pane layout, where [selectedId] highlights the row
- * whose `session.id == selectedId`.
- *
- * Task 8: the search surface lives in [HomeTopBar] now (next to the title). When the user has
- * typed enough text to trigger a backend search ([HomeUiState.searchQuery] has length ≥ 2), the
- * list renders [HomeUiState.searchResults] instead of the full session list — search-empty
- * shows the "No sessions match" empty-state inside the bar's expanded panel, not here.
- */
+/** Scaffold-free list body: unreachable banner, usage meters, LazyColumn of cards with swipe-to-delete + confirm. Stateless; reusable in both single-pane HomeScreen and the wide 3-pane (where [selectedId] highlights the matching row). Search surface lives in HomeTopBar; when length ≥ 2 the list renders searchResults. */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun SessionListPane(
@@ -478,7 +432,7 @@ internal fun SessionListPane(
     modifier: Modifier = Modifier,
     listState: androidx.compose.foundation.lazy.LazyListState = rememberLazyListState(),
 ) {
-    // ui-4: tick every 30 s so relative timestamps ("5m ago") stay fresh without recomposing.
+    // Tick every 30 s so relative timestamps ("5m ago") stay fresh without recomposing.
     val now by produceState(System.currentTimeMillis()) {
         while (true) {
             value = System.currentTimeMillis()
@@ -486,13 +440,11 @@ internal fun SessionListPane(
         }
     }
 
-    // Task 8: when a content search is active, render the search hits; otherwise the full session
-    // list. The 2-char threshold mirrors the backend's `length >= 2` filter — the expanded panel
-    // and the actual search request only fire once the user has typed enough for a useful query.
+    // 2-char threshold mirrors the backend's `length >= 2` filter.
     val list: List<Session> = if (state.searchQuery.length >= 2) state.searchResults.map { it.session }
                               else state.sessions
 
-    // Filter sessions by the selected group filter (null = "All").
+    // Filter sessions by the selected group filter (null = "All", "__uncategorized__" = groupId == null).
     val displayed = remember(list, state.selectedGroupFilter) {
         when (state.selectedGroupFilter) {
             null -> list
@@ -501,13 +453,8 @@ internal fun SessionListPane(
         }
     }
 
-    // Keep the LazyColumn anchored on the open session in 3-pane mode. When the user sends a
-    // message in the chat pane, the server usually reorders this session to the top — without
-    // this LaunchedEffect the list stays where the user last scrolled it, so the highlighted
-    // row drifts off-screen. We only scroll when the active row is currently NOT visible AND
-    // the user isn't actively dragging (the same `isScrollInProgress` check the project uses in
-    // TranscriptScrollbar), so this never fights a mid-scroll gesture, and we no-op when the
-    // selection is null (single-pane) or hasn't been loaded yet.
+    // Keep the LazyColumn anchored on the open session in 3-pane mode — server reorders it to the top after each reply.
+    // No-op during mid-scroll (isScrollInProgress) so it never fights a gesture.
     LaunchedEffect(selectedId, list) {
         val idx = indexOfSelected(list, selectedId)
         if (idx < 0) return@LaunchedEffect
@@ -518,11 +465,8 @@ internal fun SessionListPane(
         }
     }
 
-    // Single-pane mode: when the top session changes (server re-sort after a reply),
-    // scroll to the top so the freshly-bumped session is visible. Only fires when the
-    // user is already near the top (index 1-2) — never hijacks a deep-browse scroll.
-    // Keys on isScrollInProgress so a re-sort that lands mid-drag isn't lost: the
-    // effect re-fires when the drag ends.
+    // Single-pane: when the top session changes (server re-sort after a reply), scroll to the top so the freshly-bumped one is visible. Only fires when the user is already near the top (index 1-2) — never hijacks a deep-browse scroll.
+    // Keys on isScrollInProgress so a re-sort that lands mid-drag isn't lost: the effect re-fires when the drag ends.
     val topId = list.firstOrNull()?.id
     var lastScrolledTopId by remember { mutableStateOf(topId) }
     LaunchedEffect(topId, listState.isScrollInProgress) {
@@ -545,9 +489,7 @@ internal fun SessionListPane(
             else -> {
                 val isSearchActive = state.searchQuery.length >= 2
                 if (isSearchActive) {
-                    // Search mode: replace the list body with a results panel. This avoids BOTH the
-                    // push-down artifact of the old inline column AND the overlay-occlusion of the
-                    // Popup approach — the list region IS the results region.
+                    // Search mode: replace list body with a results panel — list region IS the results region (no push-down, no overlay-occlusion).
                     SearchResultsPanel(
                         results = state.searchResults,
                         query = state.searchQuery,
@@ -557,7 +499,7 @@ internal fun SessionListPane(
                     )
                 } else {
                 Column(Modifier.fillMaxSize()) {
-                    // PR-9: server-unreachable banner (first-load failure only).
+                    // First-load server-unreachable banner.
                     if (state.serverUnreachable) {
                         Row(
                             Modifier
@@ -579,8 +521,7 @@ internal fun SessionListPane(
                             )
                         }
                     }
-                    // Usage meters sit above the search box. vertical=5.dp keeps the spacing
-                    // consistent with the session cards' 5.dp top padding.
+                    // Usage meters sit above the search box. vertical=5.dp matches session cards' top padding.
                     state.usage?.let { UsageMeters(it, Modifier.padding(horizontal = 16.dp, vertical = 5.dp)) }
                     // ── M3 Button Groups: filter row ────────────────────────────────
                     if (state.groups.isNotEmpty()) {
@@ -593,8 +534,7 @@ internal fun SessionListPane(
                             onCreateGroup = onCreateGroup,
                         )
                     }
-                    // Pull-to-refresh: re-fetch the session list + usage meters on demand (restored
-                    // from the pre-MVVM Home.kt, which the MVVM rewrite had dropped).
+                    // Pull-to-refresh: re-fetch sessions + usage on demand.
                     PullToRefreshBox(
                         isRefreshing = state.refreshing,
                         onRefresh = onRefresh,
@@ -627,11 +567,7 @@ internal fun SessionListPane(
     }
 }
 
-/**
- * M3 Button Groups filter row: horizontally scrollable connected `ButtonGroup`
- * with `ToggleButton` per group + an "All" button + a trailing "⋮" menu button.
- * The "⋮" dropdown provides rename/delete per group and a create-new-group action.
- */
+/** M3 Button Groups filter row: horizontally scrollable connected ButtonGroup with ToggleButton per group + an "All" button + trailing ⋮ menu. Dropdown offers rename/delete per group + create-new. */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun GroupFilterRow(
@@ -650,8 +586,7 @@ internal fun GroupFilterRow(
             onDismissRequest = { createGroupOpen = false },
             title = { Text("New group") },
             text = {
-                // Shared field family (AppTextField + filled card colors) — same as every other
-                // dialog input (e.g. the template-variable dialog on New request).
+                // AppTextField + cardFieldColors — shared dialog-input family.
                 AppTextField(
                     value = name,
                     onValueChange = { name = it },
@@ -756,7 +691,7 @@ internal fun GroupFilterRow(
         }
     }
 
-    // One per button (All + N groups + trailing ⋮)
+    // One per button (All + N groups + trailing ⋮).
     val interactionSources = remember(groups.size) { List(groups.size + 2) { MutableInteractionSource() } }
 
     Row(
@@ -799,8 +734,7 @@ internal fun GroupFilterRow(
                 }
             }
 
-            // Trailing ⋮ — inside the scrollable ButtonGroup, always at the far right.
-            // Users naturally scroll to find it when they need group management.
+            // Trailing ⋮ — inside the scrollable ButtonGroup, always at the far right; users scroll to find it.
             val lastSrc = interactionSources[interactionSources.lastIndex]
             ToggleButton(
                 checked = false,
@@ -813,8 +747,7 @@ internal fun GroupFilterRow(
             }
         }
 
-        // Dropdown: pick a group to rename/delete, or create a new one.
-        // Placed OUTSIDE ButtonGroup so the popup positions relative to the Row, not the scrollable group.
+        // Dropdown: rename/delete/create. Placed OUTSIDE ButtonGroup so the popup positions relative to the Row, not the scrollable group.
         DropdownMenu(expanded = groupMenuOpen, onDismissRequest = { groupMenuOpen = false }) {
             DropdownMenuItem(
                 text = { Text("Manage groups…") },
@@ -890,12 +823,7 @@ internal fun GroupPickerSheet(
     }
 }
 
-/**
- * One session card. Shared by the normal list (wrapped in swipe-to-delete) and the multi-select
- * list. [openHighlight] tints the row that matches the open session in the wide layout; [checked]
- * tints a ticked row and, with [inSelectionMode], swaps the status dot for a check icon. Click and
- * long-press are reported via [onClick]/[onLongClick] so the caller decides open-vs-toggle.
- */
+/** One session card. Shared by the normal list (wrapped in swipe-to-delete) and the multi-select list. [openHighlight] tints the open-session row in the wide layout; [checked] tints a ticked row. */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun SessionRow(
@@ -910,8 +838,7 @@ internal fun SessionRow(
     modifier: Modifier = Modifier,
 ) {
     val repos = if (session.repos.isNotEmpty()) session.repos.joinToString(", ") else "skill-only"
-    // In selection mode the tint means "ticked" (the open-session highlight would otherwise look
-    // identical to a selected row); outside it, it means "this is the open session" (wide layout).
+    // In selection mode, highlight = "ticked" (open-session tint would otherwise look identical); outside, "open session".
     val highlighted = if (inSelectionMode) checked else openHighlight
     Card(
         colors = CardDefaults.cardColors(
@@ -922,15 +849,12 @@ internal fun SessionRow(
         ),
         modifier = modifier.fillMaxWidth(),
     ) {
-        // combinedClickable lives on the INNER row (not the Card's outer modifier) so the tap/
-        // long-press indication is clipped to the card's rounded shape instead of overflowing as a
-        // rectangle — while the Card keeps its elevation shadow.
+        // combinedClickable on the INNER row clips the tap indication to the card's rounded shape while the Card keeps its elevation shadow.
         Row(
             Modifier
                 .fillMaxWidth()
                 .combinedClickable(onClick = onClick, onLongClick = onLongClick)
-                // Smaller start inset so the title + indicator sit a bit further left; the indicator
-                // then reads as roughly centred in the gap between the card edge and the text.
+                // Smaller start inset so the title + indicator sit further left; the indicator reads as roughly centred in the gap.
                 .padding(start = 8.dp, end = 14.dp, top = 12.dp, bottom = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -943,18 +867,13 @@ internal fun SessionRow(
                 )
                 Spacer(Modifier.width(10.dp))
             } else {
-                // Always reserve the indicator slot (fixed footprint) so the title + repo never shift
-                // when it clears — idle paints nothing (done shows its check). A watchdog cap (wall/idle
-                // timeout) isn't a failure, so render it like done, not the red error icon.
+                // Reserve the indicator slot (fixed footprint) so the title + repo never shift when it clears. Watchdog cap (wall/idle timeout) isn't a failure — render like done, not the red error icon.
                 StatusIndicator(
                     status = indicatorStatus(session),
                     awaitingInput = indicatorAwaitingInput(session),
                     size = 16.dp,
                     unread = unread && !openHighlight,
-                    // Same gate as the steady dot: only flash the transient completion check for a
-                    // completion the user has NOT read yet. Without this, the resume catch-up
-                    // (frozen uiState + retained composition while backgrounded) replays an old
-                    // running→idle flip and flashes a check for a session already opened and acked.
+                    // Same gate as the steady dot: only flash the transient completion check for a completion the user has NOT read yet — otherwise the resume catch-up replays an old running→idle flip and flashes a check for a session already acked.
                     flashOnComplete = unread && !openHighlight,
                 )
                 Spacer(Modifier.width(6.dp))
@@ -964,9 +883,7 @@ internal fun SessionRow(
                     session.prompt.ifBlank { "(no prompt)" },
                     style = MaterialTheme.typography.bodyLarge,
                 )
-                // Short session id right under the title — the same 8-char/labelSmall/
-                // onSurfaceVariant pair the session page shows in its top bar, so a session can
-                // be identified (and @-mentioned) by id straight from the list.
+                // Same 8-char/labelSmall/onSurfaceVariant pair as the session page top bar, so a session can be identified (@-mentioned) by id from the list.
                 FadingText(
                     session.id.take(8),
                     style = MaterialTheme.typography.labelSmall,
@@ -982,10 +899,7 @@ internal fun SessionRow(
     }
 }
 
-/**
- * One session in the list, with swipe-to-delete wrapping (normal mode) or bare (selection mode).
- * Extracted so both the grouped and flat list paths render the same row.
- */
+/** One session in the list, with swipe-to-delete wrapping (normal mode) or bare (selection mode). */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun SessionItem(
@@ -1096,8 +1010,7 @@ internal fun SessionItem(
 
 @Composable
 private fun UsageMeters(u: Usage, modifier: Modifier = Modifier) {
-    // Tap either meter to flip BOTH labels between the window name (5h/7d) and the time left until
-    // that window resets (3h29m / 3d21h). One shared toggle so they switch together.
+    // Tap either meter to flip BOTH labels between the window name (5h/7d) and the time left until reset (3h29m / 3d21h).
     var showReset by remember { mutableStateOf(false) }
     val toggle = { showReset = !showReset }
     Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -1108,11 +1021,11 @@ private fun UsageMeters(u: Usage, modifier: Modifier = Modifier) {
 
 @Composable
 private fun Meter(label: String, window: UsageWindow, onToggle: () -> Unit, modifier: Modifier = Modifier) {
-    val pct = window.utilization   // 0..100, a float from the API (e.g. 37.0)
+    val pct = window.utilization   // 0..100 from the API
     val color = when {
-        pct >= 90.0 -> MaterialTheme.colorScheme.error      // near the cap — semantic red
-        pct >= 70.0 -> MaterialTheme.colorScheme.tertiary   // filling up — teal accent (on-brand)
-        else -> MaterialTheme.colorScheme.primary           // healthy — brand blue
+        pct >= 90.0 -> MaterialTheme.colorScheme.error      // near the cap
+        pct >= 70.0 -> MaterialTheme.colorScheme.tertiary   // filling up
+        else -> MaterialTheme.colorScheme.primary           // healthy
     }
     Column(modifier.clickable(onClick = onToggle)) {
         Row {
@@ -1132,13 +1045,7 @@ private fun Meter(label: String, window: UsageWindow, onToggle: () -> Unit, modi
     }
 }
 
-/**
- * Returns the index of the session whose [Session.id] matches [selectedId] inside [sessions], or
- * -1 when there is no selection or the selected session is not (yet) in the list. Used by
- * [SessionListPane] to decide where to keep the LazyColumn anchored when the open session moves
- * (e.g. a new message bumps it to the top, or the user opens a different session in 3-pane mode).
- * Pure so it can be unit-tested without Compose.
- */
+/** Index of the session whose [Session.id] matches [selectedId], or -1 if none. Pure for unit-testing. */
 internal fun indexOfSelected(sessions: List<Session>, selectedId: String?): Int {
     if (selectedId == null) return -1
     return sessions.indexOfFirst { it.id == selectedId }

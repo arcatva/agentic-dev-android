@@ -38,42 +38,24 @@ data class HomeUiState(
     val sessions: List<Session> = emptyList(),
     val usage: Usage? = null,
     val loading: Boolean = true,
-    /**
-     * PR-9: true when the very first sessionsStream load attempt failed (server unreachable at
-     * launch). Cleared as soon as a successful tick arrives. Later blips keep last-good and do
-     * NOT set this flag again (so the banner only shows on first-load failure).
-     */
+    /** True only on the FIRST sessionsStream failure; cleared on first success, so a later blip keeps last-good and does not re-flag. */
     val serverUnreachable: Boolean = false,
-    /** True while a user-triggered pull-to-refresh is in flight (drives the PullToRefreshBox spinner). */
+    /** True while a user-triggered pull-to-refresh is in flight. */
     val refreshing: Boolean = false,
-    /**
-     * Ids of sessions the user has ticked for multi-select delete. Pruned to ids still present in
-     * [sessions] so the contextual bar never counts a session that has scrolled off the list.
-     */
+    /** Pruned to ids still in [sessions] so the count bar never names a row that has scrolled off. */
     val selectedIds: Set<String> = emptySet(),
-    /** Ids of finished sessions the user hasn't read since they completed — render a list-row dot. */
+    /** Finished sessions the user has not read since completion — render the list-row dot. */
     val unreadIds: Set<String> = emptySet(),
-    // ── Task 6: content search state ─────────────────────────────────────────────
-    /** Latest text the user typed in the search box. Mirrored from [HomeViewModel.setSearchQuery]
-     *  with no debounce, so the UI shows the typed text immediately. */
+    // ── Content search ───────────────────────────────────────────────────────────
     val searchQuery: String = "",
-    /** Hits for [searchQuery] from the most recent completed `contentSearch` query. Empty until a
-     *  non-blank query has been debounced + fetched, and again after the user clears the box. */
     val searchResults: List<SearchHit> = emptyList(),
-    /** True while a content-search request is in flight (debounce + fetch + mapLatest). */
     val searching: Boolean = false,
-    /** The last query for which a search COMPLETED (success or failure). When [searchQuery]
-     *  differs from [lastSearchedQuery], a search is in flight — the UI shows a loading
-     *  spinner rather than "No sessions match". Eliminates the one-frame gap where
-     *  `searchQuery` is set but `searching` is still false. */
+    /** Last query that COMPLETED (success or failure). `searchQuery != lastSearchedQuery` ⇒ in flight — spinner beats "No match". */
     val lastSearchedQuery: String = "",
-    // ── Session groups ──────────────────────────────────────────────────────────
-    /** All user-created groups (folders). */
+    // ── Session groups ───────────────────────────────────────────────────────────
     val groups: List<Group> = emptyList(),
-    /** Which group id is selected in the filter row (null = "All"). */
     val selectedGroupFilter: String? = null,
 ) {
-    /** Selection mode is on whenever at least one session is ticked (Google-Photos style). */
     val selectionMode: Boolean get() = selectedIds.isNotEmpty()
     val selectedCount: Int get() = selectedIds.size
 }
@@ -83,55 +65,34 @@ class HomeViewModel(
 ) : ViewModel() {
 
     init {
-        // Fetch groups once on startup; the list refreshes on every group mutation.
         refreshGroups()
     }
 
-    // Pull-to-refresh plumbing: a manual reload emits the freshly-fetched values here, and these are
-    // merged into the poll flows below so a refresh shows up immediately instead of waiting for the
-    // next 2 s (sessions) / 60 s (usage) poll tick.
-    // One-shot event streams (deliberately NOT MutableStateFlow). A pull-to-refresh pushes its
-    // freshly-fetched value here and it is delivered ONLY to subscribers present at that instant.
-    // A StateFlow would RETAIN the last value and replay it to every new collector — and because
-    // uiState is a WhileSubscribed StateFlow, its whole upstream is torn down and restarted on each
-    // background→foreground return, so a retained manual value would re-emit an OLD snapshot over the
-    // live data before the poll answers: the usage meter flashes a stale % then snaps back, and the
-    // session list briefly reverts to the old order. replay=0 kills that flash — on resume the last
-    // good uiState value stays put until the live poll delivers fresh data.
+    // Pull-to-refresh: manual fetches emit here and are merged into the poll flows so they surface
+    // immediately instead of waiting for the next tick. MutableSharedFlow (replay=0) NOT StateFlow —
+    // a retained value would replay an OLD snapshot over live data after every background→foreground
+    // (uiState is WhileSubscribed, so its upstream tears down + restarts on resume), flashing stale %.
     private val manualSessions = MutableSharedFlow<List<Session>>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
     private val manualUsage = MutableSharedFlow<Usage>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
     private val _refreshing = MutableStateFlow(false)
 
-    // Multi-select: ids the user has ticked for batch delete. Empty set ⇒ not in selection mode.
     private val _selectedIds = MutableStateFlow<Set<String>>(emptySet())
 
-    // ── Session groups ──────────────────────────────────────────────────────────
+    // ── Session groups ───────────────────────────────────────────────────────────
     private val _groups = MutableStateFlow<List<Group>>(emptyList())
     private val _selectedGroupFilter = MutableStateFlow<String?>(null)
 
-    // ── Task 6: content-search plumbing ──────────────────────────────────────────
-    // The upstream of SessionsRepository.contentSearch(query: StateFlow<String>) — see plan Task 5.
-    // setSearchQuery writes here, and a per-query collector on viewModelScope maps its results
-    // back into _searchResults / _searching. The visible text is mirrored into uiState.searchQuery
-    // synchronously so the input doesn't lag behind the user's keystrokes (the 250ms debounce only
-    // delays the BACKEND round-trip, not the visible query).
+    // ── Content-search plumbing ──────────────────────────────────────────────────
     private val _searchQuery = MutableStateFlow("")
     private val _searchResults = MutableStateFlow<List<SearchHit>>(emptyList())
     private val _searching = MutableStateFlow(false)
     private val _lastSearchedQuery = MutableStateFlow("")
-    /** Last-launched content-search collector. Cancelled on every new query so the previous
-     *  mapLatest block in the repo is cancelled (last-write-wins) and no stale `searching=true`
-     *  from an aborted run leaks past a fresh hit. */
+    /** Cancelled on every new query so the prior mapLatest block is cancelled (last-write-wins) and no stale `searching=true` leaks past a fresh hit. */
     private var searchJob: Job? = null
 
-    // Usage refreshed every 60 s (best-effort: a failed tick yields null and is ignored downstream),
-    // plus any on-demand pull-to-refresh value.
-    // Last good usage the pipeline produced — the usage twin of [lastSessionsState]. On a
-    // WhileSubscribed restart the flow{} re-emits it as combine's base value so a resumed Home is
-    // immediately interactive (pull-to-refresh spinner clears, row selection / search reflect) instead
-    // of stalling until the live usage poll answers — combine emits nothing until every source has a
-    // value, and manualUsage (replay=0) no longer provides one on restart. This is the last-GOOD value
-    // already on screen, not the old manual snapshot, so re-emitting it never flashes a stale number.
+    // Last good usage — re-emitted on a WhileSubscribed restart so a resumed Home is immediately
+    // interactive instead of stalling until the live poll answers (combine waits for every source).
+    // This is the value already on screen, not a manual snapshot, so re-emitting it never flashes stale.
     @Volatile private var lastUsage: Usage? = null
 
     private val usageFlow: Flow<Usage?> = flow {
@@ -144,31 +105,14 @@ class HomeViewModel(
         )
     }
 
-    /**
-     * Accumulates sessionsStreamWithState emissions into a (sessions, serverUnreachable) pair so
-     * combine() has a stable, non-nullable partner.
-     *
-     * PR-9 logic:
-     * - FirstLoadError sets unreachable=true and keeps the empty session list.
-     * - Loaded clears unreachable and updates the session list (keeps last-good on blips because
-     *   sessionsStreamWithState itself never emits Loaded with a stale list on a blip —
-     *   that is, null ticks are swallowed in the repo and only Loaded/FirstLoadError reach here).
-     */
     private data class SessionsState(
         val sessions: List<Session> = emptyList(),
         val serverUnreachable: Boolean = false,
     )
 
-    // Last SessionsState the pipeline produced, retained across a WhileSubscribed restart. The scan
-    // below seeds from THIS (re-read per collection via the flow{} builder), not a fresh empty
-    // SessionsState() — otherwise every background→foreground return re-folds from empty and blanks
-    // the list for a frame before the poll answers (the sessions half of the resume-flash fix; the
-    // usage half is manualUsage's replay=0). Confined to viewModelScope's single dispatcher and only
-    // one active collector exists at a time (WhileSubscribed cancels+joins the prior collection before
-    // restarting), so writes never race a read; @Volatile guards visibility as belt-and-suspenders.
-    // Side effect on the PR-9 banner path: if the FIRST tick after a restart fails (FirstLoadError),
-    // acc is now the retained last-good state, so we keep showing that list UNDER the "can't reach
-    // server" banner instead of blanking to empty — the intended keep-last-good behaviour.
+    // Retained across WhileSubscribed restart: re-seeds scan() so resume doesn't re-fold from empty
+    // and blank the list for a frame before the poll answers. If the FIRST post-restart tick fails,
+    // we keep showing the retained list UNDER the "can't reach server" banner — intended last-good.
     @Volatile private var lastSessionsState = SessionsState()
 
     private val sessionsState: Flow<SessionsState> = flow {
@@ -187,26 +131,16 @@ class HomeViewModel(
                 }
             }.onEach { ss ->
                 lastSessionsState = ss
-                // Reconcile the source-of-truth selection with the list: drop ticks for sessions that
-                // have left so deleteSelected() never acts on a ghost id and a vanished id can't later
-                // resurrect a tick. Runs only while uiState is subscribed (this flow is collected by the
-                // WhileSubscribed combine), and never feeds back — it keys off sessions, not _selectedIds.
+                // Prune ticks for vanished sessions — deleteSelected() never acts on a ghost id.
                 val present = ss.sessions.mapTo(HashSet()) { it.id }
                 _selectedIds.update { sel -> if (sel.isEmpty()) sel else sel.intersect(present) }
             },
         )
     }
 
-    // Single source of truth. WhileSubscribed means the upstream polls ONLY while the UI observes —
-    // no eager infinite collector leaking past the screen (and tests terminate). loading clears on
-    // the first combined emission.
-    //
-    // Combine is split across two stages because kotlinx.coroutines.flow.combine has overloads up
-    // to 5 flows — we now feed in 4 base flows + 3 search flows = 7.
+    // combine has overloads up to 5 flows; we feed 7 — split across stages.
     val uiState: StateFlow<HomeUiState> =
         combine(sessionsState, usageFlow, _refreshing, _selectedIds) { ss, usage, refreshing, selected ->
-            // Prune ticks for sessions that have left the list so the count/actions stay consistent
-            // with what is actually shown (preserves selection order via the intersect on `selected`).
             val present = ss.sessions.mapTo(HashSet()) { it.id }
             HomeUiState(
                 sessions = ss.sessions,
@@ -230,11 +164,7 @@ class HomeViewModel(
             .combine(_selectedGroupFilter) { base, filter -> base.copy(selectedGroupFilter = filter) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), HomeUiState())
 
-    /**
-     * Pull-to-refresh: re-fetch the session list and credit-usage meters together, on demand, instead
-     * of waiting for the next poll tick. Best-effort — a failed fetch keeps the last-good value (the
-     * poll loop recovers it). [refreshing] drives the PullToRefreshBox spinner and is always cleared.
-     */
+    /** Re-fetch sessions + usage on demand; failures keep last-good. [refreshing] always clears. */
     fun refresh() {
         viewModelScope.launch {
             _refreshing.value = true
@@ -255,7 +185,7 @@ class HomeViewModel(
         }
     }
 
-    /** Delete a session by id. Fire-and-forget; best-effort (failures silently ignored). */
+    /** Fire-and-forget; failures silently ignored. */
     fun delete(id: String) {
         viewModelScope.launch {
             sessionsRepo.delete(id)
@@ -265,25 +195,19 @@ class HomeViewModel(
 
     // ── multi-select delete ───────────────────────────────────────────────────────
 
-    /** Tick/untick [id]. A long-press on the first card ticks it and so enters selection mode; the
-     *  last untick empties the set and leaves selection mode. */
     fun toggleSelection(id: String) {
         _selectedIds.update { if (id in it) it - id else it + id }
     }
 
-    /** Tick every session currently in the list. */
     fun selectAll() {
         _selectedIds.value = uiState.value.sessions.mapTo(LinkedHashSet()) { it.id }
     }
 
-    /** Leave selection mode, dropping all ticks. */
     fun clearSelection() {
         _selectedIds.value = emptySet()
     }
 
-    /** Delete every ticked session (best-effort, reusing the per-id endpoint) and leave selection
-     *  mode. Ticks are cleared synchronously so the bar collapses immediately; the deletes run on
-     *  the VM scope and the list reconciles on the next poll. */
+    /** Ticks clear synchronously so the bar collapses immediately; deletes run on VM scope. */
     fun deleteSelected() {
         val ids = _selectedIds.value
         val n = ids.size
@@ -294,9 +218,7 @@ class HomeViewModel(
         }
     }
 
-    /** Fork every ticked session. Best-effort (per-id failures are ignored — mirrors
-     *  deleteSelected). Ticks are cleared synchronously so the bar collapses immediately;
-     *  the forks run on the VM scope and the list reconciles on the next poll. */
+    /** Ticks clear synchronously so the bar collapses immediately; forks run on VM scope. */
     fun forkSelected() {
         val ids = _selectedIds.value
         val n = ids.size
@@ -307,22 +229,17 @@ class HomeViewModel(
         }
     }
 
-    /**
-     * Write the just-submitted prompt for [id] into the repo so the detail screen can show it
-     * immediately before the backend log catches up.
-     */
+    /** Write the just-submitted prompt for [id] so the detail screen shows it before the log catches up. */
     fun setPendingPrompt(id: String, prompt: String) {
         sessionsRepo.pendingPrompts[id] = prompt
     }
 
-    // ── Session groups ──────────────────────────────────────────────────────────
+    // ── Session groups ───────────────────────────────────────────────────────────
 
-    /** Select a group for filtering (null = "All"). */
     fun selectGroupFilter(groupId: String?) {
         _selectedGroupFilter.value = groupId
     }
 
-    /** Refresh the group list from the backend. */
     fun refreshGroups() {
         viewModelScope.launch {
             sessionsRepo.listGroups().let { outcome ->
@@ -331,7 +248,6 @@ class HomeViewModel(
         }
     }
 
-    /** Create a new group, then refresh. */
     fun createGroup(name: String, icon: String? = null) {
         viewModelScope.launch {
             sessionsRepo.createGroup(name, icon).let { outcome ->
@@ -345,7 +261,6 @@ class HomeViewModel(
         }
     }
 
-    /** Rename or change icon of a group, then refresh. */
     fun updateGroup(id: String, name: String? = null, icon: String? = null) {
         viewModelScope.launch {
             sessionsRepo.updateGroup(id, name, icon).let { outcome ->
@@ -359,7 +274,7 @@ class HomeViewModel(
         }
     }
 
-    /** Delete a group (sessions in it become uncategorized), then refresh. */
+    /** Sessions in a deleted group become uncategorized. */
     fun deleteGroup(id: String) {
         viewModelScope.launch {
             sessionsRepo.deleteGroup(id).let { outcome ->
@@ -373,7 +288,6 @@ class HomeViewModel(
         }
     }
 
-    /** Move a session to a group (or null for uncategorized). Optimistic local update. */
     fun moveSessionToGroup(sessionId: String, groupId: String?) {
         viewModelScope.launch {
             sessionsRepo.setSessionGroup(sessionId, groupId)
@@ -381,30 +295,20 @@ class HomeViewModel(
         }
     }
 
-    // ── Task 6: content search ──────────────────────────────────────────────────
+    // ── Content search ───────────────────────────────────────────────────────────
 
     /**
-     * Update the search box and (after the 250ms debounce inside [SessionsRepository.contentSearch])
-     * trigger a content search.
+     * Visible text mirrors into [_searchQuery] immediately (no perceived lag). The 250ms debounce
+     * inside the repo only delays the BACKEND round-trip.
      *
-     * Behaviour:
-     * - Visible text is mirrored into [_searchQuery] immediately so the input field has no
-     *   perceived lag — the debounce only delays the BACKEND round-trip, not what the user sees.
-     * - Blank input cancels any in-flight search ([searchJob]), clears [_searchResults] (so stale
-     *   hits disappear the moment the box is emptied), and clears [_searching]. No backend call.
-     * - Non-blank input cancels any prior [searchJob] (which cancels the repo's mapLatest block,
-     *   last-write-wins) and launches a fresh collector. [searching] flips on immediately so the
-     *   UI can show a spinner the moment a new request starts.
-     *
-     * Note: we deliberately do NOT use [advanceUntilIdle]-style infinite collection here — the
-     * collector runs on [viewModelScope] (lives for the VM lifetime, not the uiState subscription)
-     * because cancelling it on a new keystroke is the whole point of last-write-wins. WhileSubscribed
-     * would tear the collector down between keystrokes and break the cancellation contract.
+     * Blank input cancels [searchJob], clears [_searchResults] / [_searching]; non-blank cancels
+     * the prior job (repo mapLatest last-write-wins) and launches a fresh collector. Collector
+     * runs on [viewModelScope] (NOT WhileSubscribed) so keystrokes can cancel it — the whole
+     * point of last-write-wins.
      */
     fun setSearchQuery(q: String) {
         if (q.isBlank()) {
             _searchQuery.value = q
-            // Cancel any in-flight search, drop stale results, mark not-searching.
             searchJob?.cancel()
             searchJob = null
             _searchResults.value = emptyList()
@@ -412,11 +316,6 @@ class HomeViewModel(
             _lastSearchedQuery.value = ""
             return
         }
-        // New query → cancel the prior collector, launch a fresh one. Do NOT
-        // update _lastSearchedQuery here — it's only set when a response arrives.
-        // The UI uses `searchQuery != lastSearchedQuery` (not the `searching` flag)
-        // to decide whether to show a loading spinner or "No sessions match", which
-        // is immune to one-frame ordering races.
         searchJob?.cancel()
         _searching.value = true
         _searchQuery.value = q
@@ -425,10 +324,9 @@ class HomeViewModel(
             sessionsRepo.contentSearch(_searchQuery)
                 .catch { e ->
                     if (e is CancellationException) throw e
-                    // Any non-cancellation failure: drop searching; keep the prior results visible
-                    // (last-good UX) instead of blanking the list on a transient backend error.
+                    // Last-good: keep prior results, just clear the spinner.
                     _searching.value = false
-                    _lastSearchedQuery.value = _searchQuery.value  // mark this query as answered
+                    _lastSearchedQuery.value = _searchQuery.value
                     AppLog.w("VM", "contentSearch: '$q' failed")
                 }
                 .collect { outcome ->
@@ -437,14 +335,12 @@ class HomeViewModel(
                             val count = outcome.value.results.size
                             _searchResults.value = outcome.value.results
                             _searching.value = false
-                            _lastSearchedQuery.value = _searchQuery.value  // mark this query as answered
+                            _lastSearchedQuery.value = _searchQuery.value
                             AppLog.d("VM", "contentSearch: '$q' -> $count results")
                         }
                         is Outcome.Failure -> {
-                            // Same last-good policy as catch{}: keep prior results, just clear the
-                            // spinner so the UI stops indicating an in-flight request.
                             _searching.value = false
-                            _lastSearchedQuery.value = _searchQuery.value  // mark this query as answered
+                            _lastSearchedQuery.value = _searchQuery.value
                             AppLog.w("VM", "contentSearch: '$q' failed")
                         }
                     }

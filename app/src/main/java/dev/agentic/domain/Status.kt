@@ -2,34 +2,22 @@ package dev.agentic.domain
 
 import dev.agentic.data.net.WorkflowRun
 
-/** Distinct visuals a session status can map to. Using an enum instead of the raw string means
- *  AnimatedContent only re-animates on a meaningful visual transition. */
+/** Distinct visuals a session status can map to (enum so AnimatedContent only re-animates on meaningful transitions). */
 enum class StatusVisual { DONE, FAILED, KILLED, RUNNING, IDLE, PENDING }
 
-/** Status strings that mean a session has reached a terminal state. */
+/** Terminal session status strings. */
 val TERMINAL = setOf("done", "failed", "killed")
 
-// Status synonyms, normalised (trim + lowercase), shared by sessions AND workflow runs/agents. The
-// workflow journal uses "complete"/"completed"/"cancelled" where sessions use "done"/"killed", so the
-// mapping accepts both — sessions, runs and agents then render an identical indicator.
+// Status synonyms (trim+lowercase) shared by sessions AND workflow runs/agents — workflow journal uses "complete/completed/cancelled" where sessions use "done/killed".
 val DONE_STATES = setOf("done", "complete", "completed")
 val FAILED_STATES = setOf("failed", "error")
 val KILLED_STATES = setOf("killed", "cancelled", "canceled")
 val RUNNING_STATES = setOf("running")
 
-/** Status strings that mean a workflow run has completed (success, failure, or cancel). */
+/** Workflow run terminal set (success/failure/cancel). */
 val WORKFLOW_DONE = DONE_STATES + FAILED_STATES + KILLED_STATES
 
-/** Map a raw backend [status] string and optional [awaitingInput] flag to the display enum. Accepts
- * session and workflow synonyms (case-insensitive) so a session, a run and an agent in the same state
- * render the same indicator.
- * - done / complete / completed     → DONE
- * - failed / error                  → FAILED
- * - killed / cancelled / canceled   → KILLED
- * - running + awaitingInput=true    → IDLE  (streaming session waiting for user input)
- * - running                         → RUNNING
- * - anything else (pending/…)       → PENDING
- */
+/** Map raw [status] (+ optional awaitingInput) to a visual; accepts session+workflow synonyms so a session/run/agent in the same state render identical. */
 fun statusVisual(status: String, awaitingInput: Boolean?): StatusVisual {
     val s = status.trim().lowercase()
     return when {

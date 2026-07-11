@@ -50,18 +50,9 @@ import dev.agentic.ui.components.AppTextField
 import dev.agentic.ui.components.cardFieldColors
 
 /**
- * Full-screen skill store (navigated from Settings → Skills → Store). Replaces the old
- * inline install pane, which crammed search + catalog + source management + a one-off
- * GitHub field into one Settings card.
- *
- * Layout: pinned search field, then the aggregated catalog as a REAL page-scrolling list
- * (no nested capped scroll). The search field is smart: paste something that looks like a
- * GitHub reference (`owner/repo[/path]` or URL) and a direct-install row appears on top.
- * Source management (list / add / remove) lives in a bottom sheet behind the top-bar
- * "Sources" action; Refresh re-scans past the server's cache.
- *
- * Shares the Settings back-stack entry's [GlobalSettingsViewModel] (wired in AppNav), so
- * installs/removals made here are immediately visible on the Settings screen.
+ * Full-screen skill store (Settings → Skills → Store). Pinned search field; catalog as a real
+ * page-scrolling list. Pasting a GitHub-style reference offers a direct-install row.
+ * Sources live in a bottom sheet. Shares [GlobalSettingsViewModel] with the Settings back-stack entry.
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -78,10 +69,9 @@ fun SkillStoreScreen(
     val s by resolvedVm.uiState.collectAsStateWithLifecycle()
     val snackbarHost = remember { SnackbarHostState() }
 
-    // The store IS this screen — fetch it immediately (cached server-side for 6h).
+    // Fetch immediately (cached server-side for 6h).
     LaunchedEffect(Unit) { resolvedVm.loadCatalog() }
 
-    // Transient errors (install/remove/source failures) via snackbar, like Settings.
     LaunchedEffect(s.error) {
         val msg = s.error ?: return@LaunchedEffect
         snackbarHost.showSnackbar(msg)
@@ -90,7 +80,6 @@ fun SkillStoreScreen(
 
     var query by remember { mutableStateOf("") }
     var sourcesOpen by remember { mutableStateOf(false) }
-    // Remove-skill confirmation (same contract as the Settings chips' long-press dialog).
     var pendingRemove by remember { mutableStateOf<String?>(null) }
 
     pendingRemove?.let { name ->
@@ -130,7 +119,7 @@ fun SkillStoreScreen(
                 },
                 title = { Text("Skill store") },
                 actions = {
-                    // Text actions (no decorative icons): manage sources / bypass the cache.
+                    // Text actions only — manage sources / bypass the cache.
                     TextButton(onClick = { sourcesOpen = true }) {
                         Text("Sources${s.sources?.let { " (${it.size})" } ?: ""}")
                     }
@@ -196,15 +185,13 @@ fun SkillStoreScreen(
                         q.isEmpty() || it.name.contains(q, ignoreCase = true) ||
                             it.description.contains(q, ignoreCase = true)
                     }
-                    // Direct-install offer: an EXPLICIT URL always gets one (the user pasted it
-                    // to install, even if search happens to match); a bare slashed term ("ci/cd")
-                    // only when nothing in the catalog matches, so searches don't grow a spurious
-                    // install row.
+                    // Direct-install offer: an explicit URL always gets one (the user pasted it
+                    // to install, even if search matches); a bare slashed term only when nothing
+                    // in the catalog matches, so searches don't grow a spurious install row.
                     val isExplicitUrl = q.startsWith("https://") || q.startsWith("http://") || q.startsWith("github.com/")
                     val directRef = if (isExplicitUrl || shown.isEmpty()) githubRefQuery(q) else null
                     val multiSource = catalog.map { it.sourceRepo }.distinct().size > 1
                     LazyColumn(Modifier.fillMaxSize()) {
-                        // Direct install: the query itself looks like a GitHub reference.
                         if (directRef != null) {
                             item(key = "direct-install") {
                                 Row(
@@ -252,9 +239,8 @@ fun SkillStoreScreen(
                                 onRemove = { pendingRemove = entry.name },
                             )
                         }
-                        // Per-source scan failures — the rest of the store still renders.
-                        // No key: duplicate error strings (two sources failing identically)
-                        // would crash on key collision; index-based keys are fine for plain text.
+                        // Per-source scan failures — rest of store still renders.
+                        // No key: duplicate error strings would crash on key collision.
                         items(s.catalogErrors) { err ->
                             Text(
                                 err,
@@ -270,8 +256,7 @@ fun SkillStoreScreen(
     }
 }
 
-/** One catalog row: name + description (+ provenance when several sources contribute), with
- *  Install (not installed) or Update + Remove (installed) as trailing text actions. */
+/** Catalog row: name + description (+ provenance when several sources contribute), trailing Install/Update/Remove. */
 @Composable
 private fun StoreRow(
     entry: CatalogSkill,
@@ -309,10 +294,9 @@ private fun StoreRow(
             }
         }
         if (installed) {
-            // Update only when the store actually has something newer. false = fingerprints
-            // match (no button); null = unknown provenance (pre-metadata install or
-            // hand-authored) — offer Update as a reinstall, which records the metadata and
-            // makes future checks precise.
+            // Update only when the store has something newer. false = match (no button);
+            // null = unknown provenance — offer Update as a reinstall which records metadata
+            // for future checks.
             if (entry.updateAvailable != false) {
                 TextButton(onClick = { onInstall(true) }, enabled = !busy) { Text("Update") }
             }
@@ -358,8 +342,7 @@ private fun SourcesSheet(
                 }
             }
             var newSource by remember { mutableStateOf("") }
-            // Clear the field only once the source actually lands in the list — a failed
-            // add keeps the (possibly long) input for retry.
+            // Clear only once the source lands in the list — failed add keeps input for retry.
             LaunchedEffect(sources) {
                 if (newSource.isNotBlank() && sources?.contains(newSource.trim().trimEnd('/')) == true) {
                     newSource = ""
@@ -385,16 +368,12 @@ private fun SourcesSheet(
     }
 }
 
-/**
- * If [q] looks like an installable GitHub reference, return it normalized, else null.
- * Accepted: `https://github.com/...` URLs, `github.com/...`, or `owner/repo[/path]`
- * shorthand (at least one '/', no spaces, plausible first segment). A plain search word
- * ("weather") or phrase never matches.
- */
+/** If [q] looks like an installable GitHub reference, return it normalized; else null.
+ *  Accepted: `https://github.com/...`, `github.com/...`, or `owner/repo[/path]` shorthand
+ *  (at least one '/', no spaces, plausible segment chars). */
 internal fun githubRefQuery(q: String): String? {
     if (q.isBlank() || q.any { it.isWhitespace() }) return null
-    // URL forms are validated the same way after stripping the prefix — a bare
-    // "https://github.com/" or ".../owner" must not offer an install.
+    // URL forms validate the same way after prefix-strip; a bare "https://github.com/" must not offer an install.
     val prefixes = listOf("https://github.com/", "http://github.com/", "github.com/")
     val remaining = prefixes.firstOrNull { q.startsWith(it) }?.let { q.removePrefix(it) } ?: q
     val parts = remaining.trim('/').split('/')

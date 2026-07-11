@@ -48,28 +48,9 @@ import androidx.compose.ui.text.font.FontFamily
 import dev.agentic.ui.components.SectionCard
 import dev.agentic.ui.components.SliderField
 
-/**
- * Per-session settings subpage — session-persistent only.
- *
- * MD3 Expressive structure, matching NewRequestScreen / GlobalSettingsScreen: the page title
- * lives only in the TopAppBar, controls are grouped into tonal [SectionCard]s ("Settings" for
- * the model/effort/permission sliders, "Reliability" for the auto-resume switch), and a single
- * full-width CTA outside the cards PATCHes `/api/sessions/:id` via
- * [SessionSettingsViewModel.saveToSession].
- *
- * VM creation note: project convention (see AdaptiveHome.kt / SessionScreen.kt) is to build VMs
- * with `viewModel(key = ..., factory = viewModelFactory { initializer { ... } })` so they scope
- * to the current [ViewModelStoreOwner] and survive configuration changes. The brief's option (b)
- * `remember(sessionId) { ... }` would re-create the VM on every rotation, discarding pending
- * selections mid-edit — using the lifecycle-scoped factory preserves the project pattern and
- * keeps pending edits stable across device rotation.
- */
-// Mirrors NewRequestScreen.PERMISSION_MODES exactly (same keys, same labels, same order) so the same
-// session reads identically on both screens. The old "" -> "Default (Ask)" notch was wrong twice over:
-// a session created as Dangerous stores null, which fell onto that index-0 notch (so Dangerous showed
-// as "Default (Ask)"); and the label lied — the backend treats null/"" as bypassPermissions (auto-allow),
-// the OPPOSITE of Ask. Dangerous is now an explicit "bypassPermissions" value (see the slider below):
-// patch semantics require a concrete value to switch a session TO Dangerous (a null patch = "no change").
+/** Per-session settings subpage (session-persistent). MD3 Expressive layout matching NewRequestScreen/GlobalSettingsScreen. */
+
+/** Mirrors NewRequestScreen.PERMISSION_MODES; null session reads as the Dangerous notch (bypassPermissions on backend). */
 private val PERMISSION_MODES_FOR_SETTINGS = listOf(
     "plan" to "Plan",
     "default" to "Ask",
@@ -107,15 +88,13 @@ fun SessionSettingsScreen(
         },
     ) { pad ->
         if (s.loading) {
-            // While the session fetch is in flight, show a spinner — don't render the sliders with
-            // stale fallback values ("Default" model, "Default" effort, "Dangerous" permissions).
+            // Spinner avoids rendering sliders with stale fallback values during the initial fetch.
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(pad),
                 contentAlignment = Alignment.Center,
             ) {
-                // Expressive LoadingIndicator — the app-wide screen-level loading spinner.
                 LoadingIndicator()
             }
         } else {
@@ -127,11 +106,7 @@ fun SessionSettingsScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                // The page title lives ONLY in the TopAppBar (app-wide rule) — no in-body headline,
-                // so the title never appears twice on one screen.
-
                 // ── Card 1 · Settings: model / effort / permission sliders ───────────────
-                // Same card + slider family as NewRequestScreen's "Settings" card.
                 SectionCard("Settings") {
                     SliderField(
                         label = "Model",
@@ -157,9 +132,7 @@ fun SessionSettingsScreen(
                     SliderField(
                         label = "Permissions",
                         options = PERMISSION_MODES_FOR_SETTINGS,
-                        // null (a Dangerous-created session, or any pre-permission-mode session) reads as the
-                        // Dangerous notch, matching NewRequestScreen. Store the literal key — including
-                        // "bypassPermissions" — so saveToSession() patches a concrete value (null = no change).
+                        // Store the literal key so saveToSession() patches a concrete value (null = no change).
                         value = s.pendingPermissionMode ?: "bypassPermissions",
                         onSelect = { vm.setPendingPermissionMode(it) },
                         dangerActive = (s.pendingPermissionMode ?: "bypassPermissions") == "bypassPermissions",
@@ -218,7 +191,7 @@ fun SessionSettingsScreen(
                     Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 }
 
-                // ── Save (screen-level CTA, outside the cards — mirrors Launch on NewRequest) ─
+                // ── Save (screen-level CTA, outside the cards) ─
                 Button(
                     onClick = { vm.saveToSession() },
                     enabled = !s.saving && !s.loading,
@@ -232,8 +205,7 @@ fun SessionSettingsScreen(
     }
 }
 
-/** Supporting text for the auto-resume switch. When [autoResumeAt] is non-null, appends the
- *  scheduled time formatted in the user's time zone. */
+/** Auto-resume supporting text; appends scheduled time in user's zone when [autoResumeAt] non-null. */
 private fun buildAutoResumeText(autoResumeAt: Long?): String {
     val base = "When a 5h/7d usage limit interrupts this session, resume automatically once it resets"
     if (autoResumeAt == null) return base
@@ -250,12 +222,7 @@ private fun buildAutoResumeText(autoResumeAt: Long?): String {
     return "$base\nScheduled: $formatted"
 }
 
-/**
- * Switch row for use INSIDE a [SectionCard] — label + supporting text on the left (the same
- * titleSmall-SemiBold / bodySmall-onSurfaceVariant pair as NewRequest's collapsible CLAUDE.md
- * header row), switch on the right. The whole row toggles (bigger touch target + proper switch
- * semantics for accessibility); the Switch itself is display-only (onCheckedChange = null).
- */
+/** Switch row for use inside a [SectionCard]; whole row toggles for touch target + a11y; Switch is display-only (onCheckedChange=null). */
 @Composable
 private fun SettingsSwitchRow(
     label: String,

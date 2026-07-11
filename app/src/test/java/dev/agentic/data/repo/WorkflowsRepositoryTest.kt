@@ -18,12 +18,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
-/**
- * Unit tests for [WorkflowsRepository] and [FilesRepository].
- *
- * Uses virtual time via [StandardTestDispatcher] and [FakeAgenticApi] to test poll-and-last-good
- * behaviour without any real network or wall-clock delays.
- */
+// Virtual time via StandardTestDispatcher + FakeAgenticApi tests poll-and-last-good without real network/wall-clock.
 @OptIn(ExperimentalCoroutinesApi::class)
 class WorkflowsRepositoryTest {
 
@@ -38,7 +33,6 @@ class WorkflowsRepositoryTest {
         if (::repoScope.isInitialized) repoScope.cancel()
     }
 
-    // ── 1. runsStream emits api.workflows result and keeps last-good on error ─────
 
     @Test fun `runsStream emits api workflows result and keeps last-good when a tick throws`() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
@@ -48,7 +42,6 @@ class WorkflowsRepositoryTest {
         val error = java.io.IOException("blip")
         val third = listOf(WorkflowRun(runId = "r2", name = "deploy", status = "done"))
 
-        // Script: success → throw → success
         api.workflowsScript = mutableListOf(
             Result.success(first),
             Result.failure<List<WorkflowRun>>(error),
@@ -63,13 +56,11 @@ class WorkflowsRepositoryTest {
         assertEquals("next success tick emits new list", third, emissions[2])
     }
 
-    // ── 2. outboxStream maps SharedFile → AttachmentNode with mtime.toLong() ──────
 
     @Test fun `outboxStream maps SharedFile to AttachmentNode with mtime converted toLong`() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         repoScope = CoroutineScope(dispatcher)
 
-        // mtime is a Double (fractional millis from statSync mtimeMs); converted with .toLong()
         val sharedFiles = listOf(
             SharedFile(path = "out/a.txt", name = "a.txt", mtime = 1_700_000_000.9),
             SharedFile(path = "out/b.kt",  name = "b.kt",  mtime = 1_700_000_500.1),
@@ -86,7 +77,6 @@ class WorkflowsRepositoryTest {
         assertEquals(expected, emission)
     }
 
-    // ── 3. FilesRepository.upload returns Outcome.Success on ok ──────────────────
 
     @Test fun `FilesRepository upload returns Outcome Success on ok`() = runTest {
         api.uploadPathResult = "uploads/photo.png"

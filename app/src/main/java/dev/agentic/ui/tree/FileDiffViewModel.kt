@@ -13,10 +13,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/**
- * UI state for the single-file diff screen. [path]/[sha] are known up-front (from the route) so the
- * top bar can render before the diff loads. [diff] is null until the fetch completes.
- */
+/** UI state for the single-file diff screen. [path]/[sha] are known up-front (from the route) so the
+ *  top bar can render before the diff loads. [diff] is null until the fetch completes. */
 data class FileDiffUiState(
     val path: String = "",
     val sha: String = "",
@@ -25,11 +23,9 @@ data class FileDiffUiState(
     val diff: FileDiff? = null,
 )
 
-/**
- * ViewModel for [FileDiffScreen]. Reads (id, repo, sha, path) from the type-safe route's
- * [SavedStateHandle] and fetches the parsed diff once on creation. Like [CommitGraphViewModel] it
- * uses a plain [MutableStateFlow] because the data is a bounded one-shot fetch, not a stream.
- */
+/** ViewModel for [FileDiffScreen]. Reads (id, repo, sha, path) from the type-safe route's
+ *  [SavedStateHandle] and fetches the parsed diff once on creation. Like [CommitGraphViewModel] it
+ *  uses a plain [MutableStateFlow] because the data is a bounded one-shot fetch, not a stream. */
 class FileDiffViewModel(
     private val filesRepo: FilesRepository,
     handle: SavedStateHandle,

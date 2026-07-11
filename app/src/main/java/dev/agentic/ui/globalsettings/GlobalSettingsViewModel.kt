@@ -21,35 +21,27 @@ import kotlinx.coroutines.sync.withLock
 data class GlobalSettingsUiState(
     val loading: Boolean = true,
     val components: List<ComponentInfo> = emptyList(),
-    /** Transient error message shown in a snackbar; null when no error. */
+    /** Transient snackbar error; null when no error. */
     val error: String? = null,
-    /** Set of component ids currently mid-toggle (prevents double-tap). */
+    /** Component ids currently mid-toggle (prevents double-tap). */
     val toggling: Set<String> = emptySet(),
-    /**
-     * True while ANY mutating CRUD op (add/delete skill, install/uninstall plugin, add/delete MCP)
-     * is in flight. The UI must disable Add buttons, submit buttons, and delete long-press while
-     * this is true. Replaces the old per-feature pluginBusy — a single flag is simpler and correct
-     * because these ops are serialized one-at-a-time (parallel CRUD on the same list is unsafe).
-     */
+    /** True while any mutating CRUD op (add/delete skill, install/uninstall plugin, add/delete MCP) is in flight.
+     *  UI must disable Add/submit/delete-long-press while true. Serialized — one at a time. */
     val busy: Boolean = false,
-    // ── External skill store (GET /api/skills/catalog + /api/skills/sources) ──
-    /** null = not fetched yet; loaded lazily when the Install mode is first shown. */
+    /** External skill store — null = not fetched yet. */
     val catalog: List<CatalogSkill>? = null,
-    /** Per-source scan failures — the rest of the store still renders. */
+    /** Per-source scan failures; rest of the store still renders. */
     val catalogErrors: List<String> = emptyList(),
     val catalogLoading: Boolean = false,
-    /** Transport-level failure (the whole catalog request failed). */
+    /** Transport-level failure (whole catalog request failed). */
     val catalogError: String? = null,
     /** Configured store sources; null = not fetched yet. */
     val sources: List<String>? = null,
 )
 
 /**
- * ViewModel for the Global Settings screen.
- *
- * Fetches the full component list on creation and exposes it grouped by kind (skills, plugins, mcp).
- * A [toggle] call optimistically updates the switch, sends the request, applies the returned
- * refreshed list on success, or reverts and surfaces a transient [error] on failure.
+ * ViewModel for the Global Settings screen. Fetches the full component list, exposes it
+ * grouped by kind; toggles apply optimistically and revert on failure.
  */
 class GlobalSettingsViewModel(
     private val api: AgenticApi,
@@ -58,24 +50,19 @@ class GlobalSettingsViewModel(
     private val _uiState = MutableStateFlow(GlobalSettingsUiState())
     val uiState: StateFlow<GlobalSettingsUiState> = _uiState.asStateFlow()
 
-    /**
-     * Serializes toggle API calls so responses are applied in order and cannot
-     * clobber each other. Because a settings screen toggles infrequently, strict
-     * serialization is simpler and safer than optimistic concurrent requests.
-     */
+    /** Serializes toggle API calls so responses apply in order and can't clobber each other.
+     *  Settings toggles are infrequent — strict serialization is simpler than optimistic concurrency. */
     private val toggleMutex = Mutex()
 
     init {
         load()
     }
 
-    /** In-flight [load] job — a second call while one is running is dropped (on first entry
-     *  the VM init and the screen's LaunchedEffect both call load()). */
+    /** In-flight [load]; a second call while one is running is dropped (init + LaunchedEffect both call it). */
     private var loadJob: Job? = null
 
-    /** Reload the component list from the server. The full-screen loading flag is only raised
-     *  while we have nothing to show — a re-load (e.g. returning from the skill store, which
-     *  runs its own ViewModel) refreshes quietly behind the existing content. */
+    /** Reload the component list. Full-screen loading only while we have nothing to show —
+     *  a re-load (e.g. returning from the skill store) refreshes quietly behind existing content. */
     fun load() {
         if (loadJob?.isActive == true) return
         loadJob = viewModelScope.launch {
@@ -89,29 +76,19 @@ class GlobalSettingsViewModel(
         }
     }
 
-    /**
-     * Flip [component]'s enabled state: optimistically update, call the API, apply the refreshed
-     * list, or revert + surface error on failure.
-     *
-     * Supports all three kinds — the backend toggles skills/plugins via settings.local.json
-     * and MCP servers by parking their definition in .claude.json (mcpServersDisabled).
-     *
-     * Toggle calls are serialized via [toggleMutex] so that responses from concurrent taps
-     * are applied in order and cannot replace the full component list with a stale snapshot.
-     */
+    /** Flip [component]'s enabled state: optimistic update, call API, apply refreshed list or revert. */
     fun toggle(component: ComponentInfo) {
-        // Don't interleave with a CRUD op (add/delete): both paths replace [components] with a
-        // full refreshed list from their response, so a stale late arrival could overwrite the
-        // newer mutation. CRUD is blocked while toggles are in flight too (see acquireBusy).
+        // Don't interleave with a CRUD op: both paths replace [components] with a full refreshed
+        // list from their response, so a stale late arrival could overwrite the newer mutation.
+        // CRUD is also blocked while toggles are in flight (see acquireBusy).
         if (_uiState.value.busy) return
 
         val toggleKey = "${component.kind}:${component.id}"
-        // Ignore if already toggling this component.
         if (_uiState.value.toggling.contains(toggleKey)) return
 
         val newEnabled = !component.globalEnabled
 
-        // Optimistic update (applied immediately, before the coroutine acquires the mutex).
+        // Optimistic update (applied before the coroutine acquires the mutex).
         _uiState.update { s ->
             s.copy(
                 toggling = s.toggling + toggleKey,
@@ -124,9 +101,8 @@ class GlobalSettingsViewModel(
         }
 
         viewModelScope.launch {
-            // Serialize API calls: a second toggle waits for the first to complete before
-            // sending its own request, so the full-list response from each call is applied
-            // in the order the calls were made.
+            // Serialize: a second toggle waits for the first to finish before sending its own
+            // request, so the full-list responses apply in call order.
             toggleMutex.withLock {
                 try {
                     val refreshed = api.toggleGlobalComponent(component.kind, component.id, newEnabled)
@@ -134,7 +110,6 @@ class GlobalSettingsViewModel(
                         s.copy(toggling = s.toggling - toggleKey, components = refreshed)
                     }
                 } catch (e: Exception) {
-                    // Revert the optimistic change and show a transient error.
                     _uiState.update { s ->
                         s.copy(
                             toggling = s.toggling - toggleKey,
@@ -158,21 +133,18 @@ class GlobalSettingsViewModel(
 
     // ── CRUD actions ─────────────────────────────────────────────────────────────
 
-    /**
-     * Guard: return true and set busy=true+clear previous error if no op is in flight.
-     * Return false (caller must not proceed) when already busy.
-     * Must be called on the main thread (StateFlow.update is main-thread safe).
-     */
+    /** Guard: returns true and sets busy=true+clears previous error if no op is in flight;
+     *  false when already busy. Must be called on the main thread. */
     private fun acquireBusy(): Boolean {
-        // Also refuse while any toggle is in flight — a CRUD response and a toggle response
-        // both carry a full component list, and whichever lands second would clobber the first.
+        // Also refuse while any toggle is in flight — CRUD and toggle responses both carry a
+        // full component list, and whichever lands second would clobber the first.
         if (_uiState.value.busy || _uiState.value.toggling.isNotEmpty()) return false
         _uiState.update { it.copy(busy = true, error = null) }
         return true
     }
 
-    /** Load the external skill store — catalog (aggregated across sources) + the source list.
-     *  Without [force], no-ops when already loaded; [force] bypasses the server-side cache too. */
+    /** Load the external skill store. [force] bypasses the server-side cache; no-ops when loaded
+     *  unless [force] (or a previous catalog error). Catalog + sources fetched concurrently. */
     fun loadCatalog(force: Boolean = false) {
         val s = _uiState.value
         if (s.catalogLoading) return
@@ -180,7 +152,6 @@ class GlobalSettingsViewModel(
         _uiState.update { it.copy(catalogLoading = true, catalogError = null) }
         viewModelScope.launch {
             try {
-                // Independent requests — fetch concurrently.
                 val (resp, sources) = coroutineScope {
                     val respDeferred = async { api.getSkillCatalog(refresh = force) }
                     val sourcesDeferred = async { api.getSkillSources() }
@@ -200,7 +171,7 @@ class GlobalSettingsViewModel(
         }
     }
 
-    /** Add a store source, then rescan the catalog so its skills appear immediately. */
+    /** Add a store source, then rescan the catalog. */
     fun addSource(source: String) {
         if (!acquireBusy()) return
         viewModelScope.launch {
@@ -214,7 +185,7 @@ class GlobalSettingsViewModel(
         }
     }
 
-    /** Remove a store source, then rescan the catalog so its skills disappear. */
+    /** Remove a store source, then rescan the catalog. */
     fun removeSource(source: String) {
         if (!acquireBusy()) return
         viewModelScope.launch {
@@ -228,8 +199,7 @@ class GlobalSettingsViewModel(
         }
     }
 
-    /** Install a skill from a GitHub source (catalog entry or user-supplied URL/ref).
-     *  [update] replaces an existing install of the same name. */
+    /** Install a skill from a GitHub source. [update] replaces an existing install of the same name. */
     fun installSkill(source: String, update: Boolean = false): Boolean {
         if (!acquireBusy()) return false
         viewModelScope.launch {
@@ -237,13 +207,12 @@ class GlobalSettingsViewModel(
                 val refreshed = api.installSkill(source, update)
                 _uiState.update { it.copy(components = refreshed, busy = false, error = null) }
                 // Re-pull the catalog so per-entry updateAvailable reflects the fresh install
-                // (server cache hit — the annotation is computed per request, so this is cheap;
-                // without it an Update button would linger after a successful update).
+                // (cheap server-cache hit; without it an Update button lingers post-update).
                 try {
                     val resp = api.getSkillCatalog(refresh = false)
                     _uiState.update { it.copy(catalog = resp.skills, catalogErrors = resp.errors) }
                 } catch (_: Exception) {
-                    // Stale Update button until the next manual refresh — not worth surfacing.
+                    // Stale Update button until next manual refresh — not worth surfacing.
                 }
             } catch (e: Exception) {
                 _uiState.update { it.copy(busy = false, error = "Failed to install skill: ${e.message}") }
@@ -265,8 +234,7 @@ class GlobalSettingsViewModel(
         }
     }
 
-    /** Install a plugin globally (slow — CLI). Sets busy while in flight.
-     *  No-ops while another op is already in flight. */
+    /** Install a plugin globally (slow — CLI). No-ops while another op is in flight. */
     fun installPlugin(id: String): Boolean {
         if (!acquireBusy()) return false
         viewModelScope.launch {
@@ -294,18 +262,14 @@ class GlobalSettingsViewModel(
     }
 
     /**
-     * Add an MCP server globally.
-     *
-     * Returns a validation error string synchronously (for the form to show inline), or null when
-     * validation passes (the async API call has been enqueued). API errors land in [uiState.error]
-     * (shown via snackbar) — this keeps the form open so the user can retry after fixing the input.
-     * No-ops while busy (returns null — the UI is expected to disable the button anyway).
+     * Add an MCP server globally. Returns validation error (for inline display) or null when
+     * validation passes and the API call is enqueued. API errors land in [uiState.error]; the
+     * form stays open so the user can retry. No-ops while busy (returns an error string — must
+     * not look like success or the caller's close-on-success flag would close on an unrelated op).
      */
     fun addMcpServer(draft: McpDraft): String? {
         val err = draft.validationError
         if (err != null) return err
-        // Busy-refusal must NOT look like success (null) - the caller arms its
-        // close-on-success flag on null and would later close on an unrelated op.
         if (!acquireBusy()) return "Another operation is in progress - try again"
         val def = buildMcpServerDef(draft)
         viewModelScope.launch {
@@ -332,7 +296,7 @@ class GlobalSettingsViewModel(
         }
     }
 
-    // Mirrors NewRequestViewModel.buildMcpServerDef so we don't duplicate the parse logic in the UI layer.
+    // Mirrors NewRequestViewModel.buildMcpServerDef — keep parse logic in one place (the VM, not UI).
     private fun buildMcpServerDef(draft: McpDraft): McpServerDef {
         val envMap = draft.env.lines()
             .map { it.trim() }.filter { it.contains('=') }

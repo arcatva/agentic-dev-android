@@ -3,13 +3,7 @@ package dev.agentic.domain
 import java.time.Instant
 import java.time.format.DateTimeParseException
 
-/**
- * Parse a usage window's `resets_at` into epoch-millis, or null if absent/unparsable.
- *
- * Anthropic's OAuth usage endpoint returns an ISO-8601 instant; we don't have a confirmed sample
- * (server tests use placeholders), so also accept a numeric epoch — treated as millis when large,
- * else seconds — and fall back to null for anything else.
- */
+/** Parse `resets_at` to epoch-millis (ISO-8601, or numeric: ≥1e12=ms else seconds); null if absent/unparsable. */
 fun parseResetAt(resetsAt: String?): Long? {
     val s = resetsAt?.trim()
     if (s.isNullOrEmpty()) return null
@@ -23,11 +17,7 @@ fun parseResetAt(resetsAt: String?): Long? {
     }
 }
 
-/**
- * Compact "time until this usage window resets" label for [resetsAt], measured from [nowMs]:
- * `3d21h` (≥1 day), `3h29m` (≥1 hour), `29m` (≥1 minute), `<1m` (under a minute or already past),
- * or `—` when there's no parsable reset time.
- */
+/** Compact "until reset" label from [nowMs]: `3d21h` / `3h29m` / `29m` / `<1m` / `—` (no reset). */
 fun resetIn(resetsAt: String?, nowMs: Long = System.currentTimeMillis()): String {
     val at = parseResetAt(resetsAt) ?: return "—"
     val totalMin = ((at - nowMs).coerceAtLeast(0L)) / 60_000L

@@ -30,19 +30,15 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * UI-facing state + actions for voice dictation, shared by every mic button in the app.
+ * UI-facing state + actions for voice dictation, shared by every mic button.
  *
- * Hides which engine is actually used:
- * - On arm64 devices it drives [SherpaDictation] (on-device, bilingual zh-en, real-time, offline).
- *   The first use downloads a model (the user picks Standard / High accuracy via the dialog);
- *   [downloading]/[downloadProgress] reflect that.
- * - Otherwise it falls back to the platform [SpeechRecognizer] (device-locale, real-time partials).
+ * Engine choice hidden by [rememberDictationController]: arm64 → [SherpaDictation] (on-device,
+ * bilingual zh-en, real-time, offline; first use downloads a model the user picks); otherwise the
+ * platform [SpeechRecognizer] (device-locale, real-time partials).
  *
- * While [listening], callers should render the text field **read-only** — the recognizer rewrites
- * the field live, so allowing manual edits at the same time makes the text fight itself.
- *
- * The mic button reads [available]/[listening]/[downloading]/[status] and calls [onMicClick]; the
- * first-run dialog is rendered by [DictationDownloadDialog].
+ * While [listening] callers render the text field READ-ONLY — recognizer rewrites live; manual edits
+ * would fight it. Mic button reads [available]/[listening]/[downloading]/[status], calls [onMicClick];
+ * first-run dialog rendered by [DictationDownloadDialog].
  */
 @Stable
 class DictationController internal constructor(val available: Boolean) {
@@ -56,7 +52,7 @@ class DictationController internal constructor(val available: Boolean) {
     /** Short human-readable status (permission denied, download %, error), or null when idle/clean. */
     var status by mutableStateOf<String?>(null)
         internal set
-    /** True when the first-run download dialog should be shown (see [DictationDownloadDialog]). */
+    /** True when the first-run download dialog should be shown. */
     var promptDownload by mutableStateOf(false)
         internal set
 
@@ -64,11 +60,11 @@ class DictationController internal constructor(val available: Boolean) {
     internal var onConfirm: (SherpaDictation.Quality) -> Unit = {}
     internal var onDismiss: () -> Unit = {}
     internal var onStop: () -> Unit = {}
-    // When true, engine callbacks stop writing to the field. Set when stopping for a send so the
+    // Engine callbacks stop writing to the field when true — set when stopping for a send so the
     // recognizer's late/async final result can't repopulate the field after submit cleared it.
     internal var suppressWrites = false
 
-    /** Toggle: start listening (requesting permission / prompting download), cancel a download, or stop. */
+    /** Toggle: start listening (request permission / prompt download), cancel a download, or stop. */
     fun onMicClick() = onMic()
 
     /** Called by the dialog: download [quality], then start listening. */
@@ -77,15 +73,11 @@ class DictationController internal constructor(val available: Boolean) {
     /** Called by the dialog: dismiss without downloading. */
     fun dismissDownload() = onDismiss()
 
-    /**
-     * Stop dictation because the text is being sent. No-op if not [listening]. Unlike a manual mic
-     * stop, this suppresses the recognizer's trailing final-result write so it can't land back in the
-     * field after the caller clears it on submit. Safe to call unconditionally before onSubmit().
-     */
+    /** Stop dictation because the text is being sent. Mutes trailing final-result writes so they
+     *  can't land back in the field after submit clears it. */
     fun stopForSend() {
-        // Set unconditionally, before the early return: even a just-manually-stopped dictation can
-        // have a trailing async final result still queued that would otherwise repopulate the field
-        // after submit clears it.
+        // Set unconditionally before the early return — a just-stopped dictation can have a trailing
+        // async final result still queued that would repopulate after submit clears the field.
         suppressWrites = true
         if (!listening) return
         listening = false
@@ -93,13 +85,9 @@ class DictationController internal constructor(val available: Boolean) {
     }
 }
 
-/**
- * Creates a [DictationController] bound to the current composition.
- *
- * @param currentText supplies the field's text at the moment listening starts; recognized speech is
- *   appended to it (so dictation adds to, rather than replaces, what's already typed).
- * @param onText receives the full field text (existing + recognized so far), live, on the main thread.
- */
+/** Creates a [DictationController] bound to the current composition.
+ *  @param currentText field text at the moment listening starts; recognized speech appends.
+ *  @param onText full field text (existing + recognized), live, on the main thread. */
 @Composable
 fun rememberDictationController(
     currentText: () -> String,
@@ -110,7 +98,7 @@ fun rememberDictationController(
     val latestCurrentText by rememberUpdatedState(currentText)
     val latestOnText by rememberUpdatedState(onText)
 
-    // sherpa (on-device bilingual) is preferred on arm64; the platform recognizer is the fallback.
+    // sherpa (on-device bilingual) preferred on arm64; platform recognizer is the fallback.
     val sherpa = remember { if (SherpaDictation.isSupported) SherpaDictation(ctx) else null }
     val speechAvailable = remember { SpeechRecognizer.isRecognitionAvailable(ctx) }
     val speech = remember {
@@ -119,14 +107,14 @@ fun rememberDictationController(
 
     val controller = remember { DictationController(available = sherpa != null || speech != null) }
 
-    // Text present in the field when the current dictation began; recognized text is appended to it.
+    // Text present when current dictation began; recognized speech is appended to it.
     var base by remember { mutableStateOf("") }
     fun combine(spoken: String): String =
         if (base.isBlank()) spoken else if (spoken.isBlank()) base else "$base $spoken"
-    // All engine -> field writes go through here so a stop-for-send can mute trailing results.
+    // All engine → field writes go through here so stop-for-send can mute trailing results.
     fun emit(spoken: String) { if (!controller.suppressWrites) latestOnText(combine(spoken)) }
 
-    // --- Platform SpeechRecognizer fallback wiring (only built when sherpa is unavailable) ---
+    // ── Platform SpeechRecognizer fallback wiring ──
     val speechListener = remember {
         object : RecognitionListener {
             override fun onReadyForSpeech(params: Bundle?) {}
@@ -201,7 +189,7 @@ fun rememberDictationController(
             // Prefer a model that's already downloaded (high accuracy wins if both are present).
             sherpa.isModelReady(SherpaDictation.Quality.HIGH) -> startSherpa(SherpaDictation.Quality.HIGH)
             sherpa.isModelReady(SherpaDictation.Quality.STANDARD) -> startSherpa(SherpaDictation.Quality.STANDARD)
-            else -> controller.promptDownload = true // ask the user which model to download
+            else -> controller.promptDownload = true
         }
     }
 
@@ -225,7 +213,7 @@ fun rememberDictationController(
                     AppLog.d("Voice", "Model download finish: ${quality.name}")
                     startSherpa(quality)
                 }
-                sherpa?.downloadWasCancelled == true -> controller.status = null // user aborted
+                sherpa?.downloadWasCancelled == true -> controller.status = null
                 else -> {
                     AppLog.d("Voice", "Model download fail: ${quality.name}")
                     controller.status = "模型下载失败,请检查网络后重试"
@@ -255,7 +243,6 @@ fun rememberDictationController(
             }
             controller.downloading -> {
                 AppLog.d("Voice", "Mic toggle: cancel download")
-                // Let the user abort a long first-run download.
                 sherpa?.cancelDownload()
                 controller.downloading = false
                 controller.status = null
@@ -271,11 +258,8 @@ fun rememberDictationController(
     return controller
 }
 
-/**
- * The first-run model-download dialog. Render it once near any screen that hosts a mic button
- * driven by [controller]; it shows only while [DictationController.promptDownload] is true and lets
- * the user pick the Standard or High-accuracy model (or cancel).
- */
+/** First-run model-download dialog. Render near any screen with a mic button driven by [controller]; it
+ *  shows only while [DictationController.promptDownload] is true. */
 @Composable
 fun DictationDownloadDialog(controller: DictationController) {
     if (!controller.promptDownload) return

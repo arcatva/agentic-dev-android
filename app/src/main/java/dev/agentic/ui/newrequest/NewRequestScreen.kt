@@ -79,16 +79,8 @@ import dev.agentic.ui.components.rememberSyncedTextFieldState
 import dev.agentic.ui.components.VoiceDictationField
 import dev.agentic.ui.components.clearFocusOnTap
 
-// The model + effort option lists (raw value → slider label) live in [dev.agentic.ui.ModelEffortLabels]
-// (SESSION_START_MODEL_OPTIONS / EFFORT_OPTIONS) as the shared source of truth, so these sliders and
-// the session pills/chips that render the same values elsewhere never drift apart. The Model slider
-// uses the Claude-only session-start list — BYOK provider models are delegate-routing-only.
-// Slider convention: the leading "" notch is "Default" (no override); the VM stores null for that, so
-// this screen translates "" ↔ null at the VM boundary.
-// Permission mode the session launches in. Ordered left→right by ascending autonomy so the slider
-// reads "least free" → "most free": Plan (read-only) · Ask (prompt each tool) · Accept edits ·
-// Dangerous (auto-allow = today's default). VM stores null for Dangerous (back-compat); we map
-// "bypassPermissions" ↔ null at the VM boundary so the default notch sends no override.
+// Slider convention: leading "" notch = "Default" (no override); VM stores null, so the screen
+// translates "" ↔ null at the VM boundary. Dangerous default notch ↔ null for back-compat.
 private val PERMISSION_MODES = listOf(
     "plan" to "Plan",
     "default" to "Ask",
@@ -97,18 +89,8 @@ private val PERMISSION_MODES = listOf(
 )
 
 /**
- * New-request screen. Stateless: all state lives in [NewRequestViewModel]; this composable
- * reads [NewRequestUiState] and calls VM event handlers.
- *
- * Template chips, repo multi-select with search (components — skills/plugins/MCP — are
- * managed globally on the Settings page and simply inherited by sessions), model/effort
- * sliders, prompt field with voice dictation, submit button.
- *
- * [onCreated] is called with both the new session id and the submitted prompt so that the
- * caller (AppNav) can navigate to the Session screen with the optimistic prompt pre-loaded.
- *
- * VM creation note: [appContainer] is @Composable and must be called in the composable body;
- * the [vm] nullable parameter allows injection in tests / previews.
+ * New-request screen. Stateless — state lives in [NewRequestViewModel]; [onCreated] is called with
+ * both the new session id and submitted prompt so the caller can pre-load the optimistic prompt.
  */
 @OptIn(
     ExperimentalMaterial3Api::class,
@@ -129,34 +111,28 @@ fun NewRequestScreen(
     )
     val s by realVm.uiState.collectAsStateWithLifecycle()
 
-    // Capture the submitted prompt so we can pass it to onCreated when createdId arrives.
-    // We store it in a remembered ref updated on every recomposition — when createdId fires,
-    // s.prompt is still the value that was in the field at submit time (VM doesn't clear it).
+    // Stored in a ref updated every recomposition because the VM doesn't clear s.prompt,
+    // so when createdId fires the value is still the one the user had at submit time.
     val submittedPromptRef = remember { mutableStateOf("") }
     submittedPromptRef.value = s.prompt
 
-    // Navigate out once the VM signals a successful create.
     LaunchedEffect(s.createdId) {
         s.createdId?.let { id -> onCreated(id, submittedPromptRef.value) }
     }
 
-    // When a template with {{vars}} is tapped, hold it here to show the dialog.
     var pendingTemplate by remember { mutableStateOf<Template?>(null) }
 
-    // System file picker (Storage Access Framework — no runtime permission on any API level we ship).
-    // The contract hands back read-granted URIs scoped to our activity; we grab the ContentResolver
-    // from the same context so the VM's upload coroutine can openInputStream() each one.
+    // System file picker via Storage Access Framework — no runtime permission on any API level we ship.
     val ctx = LocalContext.current
     val attachLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenMultipleDocuments(),
     ) { uris: List<Uri> ->
-        // applicationContext.contentResolver (not the Activity's): the upload runs in the VM's
-        // coroutine scope, which can outlive a config change — using the app context avoids leaking
-        // the destroyed Activity.
+        // applicationContext (not Activity): upload runs in VM coroutine scope which can outlive
+        // a config change; the app context avoids leaking the destroyed Activity.
         if (uris.isNotEmpty()) realVm.attachFiles(uris, ctx.applicationContext.contentResolver)
     }
-    // Block Launch while an upload is still in flight: submit() awaits uploads anyway, but gating
-    // keeps the button from looking ready a frame before the staged paths are final.
+    // Block Launch while an upload is still in flight: submit() awaits uploads, but gating keeps
+    // the button from looking ready a frame before the staged paths are final.
     val uploading = s.attachments.any { it.state is UploadState.Uploading }
 
     Scaffold(
@@ -175,22 +151,15 @@ fun NewRequestScreen(
             Modifier
                 .fillMaxSize()
                 .padding(pad)
-                // Tap empty space on the form to blur the prompt / chip-filter field and drop the
-                // keyboard. Chips, the field, and the Launch button still receive their own taps.
                 .clearFocusOnTap()
-                // Shrink the scroll viewport to sit above the IME (edge-to-edge + adjustResize means
-                // the app applies the keyboard inset itself). The focused field then auto-scrolls into
-                // view instead of being covered by the keyboard.
+                // imePadding: edge-to-edge + adjustResize means the app applies the keyboard inset
+                // itself; the focused field then auto-scrolls into view instead of being covered.
                 .imePadding()
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            // The page title lives ONLY in the TopAppBar (app-wide rule) — no in-body headline,
-            // so the title never appears twice on one screen.
-
             // ── Card 0 · Template picker (quick-start strip) ──────────────────────────
-            // Hidden when the backend returns no templates (opt-in server feature).
             if (s.templates.isNotEmpty()) {
                 SectionCard("Start from template") {
                     Row(
@@ -229,8 +198,6 @@ fun NewRequestScreen(
             }
 
             // ── Card 1 · Repos: which repositories this session works in ──────────────
-            // ONLY repos here (per user request) — skills/plugins/MCP are global components
-            // managed and toggled on the Settings page; a session simply inherits them.
             SectionCard("Repos") {
                 ChipPicker(
                     label = "Repos",
@@ -246,8 +213,6 @@ fun NewRequestScreen(
 
             // ── Card 2 · Request: prompt + session CLAUDE.md ─────────────────────────
             SectionCard("Request") {
-                // Prompt field with voice dictation. Shape + colors match the other inputs so the
-                // whole form is one filled, tonal, rounded field family (no pill-vs-square clash).
                 VoiceDictationField(
                     value = s.prompt,
                     onValueChange = realVm::setPrompt,
@@ -257,10 +222,6 @@ fun NewRequestScreen(
                     colors = cardFieldColors(),
                 )
                 // ── Attachments ──────────────────────────────────────────────────────
-                // Pick files to send with the request. Each uploads to the pre-session staging area in
-                // the background (the chip shows progress); on Launch the staged files are adopted into
-                // the new session's uploads/ dir and referenced in the prompt's `[attached: ...]`
-                // marker, so the agent can read them in its very first turn.
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     TextButton(onClick = { attachLauncher.launch(arrayOf("*/*")) }) {
                         Icon(Icons.Rounded.AttachFile, contentDescription = null)
@@ -279,12 +240,7 @@ fun NewRequestScreen(
                     }
                 }
                 // ── Session-scoped CLAUDE.md (collapsed by default) ──────────────────
-                // Pre-filled with DEFAULT_CLAUDE_MD (the multi-session worktree / PR / conflict
-                // workflow); the backend writes it into the session dir so the session loads it as
-                // project memory ON TOP of each repo's own CLAUDE.md. It is sent as-is on submit whether
-                // or not this is expanded — collapsing only hides the editor, it does NOT clear the
-                // value (the text lives in the VM, not this row's view state). Collapsed by default so
-                // the long default doesn't dominate the form; tap the header to reveal the editor inline.
+                // Collapsing only hides the editor — the value lives in the VM, not view state.
                 var claudeExpanded by remember { mutableStateOf(false) }
                 val claudeStatus = when {
                     s.claudeMd.isBlank() -> "None — no extra guidance"
@@ -292,7 +248,7 @@ fun NewRequestScreen(
                     else -> "Customized"
                 }
                 Column {
-                    // Header row — the entire row is the expand/collapse toggle.
+                    // Header row — tapping the entire row toggles expand/collapse.
                     Row(
                         Modifier
                             .fillMaxWidth()
@@ -305,10 +261,8 @@ fun NewRequestScreen(
                             Text(
                                 "CLAUDE.md (optional)",
                                 style = MaterialTheme.typography.titleSmall,
-                                // Same weight as the card section headers (Filters / Request / Settings).
                                 fontWeight = FontWeight.SemiBold,
                             )
-                            // Reflects state without expanding: default vs edited vs cleared.
                             Text(
                                 claudeStatus,
                                 style = MaterialTheme.typography.bodySmall,
@@ -321,29 +275,26 @@ fun NewRequestScreen(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    // Inline reveal of the editor (Expressive expand/fade, like the workflow accordion).
                     AnimatedVisibility(
                         visible = claudeExpanded,
                         enter = expandVertically() + fadeIn(),
                         exit = shrinkVertically() + fadeOut(),
                     ) {
                         AppTextField(
-                            // State overload: the catalog loads (repos/skills/templates) re-emit this
-                            // screen's state while the user edits CLAUDE.md, which with the String overload
-                            // would strand the caret. The bridge owns the caret and only re-feeds on a real
-                            // text change.
+                            // State overload (not String): catalog loads re-emit state while the user
+                            // edits CLAUDE.md; the String overload would strand the caret. The bridge
+                            // owns the caret and only re-feeds on a real text change.
                             state = rememberSyncedTextFieldState(s.claudeMd, realVm::setClaudeMd),
                             placeholder = "No extra guidance.",
                             supportingText = "Pre-filled defaults — edit or clear for this session.",
                             singleLine = false,
                             minLines = 4,
-                            // Grow to fit the whole pre-filled default instead of capping the height and
-                            // scrolling internally — a capped multi-line field inside the page's
-                            // verticalScroll steals vertical drags to scroll its OWN text.
+                            // maxLines=Int.MAX_VALUE (not a cap): a capped multi-line field inside the
+                            // page's verticalScroll steals vertical drags to scroll its own text.
                             maxLines = Int.MAX_VALUE,
                             shape = MaterialTheme.shapes.small,
-                            // Muted (unfocused) text so the pre-filled boilerplate reads as a de-emphasized
-                            // default until you tap in; focus restores full-emphasis text.
+                            // mutedUnfocusedText: pre-filled boilerplate reads as de-emphasized default
+                            // until tapped; focus restores full-emphasis text.
                             colors = cardFieldColors(mutedUnfocusedText = true),
                             modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
                         )
@@ -353,16 +304,14 @@ fun NewRequestScreen(
 
             // ── Card 3 · Settings: model / effort / permission sliders ───────────────
             SectionCard("Settings") {
-                // VM stores null for "no override"; slider uses "" to mean the same thing.
                 SliderField(
                     label = "Model",
                     options = SESSION_START_MODEL_OPTIONS,
                     value = s.model ?: "",
                     onSelect = { realVm.setModel(it.ifBlank { null }) },
                 )
-                // Effort — Ultracode is the top notch. Selecting it sets mode=ultracode (xhigh effort +
-                // automatic dynamic-workflow orchestration); any lower notch clears mode and is a plain
-                // effort override. VM stores null for "no override"; the slider uses "" for the same.
+                // Effort: Ultracode notch sets mode=ultracode + effort=xhigh (fused in one slider);
+                // lower notches clear mode and apply a plain effort override.
                 SliderField(
                     label = "Effort",
                     options = EFFORT_OPTIONS,
@@ -376,12 +325,9 @@ fun NewRequestScreen(
                             realVm.setEffort(key.ifBlank { null })
                         }
                     },
-                    // Recolor the slider violet AND run the ultracode ripple across its track while the
-                    // ultracode notch is selected (see SliderField — same wave as the session pill).
                     accentActive = s.mode == "ultracode",
                 )
-                // Default notch = Dangerous (today's behavior); VM null ⇒ "bypassPermissions".
-                // Recolor the whole slider red on the Dangerous notch as a standing warning.
+                // Permissions: VM null ⇒ "bypassPermissions" (Dangerous default notch, back-compat).
                 val permMode = s.permissionMode ?: "bypassPermissions"
                 SliderField(
                     label = "Permissions",
@@ -412,21 +358,15 @@ fun NewRequestScreen(
 
 // ── Private helpers ───────────────────────────────────────────────────────────
 
-/**
- * Caps a chip FlowRow at ~4 chip rows so a long component list (many repos, plugins…) doesn't
- * dominate the form: 4 × 32dp FilterChips + 3 × 8dp gaps = 152dp. Taller content scrolls inside
- * the cap with fading edges and contained scrolling; see [CappedScrollColumn] (shared with the
- * Settings skill catalog).
- */
+/** Caps a chip FlowRow at ~4 rows (152dp) so a long component list doesn't dominate the form. */
 @Composable
 private fun LimitedChipRows(content: @Composable () -> Unit) {
     CappedScrollColumn(maxHeight = 152.dp) { content() }
 }
 
 /**
- * One-row, horizontally-scrolling chip group with an inline filter field (binary toggle).
- * Used only for Repos (which is a plain in/out selection, not a tri-state global override).
- * Chips keep source order; toggling does not reshuffle them.
+ * Horizontally-scrolling chip group with an inline filter (used only for Repos — plain in/out,
+ * not a tri-state global override). Chips keep source order; toggling does not reshuffle them.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -435,26 +375,22 @@ private fun ChipPicker(
     options: List<String>,
     selected: Set<String>,
     onToggle: (String) -> Unit,
-    // Chip text for an option. Lets Plugins show the short `<plugin>` name while the option value
-    // (selection set + onToggle) stays the full `<plugin>@<marketplace>` id. Identity by default.
     displayLabel: (String) -> String = { it },
 ) {
     var q by remember { mutableStateOf("") }
-    // Match against both the raw option and its display label, so typing either form filters.
+    // Filter matches both the raw option and its display label.
     val shown = options.filter {
         q.isBlank() || it.contains(q, ignoreCase = true) || displayLabel(it).contains(q, ignoreCase = true)
     }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        // Inline chip filter built from AppTextField (NOT the round SearchBar) so it is the SAME
-        // filled, tonal, rounded field as the prompt / CLAUDE.md inputs — one field family, no pill.
-        // The leading magnifier keeps the "filter" meaning; the floating label names the group.
+        // AppTextField (not SearchBar) so the filter is the SAME filled, tonal, rounded field as
+        // the prompt / CLAUDE.md inputs — one field family.
         AppTextField(
             value = q,
             onValueChange = { q = it },
-            // Placeholder, NOT a floating label: on a borderless filled field a floating label
-            // rises onto the (invisible) top outline and reads as overlapping the box. A placeholder
-            // shows the same hint while empty and simply disappears on input. The magnifier carries
-            // the accessible name for TalkBack.
+            // Placeholder (not floating label): on a borderless filled field a floating label
+            // rises onto the (invisible) top outline and reads as overlapping the box. The
+            // magnifier carries the accessible name for TalkBack.
             placeholder = "Filter ${label.lowercase()}",
             singleLine = true,
             leadingIcon = {
@@ -498,10 +434,7 @@ private fun ChipPicker(
     }
 }
 
-/**
- * Dialog shown when a template has {{var}} placeholders.
- * Renders one OutlinedTextField per variable; "Apply" is enabled only when all are filled.
- */
+/** Dialog shown when a template has {{var}} placeholders; "Apply" only enabled when all are filled. */
 @Composable
 private fun TemplateVarDialog(
     template: Template,

@@ -41,7 +41,6 @@ class SessionSerializationTest {
         assertNull(d.total)
     }
 
-    // ── Commit-graph models ──────────────────────────────────────────────────────
 
     @Test fun `decodes CommitsResp with repos, commits, and uncommitted node`() {
         val resp = json.decodeFromString<CommitsResp>(
@@ -103,7 +102,6 @@ class SessionSerializationTest {
         assertEquals(CommitFile("c.kt", "modified", 0, 0), resp.files[2])
     }
 
-    // ── Content-search models ──────────────────────────────────────────────────
 
     @Test fun searchResponse_decodes() {
         val payload = """

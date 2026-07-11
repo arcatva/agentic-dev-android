@@ -2,17 +2,7 @@ package dev.agentic.domain
 
 import android.net.Uri
 
-/**
- * A file the user picked from the device but hasn't sent yet. Held in the VM's [SessionUiState]
- * until the next `submit()` composes the trailing `[attached: ...]` marker. Lifecycle:
- *
- *   Pending → Uploading → Done(path)    (success — the path is what gets put in the marker)
- *                     ↘  Failed(reason) (terminal — stays in the list so the user can retry or remove)
- *
- * `id` is the URI's string form so equals/hashCode are stable across recompositions and the list can
- * be diffed cheaply. `localUri` is kept separate so the upload coroutine can re-open the stream even
- * if the URI string changes (it won't, but defensive).
- */
+/** User-picked file held in the VM until `submit()` appends `[attached: ...]`. Lifecycle: Pending → Uploading → Done(path) (success) / Failed(reason) (terminal, retryable). [id] = URI string for stable equals/hashCode. */
 data class PendingAttachment(
     val id: String,
     val localUri: Uri,
@@ -27,21 +17,15 @@ data class PendingAttachment(
 }
 
 sealed interface UploadState {
-    /** Just added — upload coroutine hasn't started yet (transient; usually <1 frame). */
+    /** Just added — upload coroutine not yet started (transient; usually <1 frame). */
     data object Pending : UploadState
 
-    /** Bytes are being POSTed to /api/sessions/{id}/upload. */
+    /** Bytes POSTing to /api/sessions/{id}/upload. */
     data object Uploading : UploadState
 
-    /** Server confirmed; [path] is the relative path (e.g. `uploads/foo.png`) embedded in the next
-     *  prompt's `[attached: ...]` marker.
-     *
-     *  [token] and [name] are set only for PRE-SESSION (New-request) staging uploads: they identify
-     *  the staged file so the create request's `stagedUploads` can tell the backend which files to
-     *  adopt into the new session's uploads/ dir. They stay null for in-session uploads (the session
-     *  upload endpoint writes straight into the worktree, so only [path] is needed there). */
+    /** Server confirmed. [path] = relative path embedded in next prompt's `[attached: ...]` marker. [token]/[name] only for PRE-SESSION staging uploads (identify file to `stagedUploads`); null for in-session (writes straight into worktree). */
     data class Done(val path: String, val token: String? = null, val name: String? = null) : UploadState
 
-    /** Upload failed; [reason] is the user-facing message. User can remove or retry. */
+    /** Upload failed; [reason] is user-facing. User can remove or retry. */
     data class Failed(val reason: String) : UploadState
 }

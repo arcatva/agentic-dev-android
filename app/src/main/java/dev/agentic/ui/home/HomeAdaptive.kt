@@ -48,53 +48,28 @@ import dev.agentic.ui.workflow.WorkflowScreen
 import dev.agentic.ui.workflow.WorkflowViewModel
 import kotlinx.coroutines.launch
 
-/** Window width (dp) at/above which we use the classic resizable 3-pane home (list │ workflow rail │
- *  session). Below it we use the Material3 list-detail pane scaffold (single pane on a phone, 2-pane
- *  with a native drag handle on a medium tablet / folded device). */
+/** Window width (dp) at/above which we use the classic 3-pane home (list │ rail │ session); below, the Material3 list-detail pane scaffold. */
 private const val THREE_PANE_MIN_WIDTH_DP = 840
 
-/** A short window (landscape phone) also gets the 3-pane: it has the width for it even below 840dp. */
+/** A short window (landscape phone) also gets the 3-pane. */
 private const val THREE_PANE_MAX_HEIGHT_DP = 600
 
-/** Pane open/close bounds animation with NO overshoot. The adaptive library's default
- *  (`PaneMotionDefaults.AnimationSpec` = spring dampingRatio 0.8) visibly "rebounds" when a session
- *  opens into the detail pane; critical damping (1.0) keeps the same timing (stiffness 380) without
- *  the bounce. */
+/** Pane bounds animation with NO overshoot — critical damping replaces the adaptive library's default (dampingRatio 0.8) which visibly rebounds on session open. IntRect(1,1,1,1) is the value the IntRect.VisibilityThreshold extension would return. */
 private val PaneBoundsSpec: FiniteAnimationSpec<IntRect> = spring(
     dampingRatio = Spring.DampingRatioNoBouncy,
     stiffness = 380f,
-    // Terminate as soon as the integer bounds are within 1px instead of running extra background
-    // frames at the default float threshold. (There's no IntRect.VisibilityThreshold in this version,
-    // so use the literal IntRect(1,1,1,1) — the value that extension would return.)
     visibilityThreshold = IntRect(1, 1, 1, 1),
 )
 
-/** Pane enter/exit with NO slide overshoot. The adaptive default enter SLIDES via
- *  `PaneMotionDefaults.OffsetAnimationSpec` (also spring dampingRatio 0.8) — that slide is the visible
- *  "rebound" when a session opens. A plain emphasized-tween cross-fade replaces the bouncy slide (a
- *  single fixed directional slide can't be correct for both the list and detail panes, so fade it is). */
+/** Pane enter/exit with NO slide overshoot — a single directional slide can't be right for both list and detail, so it's a cross-fade. */
 private val PaneEnter: EnterTransition = fadeIn(tween(AppMotion.DurationMedium1, easing = AppMotion.Emphasized))
 private val PaneExit: ExitTransition = fadeOut(tween(AppMotion.DurationMedium1, easing = AppMotion.Emphasized))
 
-/**
- * True when [config] should use the wide 3-pane [WideThreePaneHome] (≥ [THREE_PANE_MIN_WIDTH_DP]
- * wide, OR a short landscape-phone window < [THREE_PANE_MAX_HEIGHT_DP] tall) rather than the narrow
- * [NavigableListDetailPaneScaffold]. The single source of truth for the arrangement decision — shared
- * with [dev.agentic.ui.nav.AppNav] so navigation can avoid stacking a second Home when wide.
- */
+/** True when [config] should use the wide 3-pane home. Single source of truth, shared with AppNav so nav can avoid stacking a duplicate Home. */
 fun isWideHome(config: Configuration): Boolean =
     config.screenWidthDp >= THREE_PANE_MIN_WIDTH_DP || config.screenHeightDp < THREE_PANE_MAX_HEIGHT_DP
 
-/**
- * The adaptive home entry point. One job: pick the arrangement by window size. Both arrangements
- * render the SAME `SessionScreen`/`HomeScreen`/`WorkflowScreen` content, so the detail UI never drifts
- * between them.
- *   - wide (≥ [THREE_PANE_MIN_WIDTH_DP]) OR short (height < [THREE_PANE_MAX_HEIGHT_DP], i.e. a
- *     landscape phone) → [WideThreePaneHome]: list │ rail │ session, draggable splitters (the
- *     classic layout). This is the exact rule the pre-scaffold layout used (`maxWidth >= 840.dp ||
- *     maxHeight < 600.dp`), so an unfolded foldable lands here again instead of falling to 2 panes.
- *   - otherwise → [NarrowScaffoldHome]: Material3 [NavigableListDetailPaneScaffold].
- */
+/** Adaptive home entry point: picks the arrangement by window size. Both arrangements render the same SessionScreen/HomeScreen/WorkflowScreen so the detail UI never drifts. */
 @Composable
 fun HomeAdaptive(
     onNewRequest: () -> Unit,
@@ -104,15 +79,12 @@ fun HomeAdaptive(
     onOpenAdoptPicker: () -> Unit = {},
     onOpenGlobalSettings: () -> Unit = {},
     initialSelectedId: String? = null,
-    // Non-null when hosted by the SESSION route: invoked once the selection this route was opened
-    // for has been shown and then cleared — at that point the narrow scaffold is an exact duplicate
-    // of the Home route's, and the host pops the duplicate entry (narrow leg of "two-layer Home").
+    // Non-null when hosted by the SESSION route: invoked once the selection this route was opened for has been shown and then cleared — the host pops the duplicate nav entry (narrow leg of "two-layer Home").
     onDeselected: (() -> Unit)? = null,
 ) {
     val config = LocalConfiguration.current
     if (isWideHome(config)) {
-        // Wide never needs [onDeselected]: AppNav normalizes the Session route away at render
-        // time regardless of selection (the 3-pane Home is a duplicate even while selected).
+        // Wide never needs [onDeselected]: AppNav normalizes the Session route away at render time regardless of selection.
         WideThreePaneHome(
             onNewRequest = onNewRequest,
             onOpenHistory = onOpenHistory,
@@ -136,12 +108,7 @@ fun HomeAdaptive(
     }
 }
 
-/**
- * Phone / medium-width arrangement: a [NavigableListDetailPaneScaffold] — single pane with built-in
- * Back on a phone, 2-pane (list+detail) with a native draggable handle on a medium tablet/folded
- * device. The detail pane is [SessionScreen]; its workflow button opens [WorkflowScreen] as the
- * scaffold's extra pane. The navigator's content key is the single source of truth for the selection.
- */
+/** Phone / medium-width: single pane on phone, 2-pane with native draggable handle on tablet/folded. Detail = SessionScreen; its workflow button opens WorkflowScreen as the scaffold's extra pane. */
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
 private fun NarrowScaffoldHome(
@@ -176,18 +143,10 @@ private fun NarrowScaffoldHome(
         }
     }
 
-    // Session-route host only (onDeselected != null): once a selection has been shown and is then
-    // cleared (scaffold back / predictive back landing on the list), this scaffold renders exactly
-    // what the Home route's does — tell the host so it can pop the duplicate nav entry. Without
-    // this, backing out of a pushed Session shows ITS list first and the real Home's list second:
-    // the narrow "back goes home, then home again" bug.
-    //
-    // hadSelection guards the first composition (selection is applied by the effect above, so
-    // selectedSid starts null — that must NOT count as "deselected") and is rememberSaveable so a
-    // process-restored, already-deselected duplicate normalizes immediately instead of lingering.
+    // Session-route host only (onDeselected != null): once a selection is shown and then cleared (scaffold back / predictive back), this scaffold renders exactly what the Home route's does — the host pops the duplicate nav entry so backing out of a pushed Session doesn't show its list THEN the real Home's list.
+    // hadSelection guards the first composition (selectedSid starts null since the effect above applies it) and is rememberSaveable so a process-restored, already-deselected duplicate normalizes immediately.
     if (onDeselected != null) {
-        // rememberUpdatedState so the effect (keyed only on selectedSid) always invokes the
-        // LATEST host lambda even if it was recreated by recomposition since launch.
+        // rememberUpdatedState so the effect (keyed only on selectedSid) invokes the LATEST host lambda even if recreated since launch.
         val currentOnDeselected by rememberUpdatedState(onDeselected)
         var hadSelection by rememberSaveable { mutableStateOf(false) }
         LaunchedEffect(selectedSid) {

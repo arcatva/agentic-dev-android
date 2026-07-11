@@ -10,21 +10,14 @@ import androidx.compose.ui.text.withStyle
 /**
  * Case-insensitive, literal (non-overlapping) match ranges of [query] inside [text].
  *
- * Pure Kotlin — no Compose types — so it can be unit-tested on the plain JVM, and so the matching
- * rule (the part that can actually be wrong) is verifiable without rendering. Mirrors the backend's
- * matching in `engine::search` (`text.to_lowercase().contains(query.to_lowercase())`): the search is
- * case-insensitive and treats the query as a literal string, NOT a regex.
+ * Pure Kotlin — testable on plain JVM. Mirrors backend `engine::search`
+ * (`text.to_lowercase().contains(query.to_lowercase())`): case-insensitive literal, NOT regex.
  *
- * We match against the ORIGINAL [text] via a case-insensitive regex over the *escaped* query. Two
- * reasons the escape + match-on-original matters:
- *  - [Regex.escape] makes characters like `.` `(` `[` literal, so a query of "a.b" matches the four
- *    characters "a.b" and not "axb".
- *  - Matching the un-lowercased text keeps the returned indices valid against [text]. Lowercasing a
- *    string can change its length for some Unicode (e.g. 'İ' → "i̇"), which would desync an
- *    index-based slice built from a lowercased copy.
+ * Match against ORIGINAL [text] via case-insensitive regex on the escaped query: [Regex.escape]
+ * makes `.`/`(`/`[` literal; matching the un-lowercased text keeps indices valid against [text]
+ * (lowercasing can change length for some Unicode, e.g. 'İ' → "i̇", which desyncs index slices).
  *
- * A blank/whitespace-only query yields no ranges (the search box never queries on `< 2` chars, but
- * we stay defensive). Ranges are inclusive on both ends, matching [MatchResult.range].
+ * Blank/whitespace query → no ranges. Ranges inclusive on both ends ([MatchResult.range]).
  */
 fun matchRanges(text: String, query: String): List<IntRange> {
     val needle = query.trim()
@@ -36,36 +29,28 @@ fun matchRanges(text: String, query: String): List<IntRange> {
 }
 
 /**
- * Re-windows a backend [snippet] so the first occurrence of [query] sits near the front.
+ * Re-windows a backend [snippet] so the first match of [query] sits near the front.
  *
- * Why this exists: the backend's `extract_snippet` centres its (≤200-char) window ON the match, which
- * is right for a wide view but puts the matched term ~100 chars into the snippet. A search-result row
- * clamps the snippet to a line or two, so a centred match — and its highlight — is pushed off-screen
- * and the user sees only the grey lead-up text. Here we keep [lead] characters of context before the
- * match and prefix a single-character ellipsis ('…') when we trimmed, so the highlighted term is
- * always within the first visible line.
- *
- * Returns [snippet] unchanged when [query] is blank/absent or the match already sits within [lead]
- * characters of the start. Pure (no Compose) so the windowing is unit-testable.
+ * Backend `extract_snippet` centres its ≤200-char window ON the match — right for a wide view but
+ * for a row snippet clamped to a line or two, the match (and its highlight) is pushed off-screen.
+ * Keep [lead] chars of context before the match and prefix '…' when we trimmed so the highlighted
+ * term is always within the first visible line. Pure (no Compose) so windowing is testable.
  */
 fun snippetAroundMatch(snippet: String, query: String, lead: Int = 10): String {
     val first = matchRanges(snippet, query).firstOrNull() ?: return snippet
     if (first.first <= lead) return snippet
     var cut = first.first - lead
-    // Don't start the slice in the middle of a surrogate pair (would render a broken glyph).
+    // Don't start the slice mid-surrogate-pair (would render a broken glyph).
     if (cut in 1 until snippet.length && snippet[cut].isLowSurrogate() && snippet[cut - 1].isHighSurrogate()) cut--
     return "…" + snippet.substring(cut)
 }
 
 /**
- * Builds an [AnnotatedString] from [text] with every occurrence of [query] (see [matchRanges])
- * painted in [color] and bumped to [weight]. Search result surfaces pass the theme's primary colour
- * so the matched substring inside a snippet stands out in the brand colour against the muted snippet
- * body.
+ * Builds an [AnnotatedString] from [text] with every [query] match painted in [color] and bumped to
+ * [weight]. Search surfaces pass the theme primary so the match pops against the muted body.
  *
- * The base text is left unstyled (the caller's `Text(color = …)` supplies the body colour); only the
- * matched spans carry [SpanStyle]. When there is no match the original string is returned verbatim
- * with no spans, so highlighting never adds or drops a character.
+ * Base text is unstyled (caller's `Text(color = …)` supplies body color); only matched spans carry
+ * [SpanStyle]. No match → original string verbatim, no spans.
  */
 fun highlightQuery(
     text: String,

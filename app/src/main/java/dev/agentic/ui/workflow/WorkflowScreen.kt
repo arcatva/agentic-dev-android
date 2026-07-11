@@ -80,21 +80,18 @@ import dev.agentic.ui.effortLabel
 import dev.agentic.ui.modelLabel
 import dev.agentic.ui.session.DisplayChip
 
-/** Sort key for ordering agents active-first within a phase. WorkflowAgent has no isActive()
- *  extension (only WorkflowRun does), so we treat the terminal states as inactive directly. */
+/** Sort key for ordering agents active-first within a phase. Terminal states → inactive. */
 private fun WorkflowAgent.activeRank(): Int =
     if (state in setOf("done", "complete", "completed", "failed")) 1 else 0
 
 
 /**
- * Workflow detail screen. Stateless: all state lives in [WorkflowViewModel].
+ * Workflow detail screen. Stateless: state lives in [WorkflowViewModel].
+ *   Wide (≥640 dp): AgentRail (320 dp) | VerticalDivider | AgentTranscriptPane
+ *   Narrow: AgentRail or transcript (BackHandler returns to rail)
  *
- * Wide layout (≥640 dp): AgentRail (320 dp) | VerticalDivider | AgentTranscriptPane
- * Narrow layout: AgentRail or transcript (BackHandler returns to rail)
- *
- * VM creation note: [appContainer] is @Composable so it is resolved in the body first, then
- * captured into the non-composable initializer. The nullable [vm] parameter allows injection
- * in tests/previews.
+ * VM creation: [appContainer] is @Composable so resolved in body first, captured into the
+ * non-composable initializer. Nullable [vm] allows injection in tests/previews.
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -128,9 +125,8 @@ fun WorkflowScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        // Show a spinner while at least one run is active or while there are no
-                        // runs yet (journal may still be initialising); fall through to the empty
-                        // message once all known runs have settled.
+                        // Spinner while any run is active or none loaded (journal may still be initialising);
+                        // fall through to empty message once all known runs have settled.
                         if (runs.any { it.isActive() } || runs.isEmpty()) {
                             LoadingIndicator(color = AccentViolet)
                             Text(
@@ -200,11 +196,8 @@ fun WorkflowScreen(
     }
 }
 
-/**
- * Wraps the agent header (label / state / model) above [AgentTranscriptPane].
- * Kept internal so the header info stays co-located with the pane without polluting
- * [AgentTranscriptPane]'s pure-display signature.
- */
+/** Wraps the agent header (label/state/model) above [AgentTranscriptPane]. Internal so the header
+ *  info stays co-located with the pane without polluting [AgentTranscriptPane]'s pure-display signature. */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun AgentTranscriptContent(
@@ -216,18 +209,16 @@ internal fun AgentTranscriptContent(
 ) {
     Column(modifier.fillMaxSize()) {
         // Live indicator — the same expressive wavy bar the session screen runs while a turn generates,
-        // dyed in the workflow accent. It replaces the per-agent status icon that used to sit in the
-        // header chip row; an agent's terminal (done/failed) status still shows in the AgentRail card.
+        // in the workflow accent.
         if (statusVisual(agent.state, null) == StatusVisual.RUNNING) {
             LinearWavyProgressIndicator(color = AccentViolet, modifier = Modifier.fillMaxWidth())
         }
-        // Header sits close to the Task card below (the agent pane uses a small top inset).
         Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 8.dp)) {
             Text(agent.label, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(6.dp))
-            // model + effort as the session's annotation chips, dyed in the workflow accent. Per-agent
-            // effort isn't in the workflow payload, so [effort] is the session-level value the caller
-            // supplies (the 3-pane host passes the session's effort; null → no effort chip).
+            // model + effort as session annotation chips, in the workflow accent. Per-agent effort
+            // isn't in the workflow payload — [effort] is the session-level value the caller supplies
+            // (the 3-pane host passes the session's effort; null → no effort chip).
             CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -250,12 +241,9 @@ internal fun AgentTranscriptContent(
     }
 }
 
-/**
- * The secondary lines under a workflow agent's label in the [AgentRail] card: the agent's short id
- * (monospace, truncated if long) on its own line, then the model on the line below it. Either line
- * is dropped when its value is blank, so a card with no id or no model shows just the remaining line
- * with no empty gap. [style] lets a caller override the label size.
- */
+/** Secondary lines under a workflow agent's label in the [AgentRail] card: short id (monospace,
+ *  truncated if long) on its own line, then the model. Either line dropped when blank — no empty gap.
+ *  [style] lets a caller override the label size. */
 @Composable
 private fun AgentSubtitle(
     agentId: String,
@@ -287,11 +275,9 @@ private fun AgentSubtitle(
     }
 }
 
-/**
- * One agent row in the [AgentRail]'s expanded run: an OutlinedCard with a violet selection border.
- * Pulled out of the rail's LazyColumn `items {}` so the expanded block can live inside a single
- * [AnimatedVisibility] (the accordion) — a lazy `items` call can't be wrapped in one.
- */
+/** One agent row in the [AgentRail]'s expanded run: OutlinedCard with violet selection border.
+ *  Pulled out of the rail's LazyColumn `items {}` so the expanded block lives inside one
+ *  [AnimatedVisibility] (the accordion) — a lazy `items` can't be wrapped in one. */
 @Composable
 private fun AgentCard(
     agent: WorkflowAgent,
@@ -315,11 +301,9 @@ private fun AgentCard(
             Modifier.padding(start = 8.dp, top = 10.dp, end = 14.dp, bottom = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // Always reserve the indicator slot (fixed footprint) + spacer so the label and subtitle
-            // sit at the same x whether or not a dot/spinner is showing — a done/idle agent paints
-            // nothing but still occupies the box. Sizing matches the session list's SessionRow
-            // (start 8 · indicator 16 · gap 6 → text at 30.dp) so the slot is a tight inset, not a
-            // wide blank, and the text never shifts when it clears.
+            // Reserve the indicator slot + spacer so label/subtitle sit at the same x whether or not
+            // a dot/spinner is showing — a done/idle agent paints nothing but still occupies the box.
+            // Sizing matches the session list's SessionRow (start 8 · indicator 16 · gap 6 → 30.dp).
             StatusIndicator(agent.state, size = 16.dp, accent = AccentViolet)
             Spacer(Modifier.width(6.dp))
             Column(Modifier.weight(1f)) {
@@ -329,8 +313,6 @@ private fun AgentCard(
                     color = if (selected) MaterialTheme.colorScheme.onSecondaryContainer
                     else MaterialTheme.colorScheme.onSurface,
                 )
-                // Secondary line: the agent's short id (monospace) so agents are identifiable even
-                // when labels collide, then the model.
                 AgentSubtitle(
                     agentId = agent.agentId,
                     model = agent.model,
@@ -342,14 +324,12 @@ private fun AgentCard(
     }
 }
 
-/**
- * The workflow/agent rail. Cards use a distinct surface treatment from the session list:
- * run headers are filled tonal cards (surfaceContainerHighest) with a tertiary accent,
- * and each agent is an OutlinedCard with a tertiary selection border.
+/** The workflow/agent rail. Cards use a distinct surface treatment from the session list: run
+ *  headers are filled tonal cards (surfaceContainerHighest) with a tertiary accent; each agent is an
+ *  OutlinedCard with a tertiary selection border.
  *
- * When [onSelectMain] is provided, a "Main conversation" ElevatedCard sits at the top and
- * is highlighted while no agent is selected; tapping it clears the selection.
- */
+ *  When [onSelectMain] is provided, a "Main conversation" ElevatedCard sits at the top and is
+ *  highlighted while no agent is selected; tapping it clears the selection. */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun AgentRail(
@@ -361,24 +341,21 @@ internal fun AgentRail(
     expandedRuns: Set<String>? = null,
     onToggleRun: ((String) -> Unit)? = null,
 ) {
-    // Per-run collapse state. Runs default COLLAPSED — the user opens the one they want; avoids a wall
-    // of agent cards when a session has several workflow runs.
-    // When [expandedRuns] is provided the host owns this state; otherwise we keep it local.
+    // Per-run collapse state. Runs default COLLAPSED — user opens the one they want.
+    // When [expandedRuns] provided, host owns this state; otherwise local.
     val expanded = remember { mutableStateMapOf<String, Boolean>() }
     if (expandedRuns == null) {
         runs.forEach { run -> if (run.runId !in expanded) expanded[run.runId] = false }
     }
     fun isOpen(runId: String) = expandedRuns?.contains(runId) ?: (expanded[runId] ?: false)
 
-    // Newest first: sort by the backend's run creation time when present; otherwise fall back to the
-    // prior insertion-order-reversed behaviour (an older backend sends no createdAt → all 0).
+    // Newest first: backend's run creation time when present; else insertion-order-reversed.
     val ordered = remember(runs) {
         if (runs.any { it.createdAt > 0 }) runs.sortedByDescending { it.createdAt } else runs.asReversed()
     }
 
-    // Expressive motion specs for the per-run expand. Read here (composable scope) and captured into
-    // the LazyColumn builder below, which is NOT a composable scope and so can't read MaterialTheme.
-    // Same spring family the rail toggle in AdaptiveHome uses, so the two expansions feel consistent.
+    // Read motion specs in composable scope for use in LazyColumn builder (not a composable scope).
+    // Same spring family the rail toggle in AdaptiveHome uses.
     val motion = MaterialTheme.motionScheme
     val sizeSpec = motion.defaultSpatialSpec<IntSize>()
     val fadeSpec = motion.defaultEffectsSpec<Float>()
@@ -386,7 +363,6 @@ internal fun AgentRail(
     LazyColumn(
         modifier,
         contentPadding = PaddingValues(12.dp),
-        // Match the session list's inter-card gap (its cards use vertical=5.dp → ~10.dp apart).
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         if (onSelectMain != null) item(key = "main-conv") {
@@ -424,10 +400,9 @@ internal fun AgentRail(
 
         ordered.forEach { run ->
             val open = isOpen(run.runId)
-            // One item per run: the header Card plus the agent block, wrapped together so the expand
-            // is a single coordinated accordion. AnimatedVisibility grows the block in with
-            // expandVertically + fade (Expressive spring) — the agents slide DOWN out of the header and
-            // the runs below reflow — instead of the old burst of separately-fading lazy items.
+            // One item per run: header Card + agent block, wrapped so the expand is a single
+            // coordinated accordion. AnimatedVisibility grows the block in with expandVertically + fade;
+            // agents slide DOWN out of the header and runs below reflow.
             item(key = "run-${run.runId}") {
                 Column(Modifier.fillMaxWidth().animateItem()) {
                     Card(
@@ -451,8 +426,7 @@ internal fun AgentRail(
                                 FadingText(
                                     run.name,
                                     style = MaterialTheme.typography.titleMedium,
-                                    // SemiBold matches the app-wide card-header emphasis
-                                    // (SectionCard headers, "Main" in the rail).
+                                    // SemiBold matches the app-wide card-header emphasis (SectionCard headers, "Main").
                                     fontWeight = FontWeight.SemiBold,
                                     modifier = Modifier.weight(1f),
                                 )
@@ -470,7 +444,7 @@ internal fun AgentRail(
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
-                            // Line 1: agents · phases · how many of them are done (+ failures if any), so a
+                            // Line 1: agents · phases · how many done (+ failures if any), so a
                             // collapsed run still shows its size and progress at a glance.
                             val total = run.agentCount ?: run.agents.size
                             val doneCount = run.agents.count { it.activeRank() == 1 && it.state != "failed" }
@@ -482,14 +456,12 @@ internal fun AgentRail(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
                             )
-                            // Line 2: creation time (hidden when an older backend supplies none).
                             if (run.createdAt > 0) Text(
                                 "created ${relativeAge(run.createdAt)}",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(top = 2.dp),
                             )
-                            // Line 3: the run id — small, single line, ellipsised if long.
                             Text(
                                 "id: ${run.runId}",
                                 style = MaterialTheme.typography.labelSmall,
@@ -502,23 +474,17 @@ internal fun AgentRail(
 
                     AnimatedVisibility(
                         visible = open,
-                        // expandFrom/shrinkTowards Top: reveal top→bottom (in phase/agent order),
-                        // anchored under the header, so the block unrolls downward.
+                        // expandFrom/shrinkTowards Top: reveal top→bottom anchored under the header.
                         enter = expandVertically(animationSpec = sizeSpec, expandFrom = Alignment.Top) +
                             fadeIn(animationSpec = fadeSpec),
                         exit = shrinkVertically(animationSpec = sizeSpec, shrinkTowards = Alignment.Top) +
                             fadeOut(animationSpec = fadeSpec),
                     ) {
-                        // animateContentHeight (height-only) so agents streaming in live (or
-                        // re-sorting active-first) grow the block smoothly instead of snapping —
-                        // while the block's WIDTH snaps instantly to the rail width when the pane
-                        // splitter is dragged, so the agent cards stay flush with the full-width run
-                        // header card instead of lagging behind it through a width spring. (Plain
-                        // animateContentSize springs the whole IntSize, so on a live resize the
-                        // fillMaxWidth agent cards animated their width and read as narrower than the
-                        // header.) The 10dp lead padding lives INSIDE the animated block so a
-                        // collapsed run shows no phantom gap under its header; the inner spacedBy
-                        // keeps the prior 10dp rhythm between rows.
+                        // animateContentHeight (height-only): agents streaming in/re-sorting active-first
+                        // grow the block smoothly; WIDTH snaps to the rail width when the pane splitter
+                        // is dragged so agent cards stay flush with the full-width run header card (plain
+                        // animateContentSize springs the whole IntSize so fillMaxWidth cards animated their
+                        // width on resize, reading narrower than the header).
                         Column(
                             Modifier
                                 .animateContentHeight()
@@ -526,7 +492,6 @@ internal fun AgentRail(
                             verticalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
                             if (run.agents.isEmpty()) {
-                                // Expanded-but-empty run: a placeholder so the section isn't blank.
                                 Text(
                                     "waiting for agents…",
                                     style = MaterialTheme.typography.labelMedium,
@@ -534,7 +499,6 @@ internal fun AgentRail(
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
                                 )
                             } else {
-                                // Group agents under their phase title, preserving order.
                                 run.agents.groupBy { it.phaseTitle ?: "" }.forEach { (phase, ags) ->
                                     if (phase.isNotBlank()) {
                                         Text(

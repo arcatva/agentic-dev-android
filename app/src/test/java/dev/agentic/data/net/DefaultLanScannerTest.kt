@@ -13,7 +13,7 @@ private class FakeNetworkInfoProvider(private val net: LocalNet?) : NetworkInfoP
     override fun localNet(): LocalNet? = net
 }
 
-/** Records every probed ip; returns a hit (with the given latency) for ips in [hits]. */
+// Records every probed ip; returns a hit (with the given latency) for ips in [hits].
 private class FakeServerProbe(private val hits: Map<String, Long>) : ServerProbe {
     val calledIps: MutableList<String> = java.util.Collections.synchronizedList(mutableListOf())
     override suspend fun probe(ip: String): DiscoveredServer? {

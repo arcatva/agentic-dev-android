@@ -74,13 +74,12 @@ import dev.agentic.ui.home.SessionRow
 import kotlinx.coroutines.launch
 
 /**
- * Diagnostics / logs screen. Shows the tail of the rolling logcat capture, a capture on/off switch,
- * the crash-report count, and actions to refresh, share (zip via the system share sheet), and clear.
+ * Diagnostics / logs screen: tail of rolling logcat, capture on/off, crash count, refresh,
+ * share (zip via system share sheet), and clear actions. Reached from the Home top bar; also
+ * opened from the next-launch crash prompt.
  *
- * Reached from the Home top bar; also opened from the next-launch crash prompt.
- *
- * [onOpenSession] navigates to a session; fired after a successful attach+send so the user lands on
- * the session and sees the log-bundle message arrive.
+ * [onOpenSession] navigates to a session; fired after a successful attach+send so the user lands
+ * on the session and sees the log-bundle message arrive.
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -152,13 +151,11 @@ fun DiagnosticsScreen(
             )
         },
     ) { pad ->
-        // Toast events from the VM (upload success / failure)
         LaunchedEffect(Unit) {
             vm.toast.collect { msg ->
                 Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
             }
         }
-        // After a successful attach+send, jump to the session so the user sees the message land.
         LaunchedEffect(Unit) {
             vm.openSession.collect { id -> onOpenSession(id) }
         }
@@ -168,9 +165,8 @@ fun DiagnosticsScreen(
                 .fillMaxSize()
                 .padding(pad),
         ) {
-            // The shared SectionCard (same tonal card as every other settings-style page); the
-            // switch sits in the header's trailing slot. The single switch turns on verbose capture
-            // across the app (network, streaming, lifecycle, flow churn) AND mirrors logcat to a file.
+            // Single switch turns on verbose capture across the app (network, streaming, lifecycle,
+            // flow churn) AND mirrors logcat to a file.
             SectionCard(
                 title = "Verbose logging",
                 modifier = Modifier.padding(16.dp),
@@ -204,7 +200,6 @@ fun DiagnosticsScreen(
             }
 
             when {
-                // Expressive LoadingIndicator — the app-wide screen-level loading spinner.
                 s.loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { LoadingIndicator() }
                 s.logText.isBlank() -> Box(Modifier.fillMaxSize(), Alignment.Center) {
                     Text(
@@ -217,8 +212,8 @@ fun DiagnosticsScreen(
                 else -> {
                     val vScroll = rememberScrollState()
                     val hScroll = rememberScrollState()
-                    // Jump to the newest lines whenever the captured text changes (best-effort).
-                    // yield() lets the layout pass run first so maxValue reflects the new text.
+                    // Jump to the newest lines whenever captured text changes (best-effort).
+                    // yield() lets layout pass run first so maxValue reflects the new text.
                     LaunchedEffect(s.logText) {
                         kotlinx.coroutines.yield()
                         runCatching { vScroll.scrollTo(vScroll.maxValue) }
@@ -240,8 +235,7 @@ fun DiagnosticsScreen(
         }
     }
 
-    // Sheet rendered OUTSIDE the Scaffold so it overlays the full screen
-    // (same pattern as GroupPickerSheet in HomeScreen).
+    // Sheet rendered OUTSIDE the Scaffold so it overlays the full screen.
     if (s.showSessionPicker) {
         SessionPickerSheet(
             sessions = s.sessions,
@@ -254,8 +248,7 @@ fun DiagnosticsScreen(
     }
 }
 
-/** "2.3 MB" / "412 kB" / "97 B" — compact human size for the bundle summary. Locale.US keeps the
- *  decimal separator stable regardless of device locale. */
+/** "2.3 MB" / "412 kB" / "97 B" — compact human size. Locale.US keeps the decimal separator stable. */
 private fun humanBytes(bytes: Long): String = when {
     bytes >= 1024 * 1024 -> String.format(java.util.Locale.US, "%.1f MB", bytes / (1024.0 * 1024.0))
     bytes >= 1024 -> "${bytes / 1024} kB"
@@ -263,10 +256,9 @@ private fun humanBytes(bytes: Long): String = when {
 }
 
 /**
- * Full-screen picker: what gets sent (bundle summary), the message that goes with it (editable,
- * pre-filled), and the session list — tapping a session sends the bundle + message there.
- * Uses [Dialog] rather than ModalBottomSheet for maximum API compatibility (the sheet failed to
- * render on some devices — see f72f17e).
+ * Full-screen picker: bundle summary, pre-filled message (editable), session list — tap sends the
+ * bundle + message there. [Dialog] over ModalBottomSheet for max API compatibility (sheet failed
+ * to render on some devices — see f72f17e).
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -289,21 +281,19 @@ private fun SessionPickerSheet(
     }
     Dialog(
         onDismissRequest = onDismiss,
-        // decorFitsSystemWindows=false: we take over inset handling below. The default (true) sets
-        // softInputMode to UNSPECIFIED, which resolves to adjustPan for Compose dialogs — the IME
-        // would cover the session list instead of shrinking it. It is also a no-op on targetSdk 35+
-        // (always edge-to-edge), so we must pad for the status/nav bars ourselves either way.
+        // decorFitsSystemWindows=false: take over inset handling below. Default (true) sets
+        // softInputMode to UNSPECIFIED → adjustPan for Compose dialogs, IME covers session list
+        // instead of shrinking it. No-op on targetSdk 35+ (always edge-to-edge) so we must pad for
+        // status/nav bars ourselves either way.
         properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
     ) {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.surface,
         ) {
-            // systemBarsPadding: header clear of the status bar, list clear of the nav bar.
-            // imePadding: the column shrinks above the keyboard, keeping session rows tappable
-            // while the message field is focused.
+            // systemBarsPadding + imePadding: header clear of status bar, list clear of nav bar;
+            // column shrinks above keyboard, keeping session rows tappable while message focused.
             Column(Modifier.fillMaxSize().systemBarsPadding().imePadding()) {
-                // Header bar
                 Row(
                     Modifier.fillMaxWidth().padding(start = 4.dp, end = 16.dp, top = 8.dp, bottom = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -321,8 +311,7 @@ private fun SessionPickerSheet(
                     }
                 }
 
-                // Bundle summary — what is about to be attached. shapes.medium matches the app's
-                // section-card corner treatment (SectionCard) instead of a one-off larger radius.
+                // Bundle summary — shapes.medium matches the app's section-card corner treatment.
                 Surface(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                     shape = MaterialTheme.shapes.medium,
@@ -365,8 +354,7 @@ private fun SessionPickerSheet(
                     }
                 }
 
-                // Message sent alongside the attachment (editable) — the app's shared field family
-                // (AppTextField + filled card colors), not a one-off outlined box.
+                // Message sent alongside the attachment (editable) — shared field family.
                 AppTextField(
                     value = message,
                     onValueChange = { message = it },
@@ -379,8 +367,6 @@ private fun SessionPickerSheet(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                 )
 
-                // Subsection header — titleSmall SemiBold, the same rank used across the app
-                // (no ALL-CAPS one-off labels).
                 Text(
                     "Send to",
                     style = MaterialTheme.typography.titleSmall,
@@ -388,7 +374,6 @@ private fun SessionPickerSheet(
                     modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 4.dp),
                 )
 
-                // Session list (server returns most-recently-active first).
                 when {
                     loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         LoadingIndicator()
@@ -427,10 +412,8 @@ private fun SessionPickerSheet(
     }
 }
 
-/**
- * Builds the export zip and fires the system share sheet for it via [FileProvider]. The temporary
- * read grant ([Intent.FLAG_GRANT_READ_URI_PERMISSION]) lets the chosen app read the zip.
- */
+/** Builds the export zip and fires the system share sheet via [FileProvider]. Temporary read grant
+ *  ([Intent.FLAG_GRANT_READ_URI_PERMISSION]) lets the chosen app read the zip. */
 private suspend fun shareLogs(context: Context, vm: DiagnosticsViewModel) {
     runCatching {
         val zip = vm.buildExport()

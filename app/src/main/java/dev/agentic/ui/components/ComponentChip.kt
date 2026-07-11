@@ -26,28 +26,14 @@ import dev.agentic.ui.OnAccentCyanContainer
 /**
  * Shared chip for repo/skill/plugin/mcp components on both New Request and Settings.
  *
- * "Lit tag" look — the restored pre-redesign pairing (dark same-hue container + BRIGHT accent
- * label) that read well; the interim "faint wash + thin outline" tag was visually thin:
- *   - ON (effective==true): dark container fill + bright same-hue label. Skill / plugin / mcp all
- *     use the theme CYAN family (one hue for every toggleable component kind); repos use the BLUE
- *     family so the repo row stays distinguishable.
- *   - OFF (effective==false): the default muted FilterChip — thin neutral outline, grey label,
- *     no fill ("关就是没颜色").
- *   - enabled==false: rendered non-interactive at 0.5 alpha.
+ * "Lit tag" look — dark same-hue container + bright accent label. ON: skill/plugin/mcp use CYAN;
+ * repos use BLUE (so the repo row stays distinguishable). OFF: default muted FilterChip. enabled=false:
+ * 0.5 alpha. [kind] in {"repo","skill","plugin","mcp"}.
  *
- * [kind] is "repo", "skill", "plugin", or "mcp".
- * [effective] is the EFFECTIVE on/off state (globalEnabled resolved through the current override).
- * [onClick] is called on tap; callers compute the new override from the effective toggle.
- * [readOnlyCaption] when non-null is shown as a small caption below the chip — used by Settings
- * to label MCP chips "managed per-session".
- * [onLongClick] when non-null, a long-press on the chip triggers this callback — used by Settings
- * to show a delete confirm dialog.
- *
- * Input routing note: material3 chips have no long-press support, and NESTING the chip inside a
- * combinedClickable container does NOT work — the chip's own internal clickable consumes every
- * tap first (with its onClick stubbed out, tapping was a dead zone: Settings chips could not be
- * toggled at all). Instead a transparent overlay Box sits ON TOP of the chip and owns both
- * gestures; the chip below never receives pointer input.
+ * Input routing note (KEY INVARIANT): material3 chips have no long-press support, and NESTING the
+ * chip inside a combinedClickable container does NOT work — the chip's own internal clickable consumes
+ * every tap first. Instead, a transparent overlay Box sits ON TOP of the chip and owns both gestures;
+ * the chip below never receives pointer input.
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -61,8 +47,6 @@ fun ComponentChip(
     readOnlyCaption: String? = null,
     onLongClick: (() -> Unit)? = null,
 ) {
-    // Dark container + BRIGHT same-hue label (the readable "lit" pairing). One cyan family for
-    // skill/plugin/mcp per the app theme; blue for repos.
     val (containerColor, labelColor) = if (kind == "repo") {
         AccentBlueContainer to OnAccentBlueContainer
     } else {
@@ -87,17 +71,15 @@ fun ComponentChip(
             Box {
                 FilterChip(
                     selected = effective,
-                    // Never reached — the overlay below occludes the chip's input node.
+                    // Never reached — overlay below occludes the chip's input node.
                     onClick = {},
                     label = { Text(label) },
                     colors = chipColors,
-                    // The overlay carries the real semantics; clear the chip's own (stub) click
-                    // node so TalkBack doesn't announce two conflicting targets.
+                    // Clear the chip's own (stub) click semantics so TalkBack doesn't announce two conflicting targets.
                     modifier = Modifier.clearAndSetSemantics { },
                 )
-                // Transparent overlay drawn ON TOP of the chip: as the topmost sibling it wins
-                // hit testing, so this single combinedClickable reliably owns BOTH tap (toggle)
-                // and long-press (remove). Clipped to the chip shape so the ripple matches.
+                // Overlay drawn ON TOP of the chip: as the topmost sibling it wins hit testing, so
+                // this single combinedClickable owns tap (toggle) AND long-press (remove).
                 Box(
                     Modifier
                         .matchParentSize()

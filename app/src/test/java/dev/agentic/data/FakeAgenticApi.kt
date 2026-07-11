@@ -30,11 +30,7 @@ import dev.agentic.data.net.Usage
 import dev.agentic.data.net.McpServerDef
 import dev.agentic.data.net.WorkflowRun
 
-/**
- * Minimal in-memory fake for [AgenticApi] used in unit tests.
- * Only login, registerDevice, onUnauthorized, baseUrl, token, and close() have real behaviour.
- * All other members stub-throw TODO() by default; override in tests if needed.
- */
+// Minimal in-memory fake for AgenticApi; only login/registerDevice/onUnauthorized/baseUrl/token/close have real behaviour, others stub-throw TODO().
 class FakeAgenticApi(
     override var baseUrl: String = "http://fake-host",
     override var token: String? = null,
@@ -42,178 +38,149 @@ class FakeAgenticApi(
 
     override var onUnauthorized: (() -> Unit)? = null
 
-    /** When non-null, login() returns this token. When null, throws the given loginException. */
+    // When non-null, login() returns this token.
     var loginTokenResult: String? = "fake-token"
     var loginException: Exception? = null
 
-    /** Track whether close() was called. */
+    // Track whether close() was called.
     var closed = false
 
-    // ── Model catalog ───────────────────────────────────────────────────────────
     var modelsResult: List<ModelEntry> = emptyList()
     var modelsException: Exception? = null
     override suspend fun models(): List<ModelEntry> {
         modelsException?.let { throw it }
         return modelsResult
     }
-    /** Session-start catalog (Claude-only, GET /api/models?scope=session_start).
-     *  Reuses [modelsResult]/[modelsException] so the existing model-catalog tests work without
-     *  a second scriptable surface: the VM calls sessionStartModels() (not models()) for the
-     *  New-request default-model picker. Without this override the interface default returns
-     *  emptyList() silently, leaving the model null even when modelsResult is populated. */
+    // Session-start catalog reuses modelsResult/modelsException so the VM's sessionStartModels() call for the new-request picker surfaces the same scripted data.
     override suspend fun sessionStartModels(): List<ModelEntry> {
         modelsException?.let { throw it }
         return modelsResult
     }
 
-    // ── Scriptable surface for SessionsRepository tests ─────────────────────────
 
-    /** Returned by session(id) (keyed by id; falls back to [sessionDetailDefault]). */
+    // Returned by session(id) (keyed by id; falls back to [sessionDetailDefault]).
     var sessionDetails: MutableMap<String, SessionDetail> = mutableMapOf()
-    /** Fallback for session(id) when no per-id entry exists; if also null, session() throws. */
+    // Fallback for session(id) when no per-id entry exists; if also null, session() throws.
     var sessionDetailDefault: SessionDetail? = null
-    /** When set, session(id) throws this instead of returning a detail. */
+    // When set, session(id) throws this instead of returning a detail.
     var sessionException: Exception? = null
-    /** Per-id count of session(id) invocations (lets tests assert load() ran once). */
+    // Per-id count of session(id) invocations (lets tests assert load() ran once).
     val sessionCalls: MutableMap<String, Int> = mutableMapOf()
-    /**
-     * Per-id sequence of session(id) results consumed one-per-call (a thrown Result re-throws). Once
-     * exhausted, session(id) falls back to [sessionDetails]/[sessionDetailDefault]. Used by the
-     * reconnect loop tests to make the post-stream session() CONVERGE to a terminal status so the
-     * loop breaks (otherwise it would retry forever).
-     */
+    // Per-id sequence of session(id) results consumed one-per-call; falls back to sessionDetails/sessionDetailDefault.
     val sessionScript: MutableMap<String, MutableList<Result<SessionDetail>>> = mutableMapOf()
 
-    /** Frames the next stream() call replays into onLine, in order, then returns (stream closes). */
+    // Frames the next stream() call replays into onLine, in order, then returns (stream closes).
     var streamFrames: List<String> = emptyList()
-    /** Number of times stream() was invoked, and the `since` offsets it was called with. */
+    // Number of times stream() was invoked, and the `since` offsets it was called with.
     var streamCallCount = 0
     val streamSinceArgs: MutableList<Int?> = mutableListOf()
-    /** The `limit` arg each session(id, limit) call was made with (windowed-load assertions). */
+    // The `limit` arg each session(id, limit) call was made with (windowed-load assertions).
     val sessionLimitArgs: MutableList<Int?> = mutableListOf()
-    /** When non-null, stream() throws this after replaying frames (simulates a closed socket). */
+    // When non-null, stream() throws this after replaying frames (simulates a closed socket).
     var streamException: Exception? = null
-    /**
-     * Per-call stream script consumed one step per stream() invocation: each step replays its
-     * [StreamStep.frames] into onLine then either returns or throws [StreamStep.throws]. Once
-     * exhausted, stream() falls back to [streamFrames]/[streamException]. Lets a reconnect test
-     * script distinct behaviour for the first vs. subsequent connection.
-     */
+    // Per-call stream script consumed one step per stream() invocation; falls back to streamFrames/streamException.
     val streamScript: MutableList<StreamStep> = mutableListOf()
 
-    /** One scripted stream() connection: replay [frames] then (if [throws] != null) throw it. */
+    // One scripted stream() connection: replay [frames] then (if [throws] != null) throw it.
     data class StreamStep(val frames: List<String> = emptyList(), val throws: Exception? = null)
 
-    /**
-     * When true (and no [streamScript] step applies), stream() replays [streamFrames] then suspends
-     * open until cancelled instead of returning — models a persistent socket that never closes. Lets
-     * a test observe a still-active reconnect loop (busy stays true; the job is alive to be killed).
-     */
+    // When true, stream() replays streamFrames then suspends open until cancelled — models a persistent socket for reconnect-loop tests.
     var streamHoldsOpen = false
 
-    /** Sequence of results sessions() yields per tick: a String key means "throw", a list means "emit".
-     *  Falls back to [sessionsResult] once exhausted. */
+    // Sequence of results sessions() yields per tick: a String key means "throw", a list means "emit".
     var sessionsScript: MutableList<Result<List<Session>>> = mutableListOf()
     var sessionsResult: List<Session> = emptyList()
-    /** When set, sessions() suspends on this until completed — mirrors [usageGate] for list polls,
-     *  so a test can hold the live session poll open and observe what the UI shows meanwhile. */
+    // When set, sessions() suspends on this until completed — mirrors [usageGate] for list polls,
     var sessionsGate: kotlinx.coroutines.CompletableDeferred<Unit>? = null
 
-    // ── Scriptable surface for WorkflowsRepository tests ────────────────────────
 
-    /** Sequence of results workflows(id) yields per tick; falls back to [workflowsResult]. */
+    // Sequence of results workflows(id) yields per tick; falls back to [workflowsResult].
     var workflowsScript: MutableList<Result<List<WorkflowRun>>> = mutableListOf()
     var workflowsResult: List<WorkflowRun> = emptyList()
 
-    /** Sequence of results outbox(id) yields per tick; falls back to [outboxResult]. */
+    // Sequence of results outbox(id) yields per tick; falls back to [outboxResult].
     var outboxScript: MutableList<Result<List<SharedFile>>> = mutableListOf()
     var outboxResult: List<SharedFile> = emptyList()
 
-    /** Returned by workflowAgent(); if [workflowAgentException] is set, throws instead. */
+    // Returned by workflowAgent(); if [workflowAgentException] is set, throws instead.
     var agentTranscriptResult: String = ""
     var workflowAgentException: Exception? = null
 
-    // ── Scriptable surface for FilesRepository/CommitGraphViewModel tests ────────
 
-    /** Returned by commits(); if [commitsException] is set, throws instead. */
+    // Returned by commits(); if [commitsException] is set, throws instead.
     var commitsResult: List<RepoCommits> = emptyList()
     var commitsException: Exception? = null
-    /** Per-call commits() script consumed one step per call (a thrown Result re-throws); falls back
-     *  to [commitsResult]/[commitsException] once exhausted. Lets a test script load → reload. */
+    // Per-call commits() script consumed one step per call (a thrown Result re-throws); falls back
     val commitsScript: MutableList<Result<List<RepoCommits>>> = mutableListOf()
-    /** Number of commits() invocations (lets a test assert a reload happened). */
+    // Number of commits() invocations (lets a test assert a reload happened).
     var commitsCallCount = 0
 
-    /** Returned by commitFiles(); if [commitFilesException] is set, throws instead. */
+    // Returned by commitFiles(); if [commitFilesException] is set, throws instead.
     var commitFilesResult: List<CommitFile> = emptyList()
     var commitFilesException: Exception? = null
-    /** Records each commitFiles() call as (id, repo, sha). */
+    // Records each commitFiles() call as (id, repo, sha).
     val commitFilesCalls: MutableList<Triple<String, String, String>> = mutableListOf()
 
-    /** Returned by commitDiff(); if [commitDiffException] is set, throws instead. */
+    // Returned by commitDiff(); if [commitDiffException] is set, throws instead.
     var commitDiffResult: FileDiff = FileDiff()
     var commitDiffException: Exception? = null
-    /** Records each commitDiff() call as (id, repo, sha, path). */
+    // Records each commitDiff() call as (id, repo, sha, path).
     val commitDiffCalls: MutableList<List<String>> = mutableListOf()
 
-    /** If set, rewind() throws it. Records each call as (id, turnIndex). */
+    // If set, rewind() throws it.
     var rewindException: Exception? = null
     val rewindCalls: MutableList<Pair<String, Int>> = mutableListOf()
 
-    /** Tracks discard() calls (by session id). */
+    // Tracks discard() calls (by session id).
     val discardCalls: MutableList<String> = mutableListOf()
 
-    // ── Scriptable surface for NewRequestViewModel tests ─────────────────────────
 
-    /** Returned by repos(). */
+    // Returned by repos().
     var reposResult: RepoList = RepoList()
-    /** Returned by skills(). */
+    // Returned by skills().
     var skillsResult: List<SkillInfo> = emptyList()
-    /** Returned by plugins(). */
+    // Returned by plugins().
     var pluginsResult: List<PluginInfo> = emptyList()
-    /** Returned by getTemplates(); if [getTemplatesException] is set, throws instead. */
+    // Returned by getTemplates(); if [getTemplatesException] is set, throws instead.
     var templatesResult: List<Template> = emptyList()
     var getTemplatesException: Exception? = null
-    /** Tracks putTemplates() calls. */
+    // Tracks putTemplates() calls.
     val putTemplatesCalls: MutableList<List<Template>> = mutableListOf()
-    /** Returned by create(); if [createException] is set, throws instead. */
+    // Returned by create(); if [createException] is set, throws instead.
     var createResult: String = "new-session-id"
     var createException: Exception? = null
     val createCalls: MutableList<NewSessionReq> = mutableListOf()
-    /** Tracks fork() calls. */
+    // Tracks fork() calls.
     val forkCalls: MutableList<String> = mutableListOf()
-    /** Returned by fork(); if [forkError] is set, fork() throws it instead. */
+    // Returned by fork(); if [forkError] is set, fork() throws it instead.
     var forkResult: String = "forked"
     var forkError: Throwable? = null
-    /** Returned by usage(). If [usageException] is set, throws instead. */
+    // Returned by usage().
     var usageResult: Usage = Usage()
     var usageException: Exception? = null
-    /** When set, usage() suspends on this until completed — lets a test observe an in-flight refresh. */
+    // When set, usage() suspends on this until completed — lets a test observe an in-flight refresh.
     var usageGate: kotlinx.coroutines.CompletableDeferred<Unit>? = null
-    /** Tracks delete() calls. */
+    // Tracks delete() calls.
     val deleteCalls: MutableList<String> = mutableListOf()
-    /** Tracks kill() calls. */
+    // Tracks kill() calls.
     val killCalls: MutableList<String> = mutableListOf()
-    /** Tracks interrupt() calls. */
+    // Tracks interrupt() calls.
     val interruptCalls: MutableList<String> = mutableListOf()
-    /** Tracks respondPermission() calls as (id, decision, feedback). */
+    // Tracks respondPermission() calls as (id, decision, feedback).
     val permissionCalls: MutableList<Triple<String, String, String?>> = mutableListOf()
-    /** When set, respondPermission() throws this instead of recording the call. */
+    // When set, respondPermission() throws this instead of recording the call.
     var respondPermissionException: Exception? = null
 
-    /** When non-null, uploadFile() returns this path; otherwise throws [uploadException]. */
+    // When non-null, uploadFile() returns this path; otherwise throws [uploadException].
     var uploadPathResult: String? = "uploads/file.txt"
     var uploadException: Exception? = null
 
-    /** Returned by followUp(); if [followUpException] is set, followUp() throws instead. */
+    // Returned by followUp(); if [followUpException] is set, followUp() throws instead.
     var followUpSince = 0
     var followUpException: Exception? = null
     val followUpCalls: MutableList<Triple<String, String, Boolean>> = mutableListOf()
 
-    /** Scripted searchSessions response — return non-null to override the default empty response.
-     *  Suspend so handlers can park on test-controlled gates (e.g. CompletableDeferred.await());
-     *  a BLOCKING gate (runBlocking) inside runTest's single-threaded dispatcher deadlocks the
-     *  whole suite — that hung testDebugUnitTest locally and in CI. */
+    // Suspend so handlers can park on test gates; a BLOCKING runBlocking gate deadlocks runTest's single-threaded dispatcher.
     var searchHandler: (suspend (String) -> SearchResponse?)? = null
     val searchSessionsCalls: MutableList<String> = mutableListOf()
 
@@ -225,12 +192,11 @@ class FakeAgenticApi(
     }
 
     override suspend fun registerDevice(token: String) {
-        // best-effort stub; no-op in tests unless overridden
+
     }
 
     override fun close() { closed = true }
 
-    // ── All other members are stubs ───────────────────────────────────────────
 
     override suspend fun sessions(): List<Session> {
         sessionsGate?.await()
@@ -238,8 +204,7 @@ class FakeAgenticApi(
         return sessionsResult
     }
 
-    /** Returns the [Session] from [sessionDetails] (or [sessionDetailDefault]) — mirrors the real
-     *  AgenticApi.get, which returns SessionDetail.session, and stays consistent with [session]. */
+    // Mirrors real AgenticApi.get, which returns SessionDetail.session.
     override suspend fun get(id: String): Session =
         sessionDetails[id]?.session ?: sessionDetailDefault?.session ?: TODO("no Session configured for $id")
 
@@ -259,27 +224,15 @@ class FakeAgenticApi(
     var sessionEventsResult: SessionEventsResponse? = null
     var sessionEventsException: Exception? = null
     val sessionEventsCalls: MutableList<String> = mutableListOf()
-    /** Records each sessionEvents call's cursor (before, after, around) for windowing assertions. */
+    // Records each sessionEvents call's cursor (before, after, around) for windowing assertions.
     val sessionEventsCursors: MutableList<Triple<Long?, Long?, Long?>> = mutableListOf()
-    /** The `limit` arg each sessionEvents(id, limit, …) call was made with. The load/refetch paths pass
-     *  [SessionsRepository.INITIAL_LOG_LIMIT]; the refresh/poll paths pass limit=1. Lets a windowed-load
-     *  test assert the request limit without threading it through the cursor triple. */
+    // The `limit` arg each sessionEvents(id, limit, …) call was made with.
     val sessionEventsLimitArgs: MutableList<Int?> = mutableListOf()
-    /**
-     * Per-id sequence of sessionEvents(id, …) results consumed one-per-call (a thrown Result re-throws).
-     * Once exhausted, sessionEvents() falls back to [pagedEvents]/[sessionEventsResult]. This is the
-     * events-surface twin of [sessionScript]: the reconnect-loop tests use it to make the post-stream
-     * refetch CONVERGE to a terminal session so the loop breaks (it would otherwise retry forever), and
-     * the load→followUp-poll→refetch tests to script distinct responses per call.
-     */
+    // Per-id sequence of sessionEvents(id, …) results consumed one-per-call; falls back to pagedEvents/sessionEventsResult.
     val sessionEventsScript: MutableMap<String, MutableList<Result<SessionEventsResponse>>> = mutableMapOf()
-    /** Paged-log mode (bounded-window tests): when set for an id, [sessionEvents] serves tail/before/
-     *  after/around windows over this IMMUTABLE event list, event k occupying rendered line k (stride
-     *  1), modeling the server contract — `before`/`after` EXCLUSIVE, capped at [pagedPageLimit] (or the
-     *  requested limit), `hasMore` = window start > 0. */
+    // Paged-log mode: when set, sessionEvents serves tail/before/after/around windows over this immutable event list (stride 1), EXCLUSIVE cursors, capped at pagedPageLimit.
     val pagedEvents: MutableMap<String, List<kotlinx.serialization.json.JsonElement>> = mutableMapOf()
-    /** Overrides the effective per-window event cap in paged mode, so a test can use tiny pages without
-     *  needing >100 events (the client always requests limit=100). Null = use the requested limit. */
+    // Overrides the per-window event cap in paged mode (null = use the requested limit).
     var pagedPageLimit: Int? = null
 
     override suspend fun sessionEvents(id: String, limit: Int?, before: Long?, after: Long?, around: Long?): SessionEventsResponse {
@@ -291,13 +244,13 @@ class FakeAgenticApi(
         val all = pagedEvents[id] ?: return sessionEventsResult ?: TODO("no SessionEventsResponse configured for $id")
         val cap = pagedPageLimit ?: (limit ?: 100).coerceIn(1, 100)
         val n = all.size
-        val total = n.toLong()   // one rendered line per event (stride 1)
+        val total = n.toLong()
         val idxs: List<Int> = when {
             before != null -> (0 until n).filter { it.toLong() < before }.takeLast(cap)
             after != null  -> (0 until n).filter { it.toLong() > after }.take(cap)
             around != null -> { val c = around.toInt().coerceIn(0, maxOf(0, n - 1))
                                 val s = (c - cap / 2).coerceAtLeast(0); (s until minOf(s + cap, n)).toList() }
-            else           -> (0 until n).toList().takeLast(cap)   // tail (no cursor)
+            else           -> (0 until n).toList().takeLast(cap)
         }
         val startLine = idxs.firstOrNull()?.toLong() ?: total
         val session = sessionDetails[id]?.session ?: sessionDetailDefault?.session
@@ -356,8 +309,7 @@ override suspend fun fork(id: String): String {
         return uploadPathResult ?: error("No upload path configured")
     }
 
-    /** When non-null, uploadStaging() returns this; otherwise throws [uploadStagingException].
-     *  [uploadStagingCalls] records each uploaded filename so tests can assert what was staged. */
+    // uploadStaging return value; uploadStagingCalls records each filename.
     var uploadStagingResult: StagedUpload? = StagedUpload(token = "stage-token", name = "file.txt", path = "uploads/file.txt")
     var uploadStagingException: Exception? = null
     val uploadStagingCalls: MutableList<String> = mutableListOf()
@@ -366,11 +318,11 @@ override suspend fun fork(id: String): String {
         uploadStagingException?.let { throw it }
         return uploadStagingResult ?: error("No staging upload configured")
     }
-    /** Bytes returned by [fileBytes]; tests set this. [fileBytesCalls] records each (id, path). */
+    // fileBytes return value; fileBytesCalls records each (id, path).
     var fileBytesResult: ByteArray = ByteArray(0)
     var fileBytesException: Throwable? = null
     val fileBytesCalls = mutableListOf<Pair<String, String>>()
-    /** Progress fractions [fileBytes] will replay into onProgress; whether onProgress was non-null. */
+    // Progress fractions [fileBytes] will replay into onProgress; whether onProgress was non-null.
     var fileBytesProgress: List<Float?> = emptyList()
     var fileBytesOnProgressWasNonNull = false
     override suspend fun fileBytes(id: String, path: String, onProgress: ((Float?) -> Unit)?): ByteArray {
@@ -380,8 +332,7 @@ override suspend fun fork(id: String): String {
         fileBytesException?.let { throw it }
         return fileBytesResult
     }
-    /** [downloadFileTo] writes [downloadFileResult] into dest (or throws [downloadFileException]);
-     *  [downloadFileCalls] records each (id, path). Progress replays (received, total) pairs. */
+    // downloadFileTo writes this into dest; downloadFileCalls records each (id, path); progress replays (received, total) pairs.
     var downloadFileResult: ByteArray = ByteArray(0)
     var downloadFileException: Throwable? = null
     val downloadFileCalls = mutableListOf<Pair<String, String>>()
@@ -428,7 +379,6 @@ override suspend fun fork(id: String): String {
         return templatesResult
     }
     override suspend fun putTemplates(templates: List<Template>) { putTemplatesCalls.add(templates) }
-    // ── Group CRUD scriptable surface ──────────────────────────────────────────
     var groupsResult: List<Group> = emptyList()
     val groupsScript: MutableList<Result<List<Group>>> = mutableListOf()
     val createGroupCalls: MutableList<CreateGroupReq> = mutableListOf()
@@ -470,16 +420,13 @@ override suspend fun fork(id: String): String {
         rewindException?.let { throw it }
     }
     override suspend fun discard(id: String) { discardCalls.add(id) }
-    /** Tracks each ackSession() call as (id, eventId). Default ackSession was a silent no-op — leave it
-     *  un-scriptable so tests that DO want to assert an ack call add an explicit [ackSessionCalls]
-     *  member without breaking callers that ignore it (the ack path is best-effort on the wire). */
+    // Tracks each ackSession() call as (id, eventId); the ack path is best-effort on the wire.
     val ackSessionCalls: MutableList<Pair<String, Long>> = mutableListOf()
     override suspend fun ackSession(id: String, eventId: Long) {
         ackSessionCalls.add(id to eventId)
     }
 
-    // ── Adopt / detach scriptable surface ──────────────────────────────────────
-    /** Returned by adoptable(); if [adoptableException] is set, throws instead. */
+    // Returned by adoptable(); if [adoptableException] is set, throws instead.
     var adoptableResult: List<Adoptable> = emptyList()
     var adoptableException: Exception? = null
     val adoptableCalls: MutableList<Unit> = mutableListOf()
@@ -488,8 +435,7 @@ override suspend fun fork(id: String): String {
         adoptableException?.let { throw it }
         return adoptableResult
     }
-    /** Returned by adoptSession(); if [adoptSessionException] is set, throws instead. [adoptSessionCalls]
-     *  records each (claudeSessionId, cwd) pair. */
+    // adoptSession return value; adoptSessionCalls records each (claudeSessionId, cwd) pair.
     var adoptSessionResult: String = "adopted-id"
     var adoptSessionException: Exception? = null
     val adoptSessionCalls: MutableList<AdoptSessionReq> = mutableListOf()
@@ -498,9 +444,7 @@ override suspend fun fork(id: String): String {
         adoptSessionException?.let { throw it }
         return adoptSessionResult
     }
-    /** Returned by detach(); if [detachException] is set, throws instead. The defaults model the
-     *  happy-path CLI hand-off shape so callers can render the resume command without wiring each
-     *  field. [detachCalls] records each session id. */
+    // Defaults model the happy-path CLI hand-off shape so callers can render the resume command without wiring each field.
     var detachResult: DetachResp = DetachResp(cwd = "/tmp/example", claudeSessionId = "csid", resumeCmd = "claude --resume csid")
     var detachException: Exception? = null
     val detachCalls: MutableList<String> = mutableListOf()
@@ -510,8 +454,7 @@ override suspend fun fork(id: String): String {
         return detachResult
     }
 
-    // ── Scriptable surface for GlobalSettingsViewModel tests (S5a) ────────────
-    /** Returned by getGlobalSettings(); if [getGlobalSettingsException] is set, throws instead. */
+    // Returned by getGlobalSettings(); if [getGlobalSettingsException] is set, throws instead.
     var globalSettingsResult: List<ComponentInfo> = emptyList()
     var getGlobalSettingsException: Exception? = null
     var getGlobalSettingsCallCount = 0
@@ -522,10 +465,10 @@ override suspend fun fork(id: String): String {
         return globalSettingsResult
     }
 
-    /** Returned by toggleGlobalComponent(); if [toggleGlobalComponentException] is set, throws instead. */
+    // Returned by toggleGlobalComponent(); if [toggleGlobalComponentException] is set, throws instead.
     var toggleGlobalComponentResult: List<ComponentInfo> = emptyList()
     var toggleGlobalComponentException: Exception? = null
-    /** Records each toggleGlobalComponent() call as Triple(kind, id, enabled). */
+    // Records each toggleGlobalComponent() call as Triple(kind, id, enabled).
     val toggleGlobalComponentCalls: MutableList<Triple<String, String, Boolean>> = mutableListOf()
 
     override suspend fun toggleGlobalComponent(kind: String, id: String, enabled: Boolean): List<ComponentInfo> {
@@ -534,7 +477,6 @@ override suspend fun fork(id: String): String {
         return toggleGlobalComponentResult
     }
 
-    // ── Scriptable surface for GlobalSettings CRUD tests (S5c) ──────────────────
     var skillCatalogResult: List<CatalogSkill> = emptyList()
     var skillCatalogErrors: List<String> = emptyList()
     var skillCatalogException: Exception? = null
