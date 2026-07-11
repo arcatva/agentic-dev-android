@@ -632,11 +632,6 @@ data class DetachResp(
 
 // ── Feature: Global Settings CRUD (S5c) ─────────────────────────────────────
 
-/** Body for POST /api/skills (add a new skill globally). [instructions] is the SKILL.md
- *  markdown body — the actual content the agent loads; without it the skill is an empty shell. */
-@Serializable
-data class AddSkillReq(val name: String, val description: String, val instructions: String = "")
-
 /** Body for POST /api/plugins (install a plugin globally). */
 @Serializable
 data class AddPluginReq(val id: String)

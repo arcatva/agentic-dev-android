@@ -146,7 +146,6 @@ fun GlobalSettingsScreen(
                         error = s.error,
                         onOpenStore = onOpenSkillStore,
                         onToggle = { resolvedVm.toggle(it) },
-                        onAddSkill = { name, desc, instructions -> resolvedVm.addSkill(name, desc, instructions) },
                         onDeleteSkill = { resolvedVm.deleteSkill(it) },
                     )
 
@@ -201,28 +200,9 @@ private fun SkillsSection(
     error: String?,
     onOpenStore: () -> Unit,
     onToggle: (ComponentInfo) -> Unit,
-    onAddSkill: (name: String, description: String, instructions: String) -> Boolean,
     onDeleteSkill: (name: String) -> Unit,
 ) {
-    var addExpanded by remember { mutableStateOf(false) }
     var pendingDelete by remember { mutableStateOf<ComponentInfo?>(null) }
-    // True while waiting for the add-skill API call started from this form.
-    // The form closes ONLY on success (busy→false with no error); stays open on failure
-    // so the user can retry without re-entering values.
-    var submitting by remember { mutableStateOf(false) }
-
-    // Detect op completion: busy just went false (op finished). If error is null → success →
-    // close and reset the form. If error is non-null → failure → keep form open for retry.
-    LaunchedEffect(busy, error) {
-        if (submitting && !busy) {
-            if (error == null) {
-                // Success: close the form.
-                addExpanded = false
-            }
-            // Either way stop tracking the in-flight submit so a subsequent tap works.
-            submitting = false
-        }
-    }
 
     // Confirm delete dialog
     pendingDelete?.let { comp ->
@@ -244,42 +224,16 @@ private fun SkillsSection(
 
     SectionCard(
         title = "Skills",
-        // Two text actions: the full-screen store (browse/install/update/sources) and the
-        // inline author-a-skill form. Keeps this card to just the installed chips.
+        // Everything skill-management lives in the full-screen store (browse / install /
+        // update / remove / sources) — this card is just the installed chips.
         trailing = {
-            Row {
-                TextButton(
-                    onClick = onOpenStore,
-                    modifier = Modifier.semantics { contentDescription = "Open skill store" },
-                ) { Text("Store") }
-                TextButton(
-                    onClick = { if (!busy) addExpanded = !addExpanded },
-                    modifier = Modifier.semantics { contentDescription = "Create skill" },
-                ) { Text("Create") }
-            }
+            TextButton(
+                onClick = onOpenStore,
+                modifier = Modifier.semantics { contentDescription = "Open skill store" },
+            ) { Text("Store") }
         },
     ) {
-        // One Column child: a COLLAPSED AnimatedVisibility is a zero-height child, and the card's
-        // spacedBy(12) would still pad both sides of it — doubling the header-to-content gap.
-        // Grouping the form and the chips into a single child keeps the gap at exactly 12dp.
         Column {
-            // Add form (the bottom padding belongs to the expanded state so it animates away).
-            AnimatedVisibility(
-                visible = addExpanded,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut(),
-            ) {
-                Column(Modifier.padding(bottom = 12.dp)) {
-                    CreateSkillPane(
-                        busy = busy,
-                        onAdd = { name, desc, instructions ->
-                            // Armed only when the op started; closes via LaunchedEffect on success.
-                            submitting = onAddSkill(name, desc, instructions)
-                        },
-                    )
-                }
-            }
-
             // Chips
             if (skills.isEmpty()) {
                 Text(
@@ -309,82 +263,6 @@ private fun SkillsSection(
         }
     }
 }
-
-/** The author-a-skill form (name / description / SKILL.md instructions body). */
-@Composable
-private fun CreateSkillPane(
-    busy: Boolean,
-    onAdd: (name: String, description: String, instructions: String) -> Unit,
-) {
-    var name by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
-    var instructions by remember { mutableStateOf("") }
-    var localError by remember { mutableStateOf<String?>(null) }
-
-    // No horizontal padding of its own — the enclosing SectionCard already insets its content.
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        AppTextField(
-            value = name,
-            onValueChange = { name = it; localError = null },
-            placeholder = "Skill name",
-            singleLine = true,
-            shape = MaterialTheme.shapes.small,
-            colors = cardFieldColors(),
-            modifier = Modifier.fillMaxWidth(),
-        )
-        AppTextField(
-            value = description,
-            onValueChange = { description = it },
-            placeholder = "Description — when should the agent load this skill?",
-            singleLine = false,
-            minLines = 2,
-            maxLines = 4,
-            shape = MaterialTheme.shapes.small,
-            colors = cardFieldColors(),
-            modifier = Modifier.fillMaxWidth(),
-        )
-        // The actual skill content. Without it the created skill is an empty shell — the
-        // description only decides WHEN the skill loads; this markdown is WHAT it says.
-        AppTextField(
-            value = instructions,
-            onValueChange = { instructions = it; localError = null },
-            placeholder = "Instructions (markdown) — the steps and rules the agent follows " +
-                "when this skill is active",
-            supportingText = "This becomes the SKILL.md body — the content the agent actually reads.",
-            singleLine = false,
-            minLines = 4,
-            maxLines = 12,
-            shape = MaterialTheme.shapes.small,
-            colors = cardFieldColors(),
-            modifier = Modifier.fillMaxWidth(),
-        )
-        localError?.let { err ->
-            Text(err, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-        }
-        Button(
-            onClick = {
-                when {
-                    name.isBlank() -> localError = "Skill name is required"
-                    instructions.isBlank() -> localError =
-                        "Instructions are required — a skill without them is an empty shell"
-                    else -> {
-                        // Do NOT clear the fields here — keep values in case the API call
-                        // fails so the user can retry without re-typing. The parent section
-                        // clears them by collapsing (and unmounting) the form only on success.
-                        onAdd(name.trim(), description.trim(), instructions.trim())
-                        localError = null
-                    }
-                }
-            },
-            enabled = !busy,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text("Add skill")
-        }
-    }
-}
-
-// ── Plugins section ───────────────────────────────────────────────────────────
 
 @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable

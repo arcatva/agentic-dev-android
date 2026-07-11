@@ -274,7 +274,7 @@ fun ModelsSections() {
                 // Hidden while the form is open — "tap Add" would point at a form that's
                 // already right below the message.
                 others.isEmpty() && !formVisible -> Text(
-                    "No sub-agent models yet — tap Add to create one.",
+                    "No sub-agent models — tap Add.",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodyMedium,
                 )
@@ -613,7 +613,7 @@ private fun AddOrEditForm(
             )
             if (form.editing) {
                 Text(
-                    "Name is the identity — delete & re-add to rename",
+                    "Delete & re-add to rename",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -637,7 +637,7 @@ private fun AddOrEditForm(
             )
             if (form.editing) {
                 Text(
-                    "Leave blank to keep the current key — or enter a new one to replace it",
+                    "Blank keeps the current key",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
