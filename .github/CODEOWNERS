@@ -1,0 +1,7 @@
+# Code owners — auto-requested for review on matching paths.
+# Single-maintainer repo; the default owner covers everything.
+*                       @arcatva
+
+# Surfaces worth an explicit callout (still @arcatva, documents intent):
+/app/src/main/java/dev/agentic/data/net/   @arcatva   # API/WS client — must track the server contract
+/.github/                                  @arcatva   # CI / release / supply-chain config

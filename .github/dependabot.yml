@@ -1,0 +1,20 @@
+version: 2
+updates:
+  # Gradle dependencies (scans build.gradle.kts and the gradle/libs.versions.toml catalog).
+  - package-ecosystem: gradle
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      gradle-minor-patch:
+        update-types: [minor, patch]
+
+  # GitHub Actions used by ci.yml / release.yml.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns: ["*"]

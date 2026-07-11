@@ -6,6 +6,15 @@ on:
     branches: [master]
   pull_request:
 
+# Least privilege: CI only reads the repo. (release.yml keeps its own contents: write.)
+permissions:
+  contents: read
+
+# Cancel superseded runs on the same ref to save minutes.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ubuntu-latest
