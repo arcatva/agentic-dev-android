@@ -66,8 +66,9 @@ class NativeModelsViewModel(private val api: AgenticApi) : ViewModel() {
         }
     }
 
-    /** Reset a family to defaults, then refresh. */
-    fun reset(family: String) {
+    /** Reset a family to defaults, then refresh. [onResult] gets null on success or an error message
+     *  (symmetric with [save], so the dialog only dismisses on success). */
+    fun reset(family: String, onResult: (String?) -> Unit) {
         if (_uiState.value.busy) return
         _uiState.update { it.copy(busy = true, error = null) }
         viewModelScope.launch {
@@ -75,8 +76,13 @@ class NativeModelsViewModel(private val api: AgenticApi) : ViewModel() {
                 is Outcome.Success -> {
                     _uiState.update { it.copy(busy = false) }
                     refresh()
+                    onResult(null)
                 }
-                is Outcome.Failure -> _uiState.update { it.copy(busy = false, error = r.error.toString()) }
+                is Outcome.Failure -> {
+                    val msg = r.error.toString()
+                    _uiState.update { it.copy(busy = false, error = msg) }
+                    onResult(msg)
+                }
             }
         }
     }
