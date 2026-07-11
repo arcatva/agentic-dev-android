@@ -7,6 +7,7 @@ import dev.agentic.data.net.CatalogSkill
 import dev.agentic.data.net.ComponentInfo
 import dev.agentic.data.net.McpServerDef
 import dev.agentic.ui.newrequest.McpDraft
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -68,11 +69,16 @@ class GlobalSettingsViewModel(
         load()
     }
 
+    /** In-flight [load] job — a second call while one is running is dropped (on first entry
+     *  the VM init and the screen's LaunchedEffect both call load()). */
+    private var loadJob: Job? = null
+
     /** Reload the component list from the server. The full-screen loading flag is only raised
      *  while we have nothing to show — a re-load (e.g. returning from the skill store, which
      *  runs its own ViewModel) refreshes quietly behind the existing content. */
     fun load() {
-        viewModelScope.launch {
+        if (loadJob?.isActive == true) return
+        loadJob = viewModelScope.launch {
             _uiState.update { it.copy(loading = it.components.isEmpty(), error = null) }
             try {
                 val list = api.getGlobalSettings()
