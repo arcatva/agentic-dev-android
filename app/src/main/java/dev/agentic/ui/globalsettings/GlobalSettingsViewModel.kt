@@ -171,22 +171,6 @@ class GlobalSettingsViewModel(
         return true
     }
 
-    /** Add a skill globally — [instructions] is the SKILL.md markdown body (what the agent
-     *  actually loads and follows). Calls the API and replaces the component list from the
-     *  response. No-ops silently while another op is busy (the UI must also disable submit). */
-    fun addSkill(name: String, description: String, instructions: String): Boolean {
-        if (!acquireBusy()) return false
-        viewModelScope.launch {
-            try {
-                val refreshed = api.addSkill(name, description, instructions)
-                _uiState.update { it.copy(components = refreshed, busy = false, error = null) }
-            } catch (e: Exception) {
-                _uiState.update { it.copy(busy = false, error = "Failed to add skill: ${e.message}") }
-            }
-        }
-        return true
-    }
-
     /** Load the external skill store — catalog (aggregated across sources) + the source list.
      *  Without [force], no-ops when already loaded; [force] bypasses the server-side cache too. */
     fun loadCatalog(force: Boolean = false) {

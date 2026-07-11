@@ -535,17 +535,6 @@ override suspend fun fork(id: String): String {
     }
 
     // ── Scriptable surface for GlobalSettings CRUD tests (S5c) ──────────────────
-    var addSkillResult: List<ComponentInfo> = emptyList()
-    var addSkillException: Exception? = null
-    val addSkillCalls: MutableList<Pair<String, String>> = mutableListOf()
-    val addSkillInstructions: MutableList<String> = mutableListOf()
-    override suspend fun addSkill(name: String, description: String, instructions: String): List<ComponentInfo> {
-        addSkillCalls.add(name to description)
-        addSkillInstructions.add(instructions)
-        addSkillException?.let { throw it }
-        return addSkillResult
-    }
-
     var skillCatalogResult: List<CatalogSkill> = emptyList()
     var skillCatalogErrors: List<String> = emptyList()
     var skillCatalogException: Exception? = null

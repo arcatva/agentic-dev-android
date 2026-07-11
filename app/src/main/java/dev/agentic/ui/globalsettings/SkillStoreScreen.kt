@@ -152,7 +152,7 @@ fun SkillStoreScreen(
             AppTextField(
                 value = query,
                 onValueChange = { query = it },
-                placeholder = "Search skills — or paste owner/repo/path or URL",
+                placeholder = "Search skills",
                 singleLine = true,
                 leadingIcon = {
                     Icon(
@@ -234,7 +234,7 @@ fun SkillStoreScreen(
                         if (shown.isEmpty() && directRef == null) {
                             item(key = "empty") {
                                 Text(
-                                    if (catalog.isEmpty()) "The store is empty — add a source (top right)."
+                                    if (catalog.isEmpty()) "Store is empty — add a source."
                                     else "No skills match \"$q\".",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -368,8 +368,7 @@ private fun SourcesSheet(
             AppTextField(
                 value = newSource,
                 onValueChange = { newSource = it },
-                placeholder = "Add source — owner/repo[/path] or URL",
-                supportingText = "Every directory containing a SKILL.md becomes a store entry.",
+                placeholder = "owner/repo or URL",
                 singleLine = true,
                 shape = MaterialTheme.shapes.small,
                 colors = cardFieldColors(),

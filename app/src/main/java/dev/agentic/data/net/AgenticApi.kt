@@ -97,9 +97,6 @@ interface AgenticApi {
      *  Default impl returns empty list — test fakes override. */
     suspend fun toggleGlobalComponent(kind: String, id: String, enabled: Boolean): List<ComponentInfo> = emptyList()
     // ── Feature: Global Settings CRUD (S5c) ─────────────────────────────────────
-    /** Add a skill globally — [instructions] is the SKILL.md markdown body (the content the
-     *  agent loads). Returns the refreshed component list. Default impl = emptyList(). */
-    suspend fun addSkill(name: String, description: String, instructions: String = ""): List<ComponentInfo> = emptyList()
     /** The external skill store, aggregated across every configured source. [refresh] bypasses
      *  the server's per-source cache. Default impl = empty. */
     suspend fun getSkillCatalog(refresh: Boolean = false): SkillCatalogResp = SkillCatalogResp()

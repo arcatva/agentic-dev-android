@@ -333,12 +333,8 @@ fun NewRequestScreen(
                             // would strand the caret. The bridge owns the caret and only re-feeds on a real
                             // text change.
                             state = rememberSyncedTextFieldState(s.claudeMd, realVm::setClaudeMd),
-                            placeholder = "Cleared — the session gets no extra guidance.\n" +
-                                "Add session-specific rules here, e.g.\n" +
-                                "Run tests before committing.",
-                            supportingText = "Default workflow rules for this multi-session environment, pre-filled. " +
-                                "Edit or clear them for this session — sent as-is, layered on top of each " +
-                                "repo's own CLAUDE.md.",
+                            placeholder = "No extra guidance.",
+                            supportingText = "Pre-filled defaults — edit or clear for this session.",
                             singleLine = false,
                             minLines = 4,
                             // Grow to fit the whole pre-filled default instead of capping the height and
