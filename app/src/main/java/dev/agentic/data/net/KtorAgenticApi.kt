@@ -700,6 +700,41 @@ class KtorAgenticApi(
         }
     }
 
+    // ── Feature: Native Claude model per-family routing overrides ──────────────
+    override suspend fun nativeModels(): List<NativeFamily> {
+        return try {
+            val r: List<NativeFamily> = client.get("$baseUrl/api/native-models") { auth() }
+                .body<NativeFamilyList>().families
+            AppLog.d("API", "GET native-models -> OK (${r.size})")
+            r
+        } catch (e: Exception) {
+            AppLog.w("API", "GET native-models -> FAILED: ${e.message}")
+            throw e
+        }
+    }
+
+    override suspend fun putNativeOverride(family: String, req: NativeOverrideReq) {
+        try {
+            client.post("$baseUrl/api/native-models/${family.encodeURLPathPart()}") {
+                auth(); contentType(ContentType.Application.Json); setBody(req)
+            }
+            AppLog.d("API", "POST native-models/$family -> OK")
+        } catch (e: Exception) {
+            AppLog.w("API", "POST native-models/$family -> FAILED: ${e.message}")
+            throw e
+        }
+    }
+
+    override suspend fun deleteNativeOverride(family: String) {
+        try {
+            client.delete("$baseUrl/api/native-models/${family.encodeURLPathPart()}") { auth() }
+            AppLog.d("API", "DELETE native-models/$family -> OK")
+        } catch (e: Exception) {
+            AppLog.w("API", "DELETE native-models/$family -> FAILED: ${e.message}")
+            throw e
+        }
+    }
+
     // ── Feature: Global Settings (S5a) ────────────────────────────────────────
     override suspend fun getGlobalSettings(): List<ComponentInfo> {
         return try {
