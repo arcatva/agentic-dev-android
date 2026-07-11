@@ -36,7 +36,11 @@ import dev.agentic.data.log.AppLog
 import dev.agentic.di.appContainer
 import dev.agentic.ui.adopt.AdoptPickerSheet
 import dev.agentic.ui.diagnostics.DiagnosticsScreen
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import dev.agentic.ui.globalsettings.GlobalSettingsScreen
+import dev.agentic.ui.globalsettings.GlobalSettingsViewModel
 import dev.agentic.ui.globalsettings.SkillStoreScreen
 import dev.agentic.ui.home.HomeAdaptive
 import dev.agentic.ui.home.isWideHome
@@ -439,15 +443,35 @@ fun AppNav() {
             )
         }
 
-        composable<GlobalSettings> {
+        composable<GlobalSettings> { backStackEntry ->
+            // Shared with the SkillStore route (scoped to THIS back-stack entry): mutations
+            // made in the store are immediately visible here — no duplicate fetches or
+            // reload-on-return choreography between two ViewModel instances.
+            val container = appContainer()
+            val sharedVm: GlobalSettingsViewModel = viewModel(
+                viewModelStoreOwner = backStackEntry,
+                factory = viewModelFactory {
+                    initializer { GlobalSettingsViewModel(container.api) }
+                },
+            )
             GlobalSettingsScreen(
                 onBack = { nav.popBackStack() },
                 onOpenSkillStore = { nav.navigate(SkillStore) },
+                vm = sharedVm,
             )
         }
 
         composable<SkillStore> {
-            SkillStoreScreen(onBack = { nav.popBackStack() })
+            // The store is only ever reached FROM Settings — reuse its entry's ViewModel.
+            val container = appContainer()
+            val settingsEntry = remember(nav) { nav.getBackStackEntry(GlobalSettings) }
+            val sharedVm: GlobalSettingsViewModel = viewModel(
+                viewModelStoreOwner = settingsEntry,
+                factory = viewModelFactory {
+                    initializer { GlobalSettingsViewModel(container.api) }
+                },
+            )
+            SkillStoreScreen(onBack = { nav.popBackStack() }, vm = sharedVm)
         }
     }
 
