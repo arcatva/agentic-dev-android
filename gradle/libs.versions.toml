@@ -1,0 +1,96 @@
+[versions]
+# ── 构建工具链 ──────────────────────────────────────────────
+# AGP 8.7.x 是 material3 1.4.0-alpha18 / Expressive API 施加的上限
+# （1.5.0-alpha 线需 Compose 1.12 → compileSdk 37 → 更新工具链）
+agp = "8.7.2"
+# Kotlin 2.0.x 在 kotlin-android / compose-compiler / serialization 三插件间保持一致
+kotlin = "2.0.21"
+
+# ── Compose ────────────────────────────────────────────────
+# 1.9.0 已验证可在 AGP 8.7.2 / compileSdk 35 / Gradle 8.10.2 上构建
+compose = "1.9.0"
+# material3 1.4.0-alpha18 将 Expressive API 公开暴露；不要升到 1.5.0-alpha
+# （需 Compose 1.12 → compileSdk 37 → AGP 升级）
+material3 = "1.4.0-alpha18"
+materialIconsExtended = "1.7.8"
+# adaptive 1.2.0 — 三栏主页的原生 pane 展开拖拽手柄
+adaptive = "1.2.0"
+
+# ── AndroidX ───────────────────────────────────────────────
+activityCompose = "1.9.3"
+# lifecycle 2.8.7 — NullSafeMutableLiveData lint 在 app/build.gradle.kts 中被禁用
+# （与 AGP 8.7.2 内置 lint 二进制不兼容）；保持钉版
+lifecycle = "2.8.7"
+navigationCompose = "2.8.4"
+
+# ── 网络 ───────────────────────────────────────────────────
+# Ktor 锁在 2.x（3.x 为破坏性大版本，不在本次范围）
+ktor = "2.3.12"
+kotlinxSerializationJson = "1.7.3"
+
+# ── Firebase ───────────────────────────────────────────────
+firebaseBom = "33.1.2"
+kotlinxCoroutinesPlayServices = "1.8.1"
+
+# ── 测试 ───────────────────────────────────────────────────
+junit = "4.13.2"
+kotlinxCoroutinesTest = "1.8.1"
+
+[libraries]
+compose-ui = { group = "androidx.compose.ui", name = "ui", version.ref = "compose" }
+compose-foundation = { group = "androidx.compose.foundation", name = "foundation", version.ref = "compose" }
+compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview", version.ref = "compose" }
+compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling", version.ref = "compose" }
+compose-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3" }
+compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended", version.ref = "materialIconsExtended" }
+compose-material3-adaptive = { group = "androidx.compose.material3.adaptive", name = "adaptive", version.ref = "adaptive" }
+compose-material3-adaptive-layout = { group = "androidx.compose.material3.adaptive", name = "adaptive-layout", version.ref = "adaptive" }
+compose-material3-adaptive-navigation = { group = "androidx.compose.material3.adaptive", name = "adaptive-navigation", version.ref = "adaptive" }
+androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
+androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycle" }
+androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "lifecycle" }
+androidx-lifecycle-process = { group = "androidx.lifecycle", name = "lifecycle-process", version.ref = "lifecycle" }
+androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
+ktor-client-okhttp = { group = "io.ktor", name = "ktor-client-okhttp", version.ref = "ktor" }
+ktor-client-content-negotiation = { group = "io.ktor", name = "ktor-client-content-negotiation", version.ref = "ktor" }
+ktor-serialization-kotlinx-json = { group = "io.ktor", name = "ktor-serialization-kotlinx-json", version.ref = "ktor" }
+ktor-client-websockets = { group = "io.ktor", name = "ktor-client-websockets", version.ref = "ktor" }
+ktor-client-mock = { group = "io.ktor", name = "ktor-client-mock", version.ref = "ktor" }
+kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
+firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
+firebase-messaging-ktx = { group = "com.google.firebase", name = "firebase-messaging-ktx" }
+kotlinx-coroutines-play-services = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-play-services", version.ref = "kotlinxCoroutinesPlayServices" }
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "kotlinxCoroutinesTest" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+
+[bundles]
+# implementation 依赖聚合（ui-tooling 是 debug-only，故不入 bundle）
+compose = [
+    "compose-ui",
+    "compose-foundation",
+    "compose-ui-tooling-preview",
+    "compose-material3",
+    "compose-material-icons-extended",
+]
+compose-adaptive = [
+    "compose-material3-adaptive",
+    "compose-material3-adaptive-layout",
+    "compose-material3-adaptive-navigation",
+]
+lifecycle = [
+    "androidx-lifecycle-runtime-compose",
+    "androidx-lifecycle-viewmodel-compose",
+    "androidx-lifecycle-process",
+]
+ktor = [
+    "ktor-client-okhttp",
+    "ktor-client-content-negotiation",
+    "ktor-serialization-kotlinx-json",
+    "ktor-client-websockets",
+]
