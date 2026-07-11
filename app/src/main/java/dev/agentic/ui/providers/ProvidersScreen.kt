@@ -881,6 +881,9 @@ private fun NativeFamilyCard(fam: NativeFamily, busy: Boolean, onEdit: () -> Uni
                             fontWeight = FontWeight.Bold,
                             color = onContainer,
                             maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            // Yield to the Customized badge if the label is ever long (matches ProviderCard).
+                            modifier = Modifier.weight(1f, fill = false),
                         )
                         if (fam.customized) {
                             Spacer(Modifier.width(8.dp))
