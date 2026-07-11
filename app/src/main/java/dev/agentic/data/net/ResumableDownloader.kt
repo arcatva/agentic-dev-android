@@ -123,12 +123,14 @@ class ResumableDownloader(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                if (received > before) failures = 0 // progress happened — reset the strike budget
-                failures++
+                // Only ZERO-progress failures consume a strike; a progress-making failure resets
+                // the budget and does not count itself (Codex review: reset-then-increment made a
+                // progressing cut eat one strike, giving up an attempt early on flaky links).
+                if (received > before) failures = 0 else failures++
                 val transient = e is IOException || e is HttpRequestTimeoutException ||
                     (e is DownloadHttpException && e.code >= 500)
                 if (!transient || failures > maxRetries) throw e
-                sleep(backoffMs(failures - 1))
+                sleep(backoffMs((failures - 1).coerceAtLeast(0)))
             }
         }
     }
