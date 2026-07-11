@@ -16,6 +16,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -71,13 +73,13 @@ import dev.agentic.ui.providers.ModelsSections
  * [GlobalSettingsViewModel.toggle] (skills/plugins through settings.local.json, MCP servers by
  * parking the definition in .claude.json); long-press deletes/uninstalls.
  *
- * Each section now has an "Add" affordance (collapsible inline form) and each chip supports
- * long-press → confirm dialog → delete/uninstall.
+ * Each section has an "Add" affordance (collapsible inline form — for Skills it opens the
+ * external skill STORE with a Create mode beside it) and each chip supports long-press →
+ * confirm dialog → delete/uninstall.
  *
- * Components are grouped: Skills → Plugins → MCP. All sections are always rendered.
- * Chip visual:
- *   - ON (globalEnabled==true): filled with kind color (green for skills, purple for plugins/mcp)
- *   - OFF (globalEnabled==false): outlined/unselected default FilterChip look
+ * Components are grouped: Skills → Plugins → MCP → Models. All sections are always rendered.
+ * Chip visual: see [ComponentChip] — "lit tag" (dark cyan fill + bright label) when ON,
+ * muted outline when OFF.
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -147,10 +149,15 @@ fun GlobalSettingsScreen(
                         busy = s.busy,
                         error = s.error,
                         catalog = s.catalog,
+                        catalogErrors = s.catalogErrors,
                         catalogLoading = s.catalogLoading,
                         catalogError = s.catalogError,
+                        sources = s.sources,
                         onLoadCatalog = { resolvedVm.loadCatalog() },
-                        onInstallSkill = { source -> resolvedVm.installSkill(source) },
+                        onRefreshCatalog = { resolvedVm.loadCatalog(force = true) },
+                        onInstallSkill = { source, update -> resolvedVm.installSkill(source, update) },
+                        onAddSource = { resolvedVm.addSource(it) },
+                        onRemoveSource = { resolvedVm.removeSource(it) },
                         onToggle = { resolvedVm.toggle(it) },
                         onAddSkill = { name, desc, instructions -> resolvedVm.addSkill(name, desc, instructions) },
                         onDeleteSkill = { resolvedVm.deleteSkill(it) },
@@ -206,12 +213,17 @@ private fun SkillsSection(
     busy: Boolean,
     error: String?,
     catalog: List<CatalogSkill>?,
+    catalogErrors: List<String>,
     catalogLoading: Boolean,
     catalogError: String?,
+    sources: List<String>?,
     onLoadCatalog: () -> Unit,
-    onInstallSkill: (source: String) -> Unit,
+    onRefreshCatalog: () -> Unit,
+    onInstallSkill: (source: String, update: Boolean) -> Boolean,
+    onAddSource: (source: String) -> Unit,
+    onRemoveSource: (source: String) -> Unit,
     onToggle: (ComponentInfo) -> Unit,
-    onAddSkill: (name: String, description: String, instructions: String) -> Unit,
+    onAddSkill: (name: String, description: String, instructions: String) -> Boolean,
     onDeleteSkill: (name: String) -> Unit,
 ) {
     var addExpanded by remember { mutableStateOf(false) }
@@ -271,18 +283,30 @@ private fun SkillsSection(
                         busy = busy,
                         installedNames = skills.map { it.name }.toSet(),
                         catalog = catalog,
+                        catalogErrors = catalogErrors,
                         catalogLoading = catalogLoading,
                         catalogError = catalogError,
+                        sources = sources,
                         onLoadCatalog = onLoadCatalog,
-                        onInstall = { source ->
-                            submitting = true
-                            onInstallSkill(source)
-                            // Form does NOT close here — closes via LaunchedEffect above on success.
+                        onRefreshCatalog = onRefreshCatalog,
+                        onInstall = { source, update ->
+                            // Installing (not updating) closes the form on success — an update
+                            // keeps the store open (the user is browsing/maintaining, not adding).
+                            // Arm the close flag ONLY when the op actually started (a busy/toggling
+                            // refusal must not leave a stale flag that closes on a later op).
+                            val started = onInstallSkill(source, update)
+                            if (!update && started) submitting = true
                         },
+                        // Store-row Remove goes through the SAME confirm dialog as long-pressing
+                        // the installed chip.
+                        onRemoveSkill = { name ->
+                            skills.firstOrNull { it.name == name }?.let { pendingDelete = it }
+                        },
+                        onAddSource = onAddSource,
+                        onRemoveSource = onRemoveSource,
                         onAdd = { name, desc, instructions ->
-                            submitting = true
-                            onAddSkill(name, desc, instructions)
-                            // Form does NOT close here — closes via LaunchedEffect above on success.
+                            // Armed only when the op started; closes via LaunchedEffect on success.
+                            submitting = onAddSkill(name, desc, instructions)
                         },
                     )
                 }
@@ -330,10 +354,16 @@ private fun AddSkillForm(
     busy: Boolean,
     installedNames: Set<String>,
     catalog: List<CatalogSkill>?,
+    catalogErrors: List<String>,
     catalogLoading: Boolean,
     catalogError: String?,
+    sources: List<String>?,
     onLoadCatalog: () -> Unit,
-    onInstall: (source: String) -> Unit,
+    onRefreshCatalog: () -> Unit,
+    onInstall: (source: String, update: Boolean) -> Unit,
+    onRemoveSkill: (name: String) -> Unit,
+    onAddSource: (source: String) -> Unit,
+    onRemoveSource: (source: String) -> Unit,
     onAdd: (name: String, description: String, instructions: String) -> Unit,
 ) {
     var mode by remember { mutableStateOf("install") }
@@ -364,9 +394,15 @@ private fun AddSkillForm(
                 busy = busy,
                 installedNames = installedNames,
                 catalog = catalog,
+                catalogErrors = catalogErrors,
                 catalogLoading = catalogLoading,
                 catalogError = catalogError,
+                sources = sources,
                 onInstall = onInstall,
+                onRemoveSkill = onRemoveSkill,
+                onAddSource = onAddSource,
+                onRemoveSource = onRemoveSource,
+                onRefresh = onRefreshCatalog,
             )
         } else {
             CreateSkillPane(
@@ -383,18 +419,60 @@ private fun AddSkillForm(
     }
 }
 
-/** The store pane: curated catalog (capped, scrollable) + free-form GitHub source. */
+/**
+ * The store pane: search over the aggregated catalog, per-row Install (or Update + Remove for
+ * installed skills), per-source scan errors, a "Sources" manager (list / add / remove store
+ * sources), and a free-form GitHub source for one-off installs.
+ */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun InstallSkillPane(
     busy: Boolean,
     installedNames: Set<String>,
     catalog: List<CatalogSkill>?,
+    catalogErrors: List<String>,
     catalogLoading: Boolean,
     catalogError: String?,
-    onInstall: (source: String) -> Unit,
+    sources: List<String>?,
+    onInstall: (source: String, update: Boolean) -> Unit,
+    onRemoveSkill: (name: String) -> Unit,
+    onAddSource: (source: String) -> Unit,
+    onRemoveSource: (source: String) -> Unit,
+    onRefresh: () -> Unit,
 ) {
+    var query by remember { mutableStateOf("") }
+    var sourcesOpen by remember { mutableStateOf(false) }
+
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Search — same filled filter-field family as the New request pickers.
+        AppTextField(
+            value = query,
+            onValueChange = { query = it },
+            placeholder = "Search skills",
+            singleLine = true,
+            leadingIcon = {
+                Icon(
+                    Icons.Rounded.Search,
+                    contentDescription = "Search skills",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            },
+            trailingIcon = {
+                if (query.isNotEmpty()) {
+                    IconButton(onClick = { query = "" }) {
+                        Icon(
+                            Icons.Rounded.Close,
+                            contentDescription = "Clear search",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            },
+            shape = MaterialTheme.shapes.small,
+            colors = cardFieldColors(),
+            modifier = Modifier.fillMaxWidth(),
+        )
+
         when {
             catalogLoading -> Row(
                 Modifier.fillMaxWidth().padding(vertical = 8.dp),
@@ -405,40 +483,126 @@ private fun InstallSkillPane(
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodySmall,
             )
-            catalog != null -> CappedScrollColumn(maxHeight = 280.dp) {
-                catalog.forEach { entry ->
-                    val installed = entry.name in installedNames
-                    Row(
-                        Modifier.fillMaxWidth().padding(vertical = 2.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(Modifier.weight(1f)) {
-                            Text(
-                                entry.name,
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                            if (entry.description.isNotBlank()) {
-                                Text(
-                                    entry.description,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
+            catalog != null -> {
+                val q = query.trim()
+                val shown = catalog.filter {
+                    q.isEmpty() || it.name.contains(q, ignoreCase = true) ||
+                        it.description.contains(q, ignoreCase = true)
+                }
+                val multiSource = catalog.map { it.sourceRepo }.distinct().size > 1
+                if (shown.isEmpty()) {
+                    Text(
+                        if (catalog.isEmpty()) "The store is empty — add a source below."
+                        else "No skills match \"$q\".",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    CappedScrollColumn(maxHeight = 280.dp) {
+                        shown.forEach { entry ->
+                            val installed = entry.name in installedNames
+                            Row(
+                                Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Column(Modifier.weight(1f)) {
+                                    Text(
+                                        entry.name,
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                    if (entry.description.isNotBlank()) {
+                                        Text(
+                                            entry.description,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 2,
+                                            overflow = TextOverflow.Ellipsis,
+                                        )
+                                    }
+                                    // Only label provenance when it's ambiguous (>1 source).
+                                    if (multiSource && entry.sourceRepo.isNotBlank()) {
+                                        Text(
+                                            entry.sourceRepo,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
+                                }
+                                if (installed) {
+                                    TextButton(onClick = { onInstall(entry.source, true) }, enabled = !busy) {
+                                        Text("Update")
+                                    }
+                                    TextButton(onClick = { onRemoveSkill(entry.name) }, enabled = !busy) {
+                                        Text("Remove")
+                                    }
+                                } else {
+                                    TextButton(onClick = { onInstall(entry.source, false) }, enabled = !busy) {
+                                        Text("Install")
+                                    }
+                                }
                             }
-                        }
-                        TextButton(
-                            onClick = { onInstall(entry.source) },
-                            enabled = !busy && !installed,
-                        ) {
-                            Text(if (installed) "Installed" else "Install")
                         }
                     }
                 }
+                // Per-source scan failures — the rest of the store still works.
+                catalogErrors.forEach { err ->
+                    Text(err, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                }
             }
         }
-        // Anything not in the curated store: a GitHub reference.
+
+        // ── Store source management + refresh ──
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            TextButton(onClick = { sourcesOpen = !sourcesOpen }) {
+                Text(if (sourcesOpen) "Hide sources" else "Sources${sources?.let { " (${it.size})" } ?: ""}")
+            }
+            TextButton(onClick = onRefresh, enabled = !catalogLoading) {
+                Text("Refresh")
+            }
+        }
+        AnimatedVisibility(
+            visible = sourcesOpen,
+            enter = expandVertically() + fadeIn(),
+            exit = shrinkVertically() + fadeOut(),
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                sources?.forEach { src ->
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            src,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.weight(1f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        TextButton(onClick = { onRemoveSource(src) }, enabled = !busy) {
+                            Text("Remove")
+                        }
+                    }
+                }
+                var newSource by remember { mutableStateOf("") }
+                AppTextField(
+                    value = newSource,
+                    onValueChange = { newSource = it },
+                    placeholder = "Add source — owner/repo[/path] or URL",
+                    supportingText = "Every directory containing a SKILL.md becomes a store entry.",
+                    singleLine = true,
+                    shape = MaterialTheme.shapes.small,
+                    colors = cardFieldColors(),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Button(
+                    onClick = { onAddSource(newSource.trim()); newSource = "" },
+                    enabled = !busy && newSource.isNotBlank(),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Add source")
+                }
+            }
+        }
+
+        // Anything not in the store: a one-off GitHub reference.
         var source by remember { mutableStateOf("") }
         AppTextField(
             value = source,
@@ -451,7 +615,7 @@ private fun InstallSkillPane(
             modifier = Modifier.fillMaxWidth(),
         )
         Button(
-            onClick = { onInstall(source.trim()) },
+            onClick = { onInstall(source.trim(), false) },
             enabled = !busy && source.isNotBlank(),
             modifier = Modifier.fillMaxWidth(),
         ) {
@@ -548,7 +712,7 @@ private fun PluginsSection(
     busy: Boolean,
     error: String?,
     onToggle: (ComponentInfo) -> Unit,
-    onInstallPlugin: (id: String) -> Unit,
+    onInstallPlugin: (id: String) -> Boolean,
     onUninstallPlugin: (id: String) -> Unit,
 ) {
     var addExpanded by remember { mutableStateOf(false) }
@@ -611,9 +775,8 @@ private fun PluginsSection(
                     AddPluginForm(
                         busy = busy,
                         onInstall = { id ->
-                            submitting = true
-                            onInstallPlugin(id)
-                            // Form does NOT close here — closes via LaunchedEffect above on success.
+                            // Armed only when the op started; closes via LaunchedEffect on success.
+                            submitting = onInstallPlugin(id)
                         },
                     )
                 }

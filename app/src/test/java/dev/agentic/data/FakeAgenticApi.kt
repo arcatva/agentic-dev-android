@@ -4,6 +4,7 @@ import dev.agentic.data.net.AgenticApi
 import dev.agentic.data.net.AdoptSessionReq
 import dev.agentic.data.net.Adoptable
 import dev.agentic.data.net.CatalogSkill
+import dev.agentic.data.net.SkillCatalogResp
 import dev.agentic.data.net.CommitFile
 import dev.agentic.data.net.ComponentInfo
 import dev.agentic.data.net.CreateGroupReq
@@ -546,19 +547,47 @@ override suspend fun fork(id: String): String {
     }
 
     var skillCatalogResult: List<CatalogSkill> = emptyList()
+    var skillCatalogErrors: List<String> = emptyList()
     var skillCatalogException: Exception? = null
     var skillCatalogCalls: Int = 0
-    override suspend fun getSkillCatalog(): List<CatalogSkill> {
+    val skillCatalogRefreshCalls: MutableList<Boolean> = mutableListOf()
+    override suspend fun getSkillCatalog(refresh: Boolean): SkillCatalogResp {
         skillCatalogCalls++
+        skillCatalogRefreshCalls.add(refresh)
         skillCatalogException?.let { throw it }
-        return skillCatalogResult
+        return SkillCatalogResp(skills = skillCatalogResult, errors = skillCatalogErrors)
+    }
+
+    var skillSourcesResult: List<String> = listOf("anthropics/skills")
+    var skillSourcesException: Exception? = null
+    override suspend fun getSkillSources(): List<String> {
+        skillSourcesException?.let { throw it }
+        return skillSourcesResult
+    }
+
+    val addSkillSourceCalls: MutableList<String> = mutableListOf()
+    var addSkillSourceException: Exception? = null
+    override suspend fun addSkillSource(source: String): List<String> {
+        addSkillSourceCalls.add(source)
+        addSkillSourceException?.let { throw it }
+        skillSourcesResult = skillSourcesResult + source
+        return skillSourcesResult
+    }
+
+    val deleteSkillSourceCalls: MutableList<String> = mutableListOf()
+    var deleteSkillSourceException: Exception? = null
+    override suspend fun deleteSkillSource(source: String): List<String> {
+        deleteSkillSourceCalls.add(source)
+        deleteSkillSourceException?.let { throw it }
+        skillSourcesResult = skillSourcesResult - source
+        return skillSourcesResult
     }
 
     var installSkillResult: List<ComponentInfo> = emptyList()
     var installSkillException: Exception? = null
-    val installSkillCalls: MutableList<String> = mutableListOf()
-    override suspend fun installSkill(source: String): List<ComponentInfo> {
-        installSkillCalls.add(source)
+    val installSkillCalls: MutableList<Pair<String, Boolean>> = mutableListOf()
+    override suspend fun installSkill(source: String, update: Boolean): List<ComponentInfo> {
+        installSkillCalls.add(source to update)
         installSkillException?.let { throw it }
         return installSkillResult
     }

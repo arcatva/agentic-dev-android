@@ -27,11 +27,12 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * Per-component tri-state session override.
- * - [Inherit]: follow global setting (component appears in neither forced-on nor hidden list).
- * - [ForceOn]: force this component ON for this session (even if globally disabled).
- * - [ForceOff]: force this component OFF for this session (even if globally enabled).
- * Tap cycle: Inherit → ForceOn → ForceOff → Inherit.
+ * Per-skill tri-state session override. No UI sets these anymore (New request only selects
+ * repos; components are managed globally on the Settings page) — they exist so TEMPLATES can
+ * restrict a session to their skill list (see [NewRequestViewModel.setSkillsFromTemplate]).
+ * - [Inherit]: follow global setting (skill appears in neither forced-on nor hidden list).
+ * - [ForceOn]: force this skill ON for this session (even if globally disabled).
+ * - [ForceOff]: force this skill OFF for this session (even if globally enabled).
  */
 enum class Override { Inherit, ForceOn, ForceOff }
 
@@ -63,32 +64,6 @@ data class McpDraft(
         else -> null
     }
     val isValid: Boolean get() = validationError == null
-}
-
-/**
- * Given the current [Override] and the component's [globalEnabled] flag, return the
- * override that results from one tap (effective-state toggle).
- *
- * Logic:
- *  - Resolve current effective state (Inherit → globalEnabled, ForceOn → true, ForceOff → false).
- *  - Flip the effective state.
- *  - If the new effective state equals globalEnabled → Inherit (no override needed).
- *  - Otherwise encode the desired state → ForceOn or ForceOff.
- *
- * Pure function: no side effects, easy to unit-test.
- */
-fun nextOverrideOnTap(current: Override, globalEnabled: Boolean): Override {
-    val eff = when (current) {
-        Override.Inherit  -> globalEnabled
-        Override.ForceOn  -> true
-        Override.ForceOff -> false
-    }
-    val newEff = !eff
-    return when {
-        newEff == globalEnabled -> Override.Inherit
-        newEff               -> Override.ForceOn
-        else                  -> Override.ForceOff
-    }
 }
 
 /**
@@ -131,19 +106,15 @@ private const val MAX_ATTACHMENT_BYTES: Long = 25L * 1024 * 1024
 
 data class NewRequestUiState(
     val availableRepos: List<String> = emptyList(),
-    // ── Component catalogs (fetched from GET /api/global-settings so each chip knows globalEnabled) ──
+    // ── Skill catalog (GET /api/global-settings, kind=="skill") — no UI, kept ONLY so a
+    // template's skill list can be resolved into hidden/forced-on lists at submit. Plugins
+    // and MCP servers have no per-session state at all: sessions inherit the global config.
     val availableSkillComponents: List<ComponentInfo> = emptyList(),
     val templates: List<Template> = emptyList(),
     val selectedRepos: List<String> = emptyList(),
-    // ── Tri-state override maps (replaces binary selectedSkills/selectedPlugins) ──
-    // Default is Inherit for all, meaning "follow global setting".
-    // On submit: ForceOff → hiddenX, ForceOn → forcedOnX, Inherit → neither.
+    // Per-skill session overrides, set only by templates (see [Override]).
+    // On submit: ForceOff → hiddenSkills, ForceOn → forcedOnSkills, Inherit → neither.
     val skillOverrides: Map<String, Override> = emptyMap(),
-    val availablePluginComponents: List<ComponentInfo> = emptyList(),
-    val pluginOverrides: Map<String, Override> = emptyMap(),
-    // ── MCP components (fetched from GET /api/global-settings, kind=="mcp") ──
-    val mcpComponents: List<ComponentInfo> = emptyList(),
-    val mcpOverrides: Map<String, Override> = emptyMap(),
     val prompt: String = "",
     // Session-scoped CLAUDE.md guidance, PRE-FILLED with [DEFAULT_CLAUDE_MD] (the multi-session
     // worktree / PR / conflict workflow). Sent verbatim on submit, so the agent gets it by default;
@@ -193,15 +164,12 @@ class NewRequestViewModel(
         }
         viewModelScope.launch {
             try {
-                // Fetch ALL component kinds from global settings so each chip knows its globalEnabled.
-                // Replaces the separate skills() + plugins() calls — one round-trip for all three kinds.
+                // Only the SKILL catalog is needed here — not for any picker UI (this screen
+                // selects repos only), but so applyTemplate can resolve a template's skill
+                // list into hidden/forced-on lists at submit.
                 val allComponents = sessionsRepo.globalSettings()
                 _uiState.update {
-                    it.copy(
-                        availableSkillComponents  = allComponents.filter { c -> c.kind == "skill" },
-                        availablePluginComponents = allComponents.filter { c -> c.kind == "plugin" },
-                        mcpComponents             = allComponents.filter { c -> c.kind == "mcp" },
-                    )
+                    it.copy(availableSkillComponents = allComponents.filter { c -> c.kind == "skill" })
                 }
             } catch (e: Exception) { AppLog.d("VM", "catalog components load failed: ${e.message}") }
         }
@@ -235,18 +203,11 @@ class NewRequestViewModel(
     fun setRepos(repos: List<String>) { _uiState.update { it.copy(selectedRepos = repos) } }
 
     /**
-     * Set the tri-state override for a component. [kind] is "skill", "plugin", or "mcp".
-     * [id] is the component's id/name. [override] is the new state.
+     * Set the tri-state override for a skill. No UI calls this anymore (components are managed
+     * globally in Settings) — it backs template application and tests.
      */
-    fun setOverride(kind: String, id: String, override: Override) {
-        _uiState.update { s ->
-            when (kind) {
-                "skill"  -> s.copy(skillOverrides  = s.skillOverrides  + (id to override))
-                "plugin" -> s.copy(pluginOverrides  = s.pluginOverrides + (id to override))
-                "mcp"    -> s.copy(mcpOverrides     = s.mcpOverrides    + (id to override))
-                else -> s
-            }
-        }
+    fun setSkillOverride(id: String, override: Override) {
+        _uiState.update { s -> s.copy(skillOverrides = s.skillOverrides + (id to override)) }
     }
 
     /**
@@ -439,15 +400,15 @@ class NewRequestViewModel(
                 // The whitelist is dead post-cutover; gating is sent as override lists.
                 skills = emptyList(),
                 // ForceOff → hidden; ForceOn → forcedOn; Inherit → neither list
-                // All lists keyed by and emit it.id (the canonical component identifier).
-                // Override maps are keyed by id (setOverride always writes by id), so
-                // pluginOverrides["github@mkt"] != null but pluginOverrides["github"] == null.
+                // Lists keyed by and emitting it.id (the canonical component identifier).
                 hiddenSkills     = s.availableSkillComponents.filter { s.skillOverrides[it.id] == Override.ForceOff }.map { it.id },
                 forcedOnSkills   = s.availableSkillComponents.filter { s.skillOverrides[it.id] == Override.ForceOn  }.map { it.id },
-                hiddenPlugins    = s.availablePluginComponents.filter { s.pluginOverrides[it.id] == Override.ForceOff }.map { it.id },
-                forcedOnPlugins  = s.availablePluginComponents.filter { s.pluginOverrides[it.id] == Override.ForceOn  }.map { it.id },
-                hiddenMcpServers   = s.mcpComponents.filter { s.mcpOverrides[it.id] == Override.ForceOff }.map { it.id },
-                forcedOnMcpServers = s.mcpComponents.filter { s.mcpOverrides[it.id] == Override.ForceOn  }.map { it.id },
+                // Plugins/MCP have no per-session selection anymore — sessions inherit the
+                // global config (managed on the Settings page).
+                hiddenPlugins    = emptyList(),
+                forcedOnPlugins  = emptyList(),
+                hiddenMcpServers   = emptyList(),
+                forcedOnMcpServers = emptyList(),
                 // Session-scoped ad-hoc MCP servers were removed from the UI — component
                 // management (add/remove) lives on the Settings page; this screen only selects.
                 extraMcpServers  = emptyList(),

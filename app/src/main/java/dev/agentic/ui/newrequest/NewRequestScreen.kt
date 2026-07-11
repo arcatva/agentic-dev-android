@@ -59,7 +59,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import dev.agentic.data.net.ComponentInfo
 import dev.agentic.data.net.Template
 import dev.agentic.di.appContainer
 import dev.agentic.domain.UploadState
@@ -101,9 +100,9 @@ private val PERMISSION_MODES = listOf(
  * New-request screen. Stateless: all state lives in [NewRequestViewModel]; this composable
  * reads [NewRequestUiState] and calls VM event handlers.
  *
- * Ports the look from old [dev.agentic.ui.NewRequestScreen] (NewRequestScreen.kt):
- * template chips, repo/skill multi-select with search, model/effort sliders, mode toggle
- * buttons, prompt field with voice dictation, submit button.
+ * Template chips, repo multi-select with search (components — skills/plugins/MCP — are
+ * managed globally on the Settings page and simply inherited by sessions), model/effort
+ * sliders, prompt field with voice dictation, submit button.
  *
  * [onCreated] is called with both the new session id and the submitted prompt so that the
  * caller (AppNav) can navigate to the Session screen with the optimistic prompt pre-loaded.
@@ -229,9 +228,10 @@ fun NewRequestScreen(
                 )
             }
 
-            // ── Card 1 · Filters: repo + skill (tri-state) + plugin (tri-state) + MCP ──
-            SectionCard("Filters") {
-                // Repos: keep binary toggle (in/out, not a global setting)
+            // ── Card 1 · Repos: which repositories this session works in ──────────────
+            // ONLY repos here (per user request) — skills/plugins/MCP are global components
+            // managed and toggled on the Settings page; a session simply inherits them.
+            SectionCard("Repos") {
                 ChipPicker(
                     label = "Repos",
                     options = s.availableRepos,
@@ -242,49 +242,6 @@ fun NewRequestScreen(
                         realVm.setRepos(updated)
                     },
                 )
-                // Skills — binary effective-state chips: ON = globalEnabled resolved through override.
-                // Tap toggles effective and sets the minimal override (Inherit when equal to global).
-                if (s.availableSkillComponents.isNotEmpty()) {
-                    ComponentChipPicker(
-                        label = "Skills",
-                        components = s.availableSkillComponents,
-                        overrides = s.skillOverrides,
-                        onToggle = { comp ->
-                            val cur = s.skillOverrides[comp.id] ?: Override.Inherit
-                            realVm.setOverride("skill", comp.id, nextOverrideOnTap(cur, comp.globalEnabled))
-                        },
-                    )
-                }
-                // Plugins — same binary effective-state logic.
-                if (s.availablePluginComponents.isNotEmpty()) {
-                    ComponentChipPicker(
-                        label = "Plugins",
-                        components = s.availablePluginComponents,
-                        overrides = s.pluginOverrides,
-                        displayLabel = { it.name.substringBefore('@') },
-                        onToggle = { comp ->
-                            val cur = s.pluginOverrides[comp.id] ?: Override.Inherit
-                            realVm.setOverride("plugin", comp.id, nextOverrideOnTap(cur, comp.globalEnabled))
-                        },
-                    )
-                }
-                // MCP — the SAME filter-field + chip picker as Skills/Plugins above, so all four
-                // component groups in this card share one visual pattern (the filter placeholder
-                // names the group; no floating section label). This screen only SELECTS
-                // components for the session — adding/removing MCP servers (like skills and
-                // plugins) lives on the Settings page.
-                if (s.mcpComponents.isNotEmpty()) {
-                    ComponentChipPicker(
-                        label = "MCP servers",
-                        filterPlaceholder = "Filter MCP servers",
-                        components = s.mcpComponents,
-                        overrides = s.mcpOverrides,
-                        onToggle = { comp ->
-                            val cur = s.mcpOverrides[comp.id] ?: Override.Inherit
-                            realVm.setOverride("mcp", comp.id, nextOverrideOnTap(cur, comp.globalEnabled))
-                        },
-                    )
-                }
             }
 
             // ── Card 2 · Request: prompt + session CLAUDE.md ─────────────────────────
@@ -468,82 +425,6 @@ fun NewRequestScreen(
 @Composable
 private fun LimitedChipRows(content: @Composable () -> Unit) {
     CappedScrollColumn(maxHeight = 152.dp) { content() }
-}
-
-/**
- * Chip-group section with an inline filter field for a list of [ComponentInfo] components.
- * Each chip shows its EFFECTIVE state (globalEnabled resolved through override) via [ComponentChip].
- * Tap toggles effective state; [onToggle] is called with the clicked component so the caller can
- * compute the minimal override and call setOverride.
- * [displayLabel] extracts the chip label from a [ComponentInfo] (default = name).
- * [filterPlaceholder] overrides the derived "Filter <label>" hint — used when lowercasing the
- * label would mangle an acronym (e.g. "MCP servers" → keep "Filter MCP servers").
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ComponentChipPicker(
-    label: String,
-    components: List<ComponentInfo>,
-    overrides: Map<String, Override>,
-    onToggle: (ComponentInfo) -> Unit,
-    displayLabel: (ComponentInfo) -> String = { it.name },
-    filterPlaceholder: String = "Filter ${label.lowercase()}",
-) {
-    var q by remember { mutableStateOf("") }
-    val shown = components.filter { c ->
-        q.isBlank() || c.name.contains(q, ignoreCase = true) || displayLabel(c).contains(q, ignoreCase = true)
-    }
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        AppTextField(
-            value = q,
-            onValueChange = { q = it },
-            placeholder = filterPlaceholder,
-            singleLine = true,
-            leadingIcon = {
-                Icon(
-                    Icons.Rounded.Search,
-                    contentDescription = filterPlaceholder,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            },
-            trailingIcon = {
-                if (q.isNotEmpty()) {
-                    IconButton(onClick = { q = "" }) {
-                        Icon(
-                            Icons.Rounded.Close,
-                            contentDescription = "Clear filter",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-            },
-            shape = MaterialTheme.shapes.small,
-            colors = cardFieldColors(),
-            modifier = Modifier.fillMaxWidth(),
-        )
-        LimitedChipRows {
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                shown.forEach { comp ->
-                    val cur = overrides[comp.id] ?: Override.Inherit
-                    val effective = when (cur) {
-                        Override.Inherit  -> comp.globalEnabled
-                        Override.ForceOn  -> true
-                        Override.ForceOff -> false
-                    }
-                    ComponentChip(
-                        label = displayLabel(comp),
-                        kind = comp.kind,
-                        effective = effective,
-                        onClick = { onToggle(comp) },
-                    )
-                }
-            }
-        }
-    }
 }
 
 /**

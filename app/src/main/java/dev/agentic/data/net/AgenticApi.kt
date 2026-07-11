@@ -96,10 +96,17 @@ interface AgenticApi {
     /** Add a skill globally — [instructions] is the SKILL.md markdown body (the content the
      *  agent loads). Returns the refreshed component list. Default impl = emptyList(). */
     suspend fun addSkill(name: String, description: String, instructions: String = ""): List<ComponentInfo> = emptyList()
-    /** The external skill store (curated anthropics/skills catalog). Default impl = emptyList(). */
-    suspend fun getSkillCatalog(): List<CatalogSkill> = emptyList()
-    /** Install a skill from a GitHub source (`owner/repo[/path]` or URL). Returns the refreshed list. */
-    suspend fun installSkill(source: String): List<ComponentInfo> = emptyList()
+    /** The external skill store, aggregated across every configured source. [refresh] bypasses
+     *  the server's per-source cache. Default impl = empty. */
+    suspend fun getSkillCatalog(refresh: Boolean = false): SkillCatalogResp = SkillCatalogResp()
+    /** The configured store sources. */
+    suspend fun getSkillSources(): List<String> = emptyList()
+    /** Add a store source (`owner/repo[/path]` or URL). Returns the refreshed source list. */
+    suspend fun addSkillSource(source: String): List<String> = emptyList()
+    /** Remove a store source. Returns the refreshed source list. */
+    suspend fun deleteSkillSource(source: String): List<String> = emptyList()
+    /** Install a skill from a GitHub source; [update] replaces an existing install. Returns the refreshed list. */
+    suspend fun installSkill(source: String, update: Boolean = false): List<ComponentInfo> = emptyList()
     /** Delete a skill globally by name. Returns the refreshed list. */
     suspend fun deleteSkill(name: String): List<ComponentInfo> = emptyList()
     /** Install a plugin globally (slow — CLI shells out). Returns the refreshed list. */
