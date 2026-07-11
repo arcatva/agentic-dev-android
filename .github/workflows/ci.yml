@@ -30,3 +30,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - name: Unit tests
         run: ./gradlew --no-daemon testDebugUnitTest
+      # Static analysis: fails only on findings NOT in app/detekt-baseline.xml (existing backlog
+      # is baselined; shrink it over time).
+      - name: detekt
+        run: ./gradlew --no-daemon detekt

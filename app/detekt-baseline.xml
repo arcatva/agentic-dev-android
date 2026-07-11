@@ -1,0 +1,832 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>ComplexCondition:SessionViewModel.kt$SessionViewModel$qs.isNotEmpty() &amp;&amp; nodes.none { it is AskNode &amp;&amp; !it.answered &amp;&amp; it.questions == qs }</ID>
+    <ID>ComplexCondition:SessionsRepository.kt$SessionsRepository$s.loadingEarlier || s.loadingNewer || !s.hasNewer || s.busy</ID>
+    <ID>ComplexCondition:WideThreePaneHome.kt$!homeState.loading &amp;&amp; selectedId != null &amp;&amp; selectedId != pendingSelect &amp;&amp; homeState.sessions.none { it.id == selectedId }</ID>
+    <ID>ConstructorParameterNaming:Models.kt$Usage$val five_hour: UsageWindow? = null</ID>
+    <ID>ConstructorParameterNaming:Models.kt$Usage$val seven_day: UsageWindow? = null</ID>
+    <ID>ConstructorParameterNaming:Models.kt$UsageWindow$val resets_at: String? = null</ID>
+    <ID>CyclomaticComplexMethod:AppNav.kt$@Composable fun AppNav()</ID>
+    <ID>CyclomaticComplexMethod:CommitGraph.kt$fun buildCommitGraph(commits: List&lt;CommitNode&gt;, hasUncommitted: Boolean): List&lt;GraphRow&gt;</ID>
+    <ID>CyclomaticComplexMethod:CommitGraphScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable fun CommitGraphScreen( onBack: () -&gt; Unit, live: Boolean = false, /** Open the full-screen line-level diff for one (repo, sha, path). Default no-op for previews/tests. */ onOpenDiff: (repo: String, sha: String, path: String) -&gt; Unit = { _, _, _ -&gt; }, vm: CommitGraphViewModel? = null, )</ID>
+    <ID>CyclomaticComplexMethod:CommitGraphScreen.kt$private fun DrawScope.drawGraphRow( row: GraphRow, trunk: Color, sessionRing: Color, tipColor: Color, )</ID>
+    <ID>CyclomaticComplexMethod:DictationController.kt$@Composable fun rememberDictationController( currentText: () -&gt; String, onText: (String) -&gt; Unit, ): DictationController</ID>
+    <ID>CyclomaticComplexMethod:FakeAgenticApi.kt$FakeAgenticApi$override suspend fun sessionEvents(id: String, limit: Int?, before: Long?, after: Long?, around: Long?): SessionEventsResponse</ID>
+    <ID>CyclomaticComplexMethod:FileDiffScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable fun FileDiffScreen( onBack: () -&gt; Unit, vm: FileDiffViewModel? = null, )</ID>
+    <ID>CyclomaticComplexMethod:HomeScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable internal fun SessionListPane( state: HomeUiState, selectedId: String?, onOpen: (String) -&gt; Unit, onDelete: (String) -&gt; Unit, onRefresh: () -&gt; Unit, onToggleSelect: (String) -&gt; Unit, onLongPress: (String) -&gt; Unit, onClearSearch: () -&gt; Unit, onSelectGroupFilter: (String?) -&gt; Unit = {}, onRenameGroup: (String, String) -&gt; Unit = { _, _ -&gt; }, onDeleteGroup: (String) -&gt; Unit = {}, onCreateGroup: (String) -&gt; Unit = {}, modifier: Modifier = Modifier, listState: androidx.compose.foundation.lazy.LazyListState = rememberLazyListState(), )</ID>
+    <ID>CyclomaticComplexMethod:KtorAgenticApi.kt$KtorAgenticApi$override suspend fun stream(id: String, since: Int?, onLine: suspend (String) -&gt; Unit)</ID>
+    <ID>CyclomaticComplexMethod:LoginScanScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun LoginScanScreen( state: LoginUiState, onSelect: (String) -&gt; Unit, onPassword: (String) -&gt; Unit, onTogglePassword: () -&gt; Unit, onRescan: () -&gt; Unit, onSubmit: () -&gt; Unit, onManual: () -&gt; Unit, onBack: () -&gt; Unit, )</ID>
+    <ID>CyclomaticComplexMethod:Markdown.kt$private fun parseBlocks(md: String): List&lt;Block&gt;</ID>
+    <ID>CyclomaticComplexMethod:NewRequestScreen.kt$@OptIn( ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class, ExperimentalMaterial3ExpressiveApi::class, ) @Composable fun NewRequestScreen( onBack: () -&gt; Unit, onCreated: (id: String, prompt: String) -&gt; Unit, vm: NewRequestViewModel? = null, )</ID>
+    <ID>CyclomaticComplexMethod:OnlineRecognizer.kt$fun getModelConfig(type: Int): OnlineModelConfig?</ID>
+    <ID>CyclomaticComplexMethod:ProvidersScreen.kt$@Composable private fun AddOrEditForm( form: ProviderFormState, busy: Boolean, currentRouter: String?, onSubmit: () -&gt; Unit, )</ID>
+    <ID>CyclomaticComplexMethod:ResumableDownloader.kt$ResumableDownloader$suspend fun download( url: String, dest: File, configure: HttpRequestBuilder.() -&gt; Unit = {}, onProgress: ((received: Long, total: Long?) -&gt; Unit)? = null, )</ID>
+    <ID>CyclomaticComplexMethod:SessionScreen.kt$@OptIn(ExperimentalMaterial3ExpressiveApi::class) @Composable internal fun SessionContent( s: SessionUiState, realVm: SessionViewModel, onOpenWorkflow: (dev.agentic.domain.WorkflowNode) -&gt; Unit = {}, onOpenParent: (String) -&gt; Unit = {}, onOpenSettings: () -&gt; Unit = {}, /** Long-press a prompt bubble → rewind code to before that turn. Default no-op (wide layout). */ onRewind: (turnIndex: Int) -&gt; Unit = {}, applyImePadding: Boolean = true, modifier: Modifier = Modifier, )</ID>
+    <ID>CyclomaticComplexMethod:SessionScreen.kt$@OptIn(ExperimentalMaterial3ExpressiveApi::class) @Composable private fun InputBar( input: String, onInput: (String) -&gt; Unit, onSubmit: () -&gt; Unit, onStop: () -&gt; Unit, busy: Boolean, composable: Boolean, canSend: Boolean, streaming: Boolean, workflowActive: Boolean, queueError: String? = null, onOpenSettings: () -&gt; Unit = {}, attachments: List&lt;PendingAttachment&gt; = emptyList(), onAttachFiles: (List&lt;Uri&gt;) -&gt; Unit = {}, onRemovePending: (String) -&gt; Unit = {}, mentionCandidates: List&lt;Session&gt; = emptyList(), onMentionActive: () -&gt; Unit = {}, )</ID>
+    <ID>CyclomaticComplexMethod:SessionSearchBar.kt$private fun SearchField.snippetLabel(): String</ID>
+    <ID>CyclomaticComplexMethod:SessionSettingsScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable fun SessionSettingsScreen( sessionId: String, onBack: () -&gt; Unit, )</ID>
+    <ID>CyclomaticComplexMethod:SessionViewModel.kt$SessionViewModel$private fun buildUiState( t: TranscriptState, runs: List&lt;WorkflowRun&gt;, shared: List&lt;AttachmentNode&gt;, l: Local, ): SessionUiState</ID>
+    <ID>CyclomaticComplexMethod:SessionsRepository.kt$SessionsRepository$private fun openStream(id: String)</ID>
+    <ID>CyclomaticComplexMethod:SessionsRepository.kt$SessionsRepository$suspend fun loadEarlier(id: String)</ID>
+    <ID>CyclomaticComplexMethod:SessionsRepository.kt$SessionsRepository$suspend fun loadNewer(id: String)</ID>
+    <ID>CyclomaticComplexMethod:SherpaDictation.kt$SherpaDictation$fun downloadModel(quality: Quality, onProgress: (downloaded: Long, total: Long) -&gt; Unit): Boolean</ID>
+    <ID>CyclomaticComplexMethod:SherpaDictation.kt$SherpaDictation$fun start(quality: Quality, onText: (String) -&gt; Unit, onError: (String) -&gt; Unit)</ID>
+    <ID>CyclomaticComplexMethod:SkillStoreScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable fun SkillStoreScreen( onBack: () -&gt; Unit, vm: GlobalSettingsViewModel? = null, )</ID>
+    <ID>CyclomaticComplexMethod:ToolDisplay.kt$fun toolSummary(name: String, input: JsonObject?): String</ID>
+    <ID>CyclomaticComplexMethod:Transcript.kt$@OptIn(ExperimentalFoundationApi::class) @Composable fun Transcript( nodes: List&lt;Node&gt;, onAnswerAsk: (AskNode, String) -&gt; Unit, onRespondPermission: (id: String, decision: String, feedback: String?) -&gt; Unit, onDownloadAttachment: (AttachmentNode) -&gt; Unit, downloadProgress: Map&lt;String, DownloadUi&gt;, canAnswer: Boolean, onOpenWorkflow: (WorkflowNode) -&gt; Unit = {}, loadImageBytes: suspend (AttachmentNode) -&gt; ByteArray? = { null }, /** Long-press a user prompt bubble → rewind the code to just before that turn (0-based index). * Default no-op (e.g. the wide layout doesn't wire it yet). */ onRewind: (turnIndex: Int) -&gt; Unit = {}, hasMore: Boolean = false, loadingEarlier: Boolean = false, onLoadEarlier: () -&gt; Unit = {}, /** Bounded-window (ended sessions): newer pages were evicted off the newest end and can be paged back * in as the user scrolls DOWN. Default off, so live sessions and the wide layout are unaffected. */ hasNewer: Boolean = false, loadingNewer: Boolean = false, onLoadNewer: () -&gt; Unit = {}, latestEventId: Long = 0, firstEventLine: Long = 0, modifier: Modifier = Modifier, )</ID>
+    <ID>CyclomaticComplexMethod:Transcript.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class) @Composable private fun AskCardView( node: AskNode, collapsedDefault: Boolean, canAnswer: Boolean, onAnswer: (String) -&gt; Unit, )</ID>
+    <ID>CyclomaticComplexMethod:Transcript.kt$fun applyEvent(nodes: List&lt;Node&gt;, o: JsonObject): Pair&lt;List&lt;Node&gt;, Boolean&gt;</ID>
+    <ID>CyclomaticComplexMethod:Transcript.kt$fun buildFromLog(log: List&lt;String&gt;): List&lt;Node&gt;</ID>
+    <ID>CyclomaticComplexMethod:Transcript.kt$private fun nodeFingerprint(node: Node): String</ID>
+    <ID>CyclomaticComplexMethod:TranscriptGrouping.kt$fun interleaveShared(display: List&lt;Node&gt;, shared: List&lt;AttachmentNode&gt;, truncatedStart: Boolean = false): List&lt;Node&gt;</ID>
+    <ID>CyclomaticComplexMethod:TranscriptReducer.kt$TranscriptReducer$@Synchronized fun applyFrameWithBusy(frame: String): FrameResult</ID>
+    <ID>CyclomaticComplexMethod:TranscriptScrollbar.kt$@Composable fun MessageFastScrollbar( state: LazyListState, anchors: List&lt;MsgAnchor&gt;, modifier: Modifier = Modifier, )</ID>
+    <ID>CyclomaticComplexMethod:WideThreePaneHome.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun WideThreePaneHome( onNewRequest: () -&gt; Unit, onOpenHistory: (String, Boolean) -&gt; Unit, onOpenSettings: (String) -&gt; Unit, onOpenDiagnostics: () -&gt; Unit, onOpenAdoptPicker: () -&gt; Unit = {}, onOpenGlobalSettings: () -&gt; Unit = {}, initialSelectedId: String? = null, )</ID>
+    <ID>CyclomaticComplexMethod:WorkflowScreen.kt$@OptIn(ExperimentalMaterial3ExpressiveApi::class) @Composable internal fun AgentRail( runs: List&lt;WorkflowRun&gt;, selected: Pair&lt;String, WorkflowAgent&gt;?, onSelect: (Pair&lt;String, WorkflowAgent&gt;) -&gt; Unit, modifier: Modifier = Modifier, onSelectMain: (() -&gt; Unit)? = null, expandedRuns: Set&lt;String&gt;? = null, onToggleRun: ((String) -&gt; Unit)? = null, )</ID>
+    <ID>EmptyElseBlock:KtorAgenticApi.kt$KtorAgenticApi$if (after != null) parameter("after", after)</ID>
+    <ID>EmptyElseBlock:KtorAgenticApi.kt$KtorAgenticApi$if (before != null) parameter("before", before)</ID>
+    <ID>EmptyElseBlock:KtorAgenticApi.kt$KtorAgenticApi$if (limit != null) parameter("limit", limit)</ID>
+    <ID>EmptyElseBlock:Markdown.kt$if (para.isNotBlank()) out.add(Block.Para(inline(para.toString().trim())))</ID>
+    <ID>EmptyFunctionBlock:CertPinning.kt$TofuTrustManager${}</ID>
+    <ID>EmptyFunctionBlock:DictationController.kt$&lt;no name provided&gt;${}</ID>
+    <ID>EmptyFunctionBlock:LanDiscoveryImpl.kt$&lt;no name provided&gt;${}</ID>
+    <ID>FunctionNaming:AdoptPickerScreen.kt$@Composable private fun AdoptRow( item: Adoptable, now: Long, isAdopting: Boolean, onTap: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:AdoptPickerScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable fun AdoptPickerSheet( onDismiss: () -&gt; Unit, onAdopted: (String) -&gt; Unit, )</ID>
+    <ID>FunctionNaming:AgentTranscriptPane.kt$@Composable private fun TaskDisclosure(task: String, transcriptKey: String)</ID>
+    <ID>FunctionNaming:AgentTranscriptPane.kt$@OptIn(ExperimentalMaterial3ExpressiveApi::class) @Composable fun AgentTranscriptPane( transcript: String?, loading: Boolean, modifier: Modifier = Modifier, )</ID>
+    <ID>FunctionNaming:AppNav.kt$@Composable fun AppNav()</ID>
+    <ID>FunctionNaming:AppTextField.kt$@Composable fun AppTextField( value: String, onValueChange: (String) -&gt; Unit, modifier: Modifier = Modifier, label: String? = null, placeholder: String? = null, errorMessage: String? = null, supportingText: String? = null, enabled: Boolean = true, readOnly: Boolean = false, singleLine: Boolean = true, minLines: Int = 1, maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE, leadingIcon: (@Composable () -&gt; Unit)? = null, trailingIcon: (@Composable () -&gt; Unit)? = null, keyboardOptions: KeyboardOptions = KeyboardOptions.Default, keyboardActions: KeyboardActions = KeyboardActions.Default, visualTransformation: VisualTransformation = VisualTransformation.None, // extraSmall is exactly OutlinedTextField's own default shape — pinned here so every field shares // one source of truth without depending on OutlinedTextFieldDefaults.shape's API surface. shape: Shape = MaterialTheme.shapes.extraSmall, colors: TextFieldColors = OutlinedTextFieldDefaults.colors(), )</ID>
+    <ID>FunctionNaming:AppTextField.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun AppTextField( state: TextFieldState, modifier: Modifier = Modifier, label: String? = null, placeholder: String? = null, errorMessage: String? = null, supportingText: String? = null, enabled: Boolean = true, readOnly: Boolean = false, singleLine: Boolean = true, minLines: Int = 1, maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE, leadingIcon: (@Composable () -&gt; Unit)? = null, trailingIcon: (@Composable () -&gt; Unit)? = null, keyboardOptions: KeyboardOptions = KeyboardOptions.Default, shape: Shape = MaterialTheme.shapes.extraSmall, colors: TextFieldColors = OutlinedTextFieldDefaults.colors(), )</ID>
+    <ID>FunctionNaming:AttachmentChip.kt$@Composable fun AttachmentChip(att: PendingAttachment, onRemove: () -&gt; Unit, modifier: Modifier = Modifier)</ID>
+    <ID>FunctionNaming:CappedScrollColumn.kt$@Composable fun CappedScrollColumn( maxHeight: Dp, modifier: Modifier = Modifier, content: @Composable ColumnScope.() -&gt; Unit, )</ID>
+    <ID>FunctionNaming:CommitGraphScreen.kt$@Composable private fun CommitFileRow(file: CommitFile, onClick: () -&gt; Unit = {})</ID>
+    <ID>FunctionNaming:CommitGraphScreen.kt$@Composable private fun CommitRow( commit: CommitNode, graphRow: GraphRow?, onClick: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:CommitGraphScreen.kt$@Composable private fun LiveWorktreeBanner()</ID>
+    <ID>FunctionNaming:CommitGraphScreen.kt$@Composable private fun RefChip(ref: GitRef)</ID>
+    <ID>FunctionNaming:CommitGraphScreen.kt$@Composable private fun RepoHeader(repo: String)</ID>
+    <ID>FunctionNaming:CommitGraphScreen.kt$@Composable private fun SessionChip(accent: Color)</ID>
+    <ID>FunctionNaming:CommitGraphScreen.kt$@Composable private fun UncommittedRow( unc: Uncommitted, graphRow: GraphRow?, onClick: () -&gt; Unit, onDiscard: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:CommitGraphScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable fun CommitGraphScreen( onBack: () -&gt; Unit, live: Boolean = false, /** Open the full-screen line-level diff for one (repo, sha, path). Default no-op for previews/tests. */ onOpenDiff: (repo: String, sha: String, path: String) -&gt; Unit = { _, _, _ -&gt; }, vm: CommitGraphViewModel? = null, )</ID>
+    <ID>FunctionNaming:ComponentChip.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class) @Composable fun ComponentChip( label: String, kind: String, effective: Boolean, onClick: () -&gt; Unit, modifier: Modifier = Modifier, enabled: Boolean = true, readOnlyCaption: String? = null, onLongClick: (() -&gt; Unit)? = null, )</ID>
+    <ID>FunctionNaming:DiagnosticsScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable fun DiagnosticsScreen( onBack: () -&gt; Unit, onOpenSettings: () -&gt; Unit = {}, onOpenSession: (String) -&gt; Unit = {}, )</ID>
+    <ID>FunctionNaming:DiagnosticsScreen.kt$@OptIn(ExperimentalMaterial3ExpressiveApi::class) @Composable private fun SessionPickerSheet( sessions: List&lt;dev.agentic.data.net.Session&gt;, loading: Boolean, crashCount: Int, bundleBytes: Long, onDismiss: () -&gt; Unit, onSessionPicked: (String, String) -&gt; Unit, )</ID>
+    <ID>FunctionNaming:DictationController.kt$@Composable fun DictationDownloadDialog(controller: DictationController)</ID>
+    <ID>FunctionNaming:FadingEdge.kt$@Composable fun FadingText( text: String, modifier: Modifier = Modifier, style: TextStyle = LocalTextStyle.current, color: Color = Color.Unspecified, fontWeight: FontWeight? = null, fontFamily: FontFamily? = null, fadeWidth: Dp = 28.dp, )</ID>
+    <ID>FunctionNaming:FileDiffScreen.kt$@Composable private fun CenteredNote(text: String)</ID>
+    <ID>FunctionNaming:FileDiffScreen.kt$@Composable private fun DiffLineRow(line: DiffLine, text: String)</ID>
+    <ID>FunctionNaming:FileDiffScreen.kt$@Composable private fun GutterNum(n: Int?, color: Color)</ID>
+    <ID>FunctionNaming:FileDiffScreen.kt$@Composable private fun HunkHeaderRow(hunk: DiffHunk)</ID>
+    <ID>FunctionNaming:FileDiffScreen.kt$@Composable private fun TruncatedBanner()</ID>
+    <ID>FunctionNaming:FileDiffScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable fun FileDiffScreen( onBack: () -&gt; Unit, vm: FileDiffViewModel? = null, )</ID>
+    <ID>FunctionNaming:GlobalSettingsScreen.kt$@Composable private fun AddHeaderButton(label: String, onAdd: () -&gt; Unit)</ID>
+    <ID>FunctionNaming:GlobalSettingsScreen.kt$@Composable private fun AddPluginForm( busy: Boolean, onInstall: (id: String) -&gt; Unit, )</ID>
+    <ID>FunctionNaming:GlobalSettingsScreen.kt$@Composable private fun CreateSkillPane( busy: Boolean, onAdd: (name: String, description: String, instructions: String) -&gt; Unit, )</ID>
+    <ID>FunctionNaming:GlobalSettingsScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable fun GlobalSettingsScreen( onBack: () -&gt; Unit, onOpenSkillStore: () -&gt; Unit = {}, vm: GlobalSettingsViewModel? = null, )</ID>
+    <ID>FunctionNaming:GlobalSettingsScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable private fun AddMcpForm( busy: Boolean, onAdd: (McpDraft) -&gt; String?, )</ID>
+    <ID>FunctionNaming:GlobalSettingsScreen.kt$@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class) @Composable private fun PluginsSection( plugins: List&lt;ComponentInfo&gt;, toggling: Set&lt;String&gt;, busy: Boolean, error: String?, onToggle: (ComponentInfo) -&gt; Unit, onInstallPlugin: (id: String) -&gt; Boolean, onUninstallPlugin: (id: String) -&gt; Unit, )</ID>
+    <ID>FunctionNaming:GlobalSettingsScreen.kt$@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class) @Composable private fun SkillsSection( skills: List&lt;ComponentInfo&gt;, toggling: Set&lt;String&gt;, busy: Boolean, error: String?, onOpenStore: () -&gt; Unit, onToggle: (ComponentInfo) -&gt; Unit, onAddSkill: (name: String, description: String, instructions: String) -&gt; Boolean, onDeleteSkill: (name: String) -&gt; Unit, )</ID>
+    <ID>FunctionNaming:GlobalSettingsScreen.kt$@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable private fun McpSection( mcps: List&lt;ComponentInfo&gt;, toggling: Set&lt;String&gt;, busy: Boolean, error: String?, onToggle: (ComponentInfo) -&gt; Unit, onAddMcpServer: (McpDraft) -&gt; String?, onDeleteMcpServer: (name: String) -&gt; Unit, )</ID>
+    <ID>FunctionNaming:HomeAdaptive.kt$@Composable fun HomeAdaptive( onNewRequest: () -&gt; Unit, onOpenHistory: (String, Boolean) -&gt; Unit, onOpenSettings: (String) -&gt; Unit, onOpenDiagnostics: () -&gt; Unit, onOpenAdoptPicker: () -&gt; Unit = {}, onOpenGlobalSettings: () -&gt; Unit = {}, initialSelectedId: String? = null, // Non-null when hosted by the SESSION route: invoked once the selection this route was opened // for has been shown and then cleared — at that point the narrow scaffold is an exact duplicate // of the Home route's, and the host pops the duplicate entry (narrow leg of "two-layer Home"). onDeselected: (() -&gt; Unit)? = null, )</ID>
+    <ID>FunctionNaming:HomeAdaptive.kt$@Composable private fun PanePlaceholder(text: String)</ID>
+    <ID>FunctionNaming:HomeAdaptive.kt$@OptIn(ExperimentalMaterial3AdaptiveApi::class) @Composable private fun NarrowScaffoldHome( onNewRequest: () -&gt; Unit, onOpenHistory: (String, Boolean) -&gt; Unit, onOpenSettings: (String) -&gt; Unit, onOpenDiagnostics: () -&gt; Unit, onOpenAdoptPicker: () -&gt; Unit, onOpenGlobalSettings: () -&gt; Unit = {}, initialSelectedId: String?, onDeselected: (() -&gt; Unit)? = null, )</ID>
+    <ID>FunctionNaming:HomeScreen.kt$@Composable private fun Meter(label: String, window: UsageWindow, onToggle: () -&gt; Unit, modifier: Modifier = Modifier)</ID>
+    <ID>FunctionNaming:HomeScreen.kt$@Composable private fun UsageMeters(u: Usage, modifier: Modifier = Modifier)</ID>
+    <ID>FunctionNaming:HomeScreen.kt$@OptIn(ExperimentalFoundationApi::class) @Composable internal fun SessionRow( session: Session, now: Long, openHighlight: Boolean, inSelectionMode: Boolean, checked: Boolean, unread: Boolean = false, onClick: () -&gt; Unit, onLongClick: () -&gt; Unit, modifier: Modifier = Modifier, )</ID>
+    <ID>FunctionNaming:HomeScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable internal fun GroupPickerSheet( groups: List&lt;Group&gt;, onDismiss: () -&gt; Unit, onGroupPicked: (String?) -&gt; Unit, )</ID>
+    <ID>FunctionNaming:HomeScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable internal fun HomeTopBar( selectionMode: Boolean, selectedCount: Int, totalCount: Int, onCloseSelection: () -&gt; Unit, onSelectAll: () -&gt; Unit, onDeleteSelected: () -&gt; Unit, onForkSelected: () -&gt; Unit, onMoveSelected: () -&gt; Unit = {}, onLogout: () -&gt; Unit, searchQuery: String, searching: Boolean, searchResults: List&lt;dev.agentic.data.net.SearchHit&gt;, onSearchQueryChange: (String) -&gt; Unit, onOpenSession: (String) -&gt; Unit, onSearchExpandedChange: (Boolean) -&gt; Unit = {}, onOpenDiagnostics: () -&gt; Unit = {}, onOpenAdoptPicker: () -&gt; Unit = {}, onOpenGlobalSettings: () -&gt; Unit = {}, )</ID>
+    <ID>FunctionNaming:HomeScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable fun HomeScreen( onOpenSession: (String) -&gt; Unit, onNewRequest: () -&gt; Unit, onOpenDiagnostics: () -&gt; Unit = {}, onOpenAdoptPicker: () -&gt; Unit = {}, onOpenGlobalSettings: () -&gt; Unit = {}, vm: HomeViewModel? = null, )</ID>
+    <ID>FunctionNaming:HomeScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable internal fun GroupFilterRow( groups: List&lt;Group&gt;, selectedFilter: String?, onSelectFilter: (String?) -&gt; Unit, onRenameGroup: (String, String) -&gt; Unit, onDeleteGroup: (String) -&gt; Unit, onCreateGroup: (String) -&gt; Unit, )</ID>
+    <ID>FunctionNaming:HomeScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable internal fun SessionItem( session: Session, now: Long, state: HomeUiState, selectedId: String?, onOpen: (String) -&gt; Unit, onDelete: (String) -&gt; Unit, onToggleSelect: (String) -&gt; Unit, onLongPress: (String) -&gt; Unit, modifier: Modifier = Modifier, )</ID>
+    <ID>FunctionNaming:HomeScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable internal fun SessionListPane( state: HomeUiState, selectedId: String?, onOpen: (String) -&gt; Unit, onDelete: (String) -&gt; Unit, onRefresh: () -&gt; Unit, onToggleSelect: (String) -&gt; Unit, onLongPress: (String) -&gt; Unit, onClearSearch: () -&gt; Unit, onSelectGroupFilter: (String?) -&gt; Unit = {}, onRenameGroup: (String, String) -&gt; Unit = { _, _ -&gt; }, onDeleteGroup: (String) -&gt; Unit = {}, onCreateGroup: (String) -&gt; Unit = {}, modifier: Modifier = Modifier, listState: androidx.compose.foundation.lazy.LazyListState = rememberLazyListState(), )</ID>
+    <ID>FunctionNaming:LoginChooser.kt$@OptIn(ExperimentalMaterial3ExpressiveApi::class) @Composable fun LoginChooser( state: LoginUiState, onScan: () -&gt; Unit, onManual: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:LoginChooser.kt$@OptIn(ExperimentalMaterial3ExpressiveApi::class) @Composable private fun ChooserCard( icon: ImageVector, title: String, subtitle: String, showSpinner: Boolean, onClick: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:LoginManualScreen.kt$@Composable fun PasswordField( state: LoginUiState, onPassword: (String) -&gt; Unit, onTogglePassword: () -&gt; Unit, modifier: Modifier = Modifier, keyboardOptions: KeyboardOptions = KeyboardOptions.Default, keyboardActions: KeyboardActions = KeyboardActions.Default, )</ID>
+    <ID>FunctionNaming:LoginManualScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun LoginManualScreen( state: LoginUiState, onHost: (String) -&gt; Unit, onPassword: (String) -&gt; Unit, onTogglePassword: () -&gt; Unit, onSubmit: () -&gt; Unit, onBack: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:LoginScanScreen.kt$@Composable private fun EmptyState(title: String, body: String, onManual: () -&gt; Unit)</ID>
+    <ID>FunctionNaming:LoginScanScreen.kt$@Composable private fun ServerRow(server: DiscoveredServer, selected: Boolean, onSelect: () -&gt; Unit)</ID>
+    <ID>FunctionNaming:LoginScanScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun LoginScanScreen( state: LoginUiState, onSelect: (String) -&gt; Unit, onPassword: (String) -&gt; Unit, onTogglePassword: () -&gt; Unit, onRescan: () -&gt; Unit, onSubmit: () -&gt; Unit, onManual: () -&gt; Unit, onBack: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:LoginScreen.kt$@Composable fun LoginScreen( onLoggedIn: () -&gt; Unit, vm: LoginViewModel? = null, )</ID>
+    <ID>FunctionNaming:Markdown.kt$@Composable fun MarkdownText( md: String, modifier: Modifier = Modifier, codeBackground: Color = MaterialTheme.colorScheme.surfaceVariant, tableBackground: Color = MaterialTheme.colorScheme.surface, tableHeaderBackground: Color = MaterialTheme.colorScheme.surfaceVariant, tableDivider: Color = MaterialTheme.colorScheme.outlineVariant, )</ID>
+    <ID>FunctionNaming:Markdown.kt$@Composable private fun TableBlock(t: Block.Table, surface: Color, headerBackground: Color, divider: Color)</ID>
+    <ID>FunctionNaming:NewRequestScreen.kt$@Composable private fun LimitedChipRows(content: @Composable () -&gt; Unit)</ID>
+    <ID>FunctionNaming:NewRequestScreen.kt$@Composable private fun TemplateVarDialog( template: Template, onApply: (Map&lt;String, String&gt;) -&gt; Unit, onDismiss: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:NewRequestScreen.kt$@OptIn( ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class, ExperimentalMaterial3ExpressiveApi::class, ) @Composable fun NewRequestScreen( onBack: () -&gt; Unit, onCreated: (id: String, prompt: String) -&gt; Unit, vm: NewRequestViewModel? = null, )</ID>
+    <ID>FunctionNaming:NewRequestScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable private fun ChipPicker( label: String, options: List&lt;String&gt;, selected: Set&lt;String&gt;, onToggle: (String) -&gt; Unit, // Chip text for an option. Lets Plugins show the short `&lt;plugin&gt;` name while the option value // (selection set + onToggle) stays the full `&lt;plugin&gt;@&lt;marketplace&gt;` id. Identity by default. displayLabel: (String) -&gt; String = { it }, )</ID>
+    <ID>FunctionNaming:ProvidersScreen.kt$@Composable fun ModelsSections()</ID>
+    <ID>FunctionNaming:ProvidersScreen.kt$@Composable private fun AddOrEditForm( form: ProviderFormState, busy: Boolean, currentRouter: String?, onSubmit: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:ProvidersScreen.kt$@Composable private fun MetricRow( label: String, value: Float, color: Color, trackColor: Color, labelColor: Color, showLabel: Boolean = false, )</ID>
+    <ID>FunctionNaming:ProvidersScreen.kt$@Composable private fun NativeFamilyCard(fam: NativeFamily, busy: Boolean, onEdit: () -&gt; Unit)</ID>
+    <ID>FunctionNaming:ProvidersScreen.kt$@Composable private fun NativeModelsSection()</ID>
+    <ID>FunctionNaming:ProvidersScreen.kt$@Composable private fun NativeOverrideDialog( family: NativeFamily, busy: Boolean, error: String?, onDismiss: () -&gt; Unit, onSave: (NativeOverrideReq) -&gt; Unit, onReset: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:ProvidersScreen.kt$@Composable private fun ProtocolSelector(selected: String, enabled: Boolean, onSelect: (String) -&gt; Unit)</ID>
+    <ID>FunctionNaming:ProvidersScreen.kt$@Composable private fun ProviderCard( p: Provider, busy: Boolean, onEdit: (Provider) -&gt; Unit, onDelete: (String) -&gt; Unit, // True when this card is rendered inside the SectionCard("Router") group. The section // header + violet container already say "this is the router", so the in-card Router // badge would be redundant there — it only shows for a router card rendered elsewhere. inRouterSection: Boolean = false, )</ID>
+    <ID>FunctionNaming:PullRequestCard.kt$@Composable fun PrCard(node: PrNode, modifier: Modifier = Modifier)</ID>
+    <ID>FunctionNaming:SearchBar.kt$@Composable fun SearchBar( query: String, onQueryChange: (String) -&gt; Unit, modifier: Modifier = Modifier, @Suppress("UNUSED_PARAMETER") searching: Boolean = false, onSearch: (() -&gt; Unit)? = null, )</ID>
+    <ID>FunctionNaming:SectionCard.kt$@Composable fun SectionCard( title: String, modifier: Modifier = Modifier, trailing: (@Composable () -&gt; Unit)? = null, content: @Composable ColumnScope.() -&gt; Unit, )</ID>
+    <ID>FunctionNaming:SessionChrome.kt$@Composable fun SessionDetailOverlays( vm: SessionViewModel, pendingRewindTurn: Int?, onDismissRewind: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:SessionMention.kt$@Composable internal fun MentionCandidatesPanel( candidates: List&lt;Session&gt;, onPick: (Session) -&gt; Unit, modifier: Modifier = Modifier, )</ID>
+    <ID>FunctionNaming:SessionScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable fun SessionScreen( onBack: () -&gt; Unit, onOpenWorkflows: () -&gt; Unit, onOpenHistory: (live: Boolean) -&gt; Unit, onFork: () -&gt; Unit, onForked: (newId: String) -&gt; Unit, onOpenParent: (String) -&gt; Unit, onOpenSettings: () -&gt; Unit = {}, onMoveToGroup: () -&gt; Unit = {}, vm: SessionViewModel? = null, )</ID>
+    <ID>FunctionNaming:SessionScreen.kt$@OptIn(ExperimentalMaterial3ExpressiveApi::class) @Composable internal fun SessionContent( s: SessionUiState, realVm: SessionViewModel, onOpenWorkflow: (dev.agentic.domain.WorkflowNode) -&gt; Unit = {}, onOpenParent: (String) -&gt; Unit = {}, onOpenSettings: () -&gt; Unit = {}, /** Long-press a prompt bubble → rewind code to before that turn. Default no-op (wide layout). */ onRewind: (turnIndex: Int) -&gt; Unit = {}, applyImePadding: Boolean = true, modifier: Modifier = Modifier, )</ID>
+    <ID>FunctionNaming:SessionScreen.kt$@OptIn(ExperimentalMaterial3ExpressiveApi::class) @Composable private fun ForkedHistoryCard(preview: ForkParentPreview, onOpenParent: (String) -&gt; Unit)</ID>
+    <ID>FunctionNaming:SessionScreen.kt$@OptIn(ExperimentalMaterial3ExpressiveApi::class) @Composable private fun InputBar( input: String, onInput: (String) -&gt; Unit, onSubmit: () -&gt; Unit, onStop: () -&gt; Unit, busy: Boolean, composable: Boolean, canSend: Boolean, streaming: Boolean, workflowActive: Boolean, queueError: String? = null, onOpenSettings: () -&gt; Unit = {}, attachments: List&lt;PendingAttachment&gt; = emptyList(), onAttachFiles: (List&lt;Uri&gt;) -&gt; Unit = {}, onRemovePending: (String) -&gt; Unit = {}, mentionCandidates: List&lt;Session&gt; = emptyList(), onMentionActive: () -&gt; Unit = {}, )</ID>
+    <ID>FunctionNaming:SessionSearchBar.kt$@Composable internal fun SearchResultsPanel( results: List&lt;SearchHit&gt;, query: String, onOpen: (String) -&gt; Unit, onClearQuery: () -&gt; Unit, modifier: Modifier = Modifier, lastSearchedQuery: String = "", )</ID>
+    <ID>FunctionNaming:SessionSearchBar.kt$@Composable internal fun SessionSearchBar( query: String, onQueryChange: (String) -&gt; Unit, searching: Boolean, @Suppress("UNUSED_PARAMETER") results: List&lt;SearchHit&gt;, selectionMode: Boolean, @Suppress("UNUSED_PARAMETER") onOpen: (String) -&gt; Unit, onExpandedChange: (Boolean) -&gt; Unit = {}, modifier: Modifier = Modifier, )</ID>
+    <ID>FunctionNaming:SessionSearchBar.kt$@Composable private fun SearchSnippet( label: String, snippet: String, query: String, modifier: Modifier = Modifier, )</ID>
+    <ID>FunctionNaming:SessionSettingsScreen.kt$@Composable private fun SettingsSwitchRow( label: String, supporting: String, checked: Boolean, onCheckedChange: (Boolean) -&gt; Unit, )</ID>
+    <ID>FunctionNaming:SessionSettingsScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable fun SessionSettingsScreen( sessionId: String, onBack: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:SessionTags.kt$@Composable internal fun DisplayChip( label: String, icon: ImageVector?, accent: Color, contentDescription: String, onClick: (() -&gt; Unit)? = null, )</ID>
+    <ID>FunctionNaming:SessionTags.kt$@Composable internal fun SessionTagRow( session: Session, modifier: Modifier = Modifier, onOpenParent: (String) -&gt; Unit = {}, )</ID>
+    <ID>FunctionNaming:SessionTags.kt$@Composable internal fun UltracodeChip(modifier: Modifier = Modifier)</ID>
+    <ID>FunctionNaming:SessionTags.kt$@Composable private fun SessionTagChip(tag: SessionTag, onClick: (() -&gt; Unit)? = null)</ID>
+    <ID>FunctionNaming:SkillStoreScreen.kt$@Composable private fun StoreRow( entry: CatalogSkill, installed: Boolean, showSource: Boolean, busy: Boolean, onInstall: (update: Boolean) -&gt; Unit, onRemove: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:SkillStoreScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable private fun SourcesSheet( sources: List&lt;String&gt;?, busy: Boolean, onAddSource: (String) -&gt; Unit, onRemoveSource: (String) -&gt; Unit, onDismiss: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:SkillStoreScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable fun SkillStoreScreen( onBack: () -&gt; Unit, vm: GlobalSettingsViewModel? = null, )</ID>
+    <ID>FunctionNaming:SliderField.kt$@Composable internal fun FloatSliderField( label: String, value: () -&gt; Float, onValueChange: (Float) -&gt; Unit, valueRange: ClosedFloatingPointRange&lt;Float&gt; = 0f..1f, )</ID>
+    <ID>FunctionNaming:SliderField.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable internal fun SliderField( label: String, options: List&lt;Pair&lt;String, String&gt;&gt;, value: String, onSelect: (String) -&gt; Unit, // When true, the label + slider recolor into the workflow/ultracode violet (a smooth tween on // entry/exit) AND the track carries the looping ultracode ripple — the same wave as the session // pill. Defaults off so other sliders (e.g. the Model slider) keep the plain primary look and run // no animation. accentActive: Boolean = false, // When true, the label + slider recolor into the theme error red to flag a dangerous selection // (the Permissions "Dangerous" notch). Takes precedence over accentActive, and is tweened the same // way so sliding onto/off the notch animates instead of snapping. Defaults off. dangerActive: Boolean = false, )</ID>
+    <ID>FunctionNaming:StatusIndicator.kt$@OptIn(ExperimentalMaterial3ExpressiveApi::class) @Composable fun StatusIndicator( status: String, awaitingInput: Boolean? = null, modifier: Modifier = Modifier, size: Dp = 18.dp, accent: Color? = null, unread: Boolean = false, flashOnComplete: Boolean = true, )</ID>
+    <ID>FunctionNaming:StatusIndicator.kt$@Preview @Composable private fun StatusIndicatorUnreadPreview()</ID>
+    <ID>FunctionNaming:Theme.kt$@OptIn(ExperimentalMaterial3ExpressiveApi::class) @Composable fun AppTheme(content: @Composable () -&gt; Unit)</ID>
+    <ID>FunctionNaming:Transcript.kt$@Composable private fun AgentChildCard(n: Node, onOpenWorkflow: (WorkflowNode) -&gt; Unit)</ID>
+    <ID>FunctionNaming:Transcript.kt$@Composable private fun AttachmentCard( node: AttachmentNode, onPrimary: () -&gt; Unit, onDownload: () -&gt; Unit, /** Non-null while this file is downloading — fraction + live speed + stall flag. */ progress: DownloadUi?, loadImageBytes: suspend (AttachmentNode) -&gt; ByteArray? = { null }, )</ID>
+    <ID>FunctionNaming:Transcript.kt$@Composable private fun EventChip( icon: ImageVector, label: String, container: Color, onColor: Color, onClick: (() -&gt; Unit)? = null, )</ID>
+    <ID>FunctionNaming:Transcript.kt$@Composable private fun ImagePreviewDialog( node: AttachmentNode, loadImageBytes: suspend (AttachmentNode) -&gt; ByteArray?, onDownload: () -&gt; Unit, onDismiss: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:Transcript.kt$@Composable private fun SpawnCard( label: String, result: String?, children: List&lt;Node&gt; = emptyList(), onOpenWorkflow: (WorkflowNode) -&gt; Unit = {}, )</ID>
+    <ID>FunctionNaming:Transcript.kt$@Composable private fun StepCard(n: Node)</ID>
+    <ID>FunctionNaming:Transcript.kt$@OptIn(ExperimentalFoundationApi::class) @Composable fun Transcript( nodes: List&lt;Node&gt;, onAnswerAsk: (AskNode, String) -&gt; Unit, onRespondPermission: (id: String, decision: String, feedback: String?) -&gt; Unit, onDownloadAttachment: (AttachmentNode) -&gt; Unit, downloadProgress: Map&lt;String, DownloadUi&gt;, canAnswer: Boolean, onOpenWorkflow: (WorkflowNode) -&gt; Unit = {}, loadImageBytes: suspend (AttachmentNode) -&gt; ByteArray? = { null }, /** Long-press a user prompt bubble → rewind the code to just before that turn (0-based index). * Default no-op (e.g. the wide layout doesn't wire it yet). */ onRewind: (turnIndex: Int) -&gt; Unit = {}, hasMore: Boolean = false, loadingEarlier: Boolean = false, onLoadEarlier: () -&gt; Unit = {}, /** Bounded-window (ended sessions): newer pages were evicted off the newest end and can be paged back * in as the user scrolls DOWN. Default off, so live sessions and the wide layout are unaffected. */ hasNewer: Boolean = false, loadingNewer: Boolean = false, onLoadNewer: () -&gt; Unit = {}, latestEventId: Long = 0, firstEventLine: Long = 0, modifier: Modifier = Modifier, )</ID>
+    <ID>FunctionNaming:Transcript.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable private fun Collapsible( icon: ImageVector, label: String, container: Color, onColor: Color, expandedDefault: Boolean = false, content: @Composable () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:Transcript.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable private fun PermCardView( node: PermNode, canAnswer: Boolean, onRespond: (decision: String, feedback: String?) -&gt; Unit, )</ID>
+    <ID>FunctionNaming:Transcript.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable private fun PlanCardView( node: PlanNode, canAnswer: Boolean, onRespond: (decision: String, feedback: String?) -&gt; Unit, )</ID>
+    <ID>FunctionNaming:Transcript.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class) @Composable private fun AskCardView( node: AskNode, collapsedDefault: Boolean, canAnswer: Boolean, onAnswer: (String) -&gt; Unit, )</ID>
+    <ID>FunctionNaming:TranscriptScrollbar.kt$@Composable fun MessageFastScrollbar( state: LazyListState, anchors: List&lt;MsgAnchor&gt;, modifier: Modifier = Modifier, )</ID>
+    <ID>FunctionNaming:VoiceDictationField.kt$@OptIn(ExperimentalMaterial3ExpressiveApi::class) @Composable fun VoiceDictationField( value: String, onValueChange: (String) -&gt; Unit, modifier: Modifier = Modifier, placeholder: String = "", enabled: Boolean = true, maxLines: Int = 6, // Shape + colors are forwarded to the inner AppTextField so a screen can give the dictation // field the same look as its other inputs (e.g. New request's filled, tonal, rounded fields). // Defaults match AppTextField's own defaults, so existing call sites are unchanged. shape: Shape = MaterialTheme.shapes.extraSmall, colors: TextFieldColors = OutlinedTextFieldDefaults.colors(), )</ID>
+    <ID>FunctionNaming:WideThreePaneHome.kt$@Composable private fun PaneSplitter(onDelta: (Float) -&gt; Unit, modifier: Modifier = Modifier)</ID>
+    <ID>FunctionNaming:WideThreePaneHome.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun WideThreePaneHome( onNewRequest: () -&gt; Unit, onOpenHistory: (String, Boolean) -&gt; Unit, onOpenSettings: (String) -&gt; Unit, onOpenDiagnostics: () -&gt; Unit, onOpenAdoptPicker: () -&gt; Unit = {}, onOpenGlobalSettings: () -&gt; Unit = {}, initialSelectedId: String? = null, )</ID>
+    <ID>FunctionNaming:WorkflowScreen.kt$@Composable private fun AgentCard( agent: WorkflowAgent, selected: Boolean, onClick: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:WorkflowScreen.kt$@Composable private fun AgentSubtitle( agentId: String, model: String, idColor: Color, modifier: Modifier = Modifier, style: TextStyle = MaterialTheme.typography.labelSmall, )</ID>
+    <ID>FunctionNaming:WorkflowScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable fun WorkflowScreen( onBack: () -&gt; Unit, vm: WorkflowViewModel? = null, )</ID>
+    <ID>FunctionNaming:WorkflowScreen.kt$@OptIn(ExperimentalMaterial3ExpressiveApi::class) @Composable internal fun AgentRail( runs: List&lt;WorkflowRun&gt;, selected: Pair&lt;String, WorkflowAgent&gt;?, onSelect: (Pair&lt;String, WorkflowAgent&gt;) -&gt; Unit, modifier: Modifier = Modifier, onSelectMain: (() -&gt; Unit)? = null, expandedRuns: Set&lt;String&gt;? = null, onToggleRun: ((String) -&gt; Unit)? = null, )</ID>
+    <ID>FunctionNaming:WorkflowScreen.kt$@OptIn(ExperimentalMaterial3ExpressiveApi::class) @Composable internal fun AgentTranscriptContent( agent: WorkflowAgent, transcript: String?, loading: Boolean, modifier: Modifier = Modifier, effort: String? = null, )</ID>
+    <ID>InstanceOfCheckForException:ResumableDownloader.kt$ResumableDownloader$e is DownloadHttpException</ID>
+    <ID>InstanceOfCheckForException:ResumableDownloader.kt$ResumableDownloader$e is HttpRequestTimeoutException</ID>
+    <ID>InstanceOfCheckForException:ResumableDownloader.kt$ResumableDownloader$e is IOException</ID>
+    <ID>LargeClass:KtorAgenticApi.kt$KtorAgenticApi : AgenticApi</ID>
+    <ID>LongMethod:AdoptPickerScreen.kt$@Composable private fun AdoptRow( item: Adoptable, now: Long, isAdopting: Boolean, onTap: () -&gt; Unit, )</ID>
+    <ID>LongMethod:AdoptPickerScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable fun AdoptPickerSheet( onDismiss: () -&gt; Unit, onAdopted: (String) -&gt; Unit, )</ID>
+    <ID>LongMethod:AppNav.kt$@Composable fun AppNav()</ID>
+    <ID>LongMethod:CommitGraph.kt$fun buildCommitGraph(commits: List&lt;CommitNode&gt;, hasUncommitted: Boolean): List&lt;GraphRow&gt;</ID>
+    <ID>LongMethod:CommitGraphScreen.kt$@Composable private fun CommitRow( commit: CommitNode, graphRow: GraphRow?, onClick: () -&gt; Unit, )</ID>
+    <ID>LongMethod:CommitGraphScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable fun CommitGraphScreen( onBack: () -&gt; Unit, live: Boolean = false, /** Open the full-screen line-level diff for one (repo, sha, path). Default no-op for previews/tests. */ onOpenDiff: (repo: String, sha: String, path: String) -&gt; Unit = { _, _, _ -&gt; }, vm: CommitGraphViewModel? = null, )</ID>
+    <ID>LongMethod:DiagnosticsScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable fun DiagnosticsScreen( onBack: () -&gt; Unit, onOpenSettings: () -&gt; Unit = {}, onOpenSession: (String) -&gt; Unit = {}, )</ID>
+    <ID>LongMethod:DiagnosticsScreen.kt$@OptIn(ExperimentalMaterial3ExpressiveApi::class) @Composable private fun SessionPickerSheet( sessions: List&lt;dev.agentic.data.net.Session&gt;, loading: Boolean, crashCount: Int, bundleBytes: Long, onDismiss: () -&gt; Unit, onSessionPicked: (String, String) -&gt; Unit, )</ID>
+    <ID>LongMethod:DictationController.kt$@Composable fun rememberDictationController( currentText: () -&gt; String, onText: (String) -&gt; Unit, ): DictationController</ID>
+    <ID>LongMethod:FileDiffScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable fun FileDiffScreen( onBack: () -&gt; Unit, vm: FileDiffViewModel? = null, )</ID>
+    <ID>LongMethod:GlobalSettingsScreen.kt$@Composable private fun CreateSkillPane( busy: Boolean, onAdd: (name: String, description: String, instructions: String) -&gt; Unit, )</ID>
+    <ID>LongMethod:GlobalSettingsScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable fun GlobalSettingsScreen( onBack: () -&gt; Unit, onOpenSkillStore: () -&gt; Unit = {}, vm: GlobalSettingsViewModel? = null, )</ID>
+    <ID>LongMethod:GlobalSettingsScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable private fun AddMcpForm( busy: Boolean, onAdd: (McpDraft) -&gt; String?, )</ID>
+    <ID>LongMethod:GlobalSettingsScreen.kt$@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class) @Composable private fun PluginsSection( plugins: List&lt;ComponentInfo&gt;, toggling: Set&lt;String&gt;, busy: Boolean, error: String?, onToggle: (ComponentInfo) -&gt; Unit, onInstallPlugin: (id: String) -&gt; Boolean, onUninstallPlugin: (id: String) -&gt; Unit, )</ID>
+    <ID>LongMethod:GlobalSettingsScreen.kt$@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class) @Composable private fun SkillsSection( skills: List&lt;ComponentInfo&gt;, toggling: Set&lt;String&gt;, busy: Boolean, error: String?, onOpenStore: () -&gt; Unit, onToggle: (ComponentInfo) -&gt; Unit, onAddSkill: (name: String, description: String, instructions: String) -&gt; Boolean, onDeleteSkill: (name: String) -&gt; Unit, )</ID>
+    <ID>LongMethod:GlobalSettingsScreen.kt$@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable private fun McpSection( mcps: List&lt;ComponentInfo&gt;, toggling: Set&lt;String&gt;, busy: Boolean, error: String?, onToggle: (ComponentInfo) -&gt; Unit, onAddMcpServer: (McpDraft) -&gt; String?, onDeleteMcpServer: (name: String) -&gt; Unit, )</ID>
+    <ID>LongMethod:HomeAdaptive.kt$@OptIn(ExperimentalMaterial3AdaptiveApi::class) @Composable private fun NarrowScaffoldHome( onNewRequest: () -&gt; Unit, onOpenHistory: (String, Boolean) -&gt; Unit, onOpenSettings: (String) -&gt; Unit, onOpenDiagnostics: () -&gt; Unit, onOpenAdoptPicker: () -&gt; Unit, onOpenGlobalSettings: () -&gt; Unit = {}, initialSelectedId: String?, onDeselected: (() -&gt; Unit)? = null, )</ID>
+    <ID>LongMethod:HomeScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable internal fun HomeTopBar( selectionMode: Boolean, selectedCount: Int, totalCount: Int, onCloseSelection: () -&gt; Unit, onSelectAll: () -&gt; Unit, onDeleteSelected: () -&gt; Unit, onForkSelected: () -&gt; Unit, onMoveSelected: () -&gt; Unit = {}, onLogout: () -&gt; Unit, searchQuery: String, searching: Boolean, searchResults: List&lt;dev.agentic.data.net.SearchHit&gt;, onSearchQueryChange: (String) -&gt; Unit, onOpenSession: (String) -&gt; Unit, onSearchExpandedChange: (Boolean) -&gt; Unit = {}, onOpenDiagnostics: () -&gt; Unit = {}, onOpenAdoptPicker: () -&gt; Unit = {}, onOpenGlobalSettings: () -&gt; Unit = {}, )</ID>
+    <ID>LongMethod:HomeScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable fun HomeScreen( onOpenSession: (String) -&gt; Unit, onNewRequest: () -&gt; Unit, onOpenDiagnostics: () -&gt; Unit = {}, onOpenAdoptPicker: () -&gt; Unit = {}, onOpenGlobalSettings: () -&gt; Unit = {}, vm: HomeViewModel? = null, )</ID>
+    <ID>LongMethod:HomeScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable internal fun GroupFilterRow( groups: List&lt;Group&gt;, selectedFilter: String?, onSelectFilter: (String?) -&gt; Unit, onRenameGroup: (String, String) -&gt; Unit, onDeleteGroup: (String) -&gt; Unit, onCreateGroup: (String) -&gt; Unit, )</ID>
+    <ID>LongMethod:HomeScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable internal fun SessionItem( session: Session, now: Long, state: HomeUiState, selectedId: String?, onOpen: (String) -&gt; Unit, onDelete: (String) -&gt; Unit, onToggleSelect: (String) -&gt; Unit, onLongPress: (String) -&gt; Unit, modifier: Modifier = Modifier, )</ID>
+    <ID>LongMethod:HomeScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable internal fun SessionListPane( state: HomeUiState, selectedId: String?, onOpen: (String) -&gt; Unit, onDelete: (String) -&gt; Unit, onRefresh: () -&gt; Unit, onToggleSelect: (String) -&gt; Unit, onLongPress: (String) -&gt; Unit, onClearSearch: () -&gt; Unit, onSelectGroupFilter: (String?) -&gt; Unit = {}, onRenameGroup: (String, String) -&gt; Unit = { _, _ -&gt; }, onDeleteGroup: (String) -&gt; Unit = {}, onCreateGroup: (String) -&gt; Unit = {}, modifier: Modifier = Modifier, listState: androidx.compose.foundation.lazy.LazyListState = rememberLazyListState(), )</ID>
+    <ID>LongMethod:LoginScanScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun LoginScanScreen( state: LoginUiState, onSelect: (String) -&gt; Unit, onPassword: (String) -&gt; Unit, onTogglePassword: () -&gt; Unit, onRescan: () -&gt; Unit, onSubmit: () -&gt; Unit, onManual: () -&gt; Unit, onBack: () -&gt; Unit, )</ID>
+    <ID>LongMethod:LoginScreen.kt$@Composable fun LoginScreen( onLoggedIn: () -&gt; Unit, vm: LoginViewModel? = null, )</ID>
+    <ID>LongMethod:NewRequestScreen.kt$@OptIn( ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class, ExperimentalMaterial3ExpressiveApi::class, ) @Composable fun NewRequestScreen( onBack: () -&gt; Unit, onCreated: (id: String, prompt: String) -&gt; Unit, vm: NewRequestViewModel? = null, )</ID>
+    <ID>LongMethod:OnlineRecognizer.kt$fun getModelConfig(type: Int): OnlineModelConfig?</ID>
+    <ID>LongMethod:ProvidersScreen.kt$@Composable fun ModelsSections()</ID>
+    <ID>LongMethod:ProvidersScreen.kt$@Composable private fun AddOrEditForm( form: ProviderFormState, busy: Boolean, currentRouter: String?, onSubmit: () -&gt; Unit, )</ID>
+    <ID>LongMethod:ProvidersScreen.kt$@Composable private fun ProviderCard( p: Provider, busy: Boolean, onEdit: (Provider) -&gt; Unit, onDelete: (String) -&gt; Unit, // True when this card is rendered inside the SectionCard("Router") group. The section // header + violet container already say "this is the router", so the in-card Router // badge would be redundant there — it only shows for a router card rendered elsewhere. inRouterSection: Boolean = false, )</ID>
+    <ID>LongMethod:PullRequestCard.kt$@Composable fun PrCard(node: PrNode, modifier: Modifier = Modifier)</ID>
+    <ID>LongMethod:ResumableDownloader.kt$ResumableDownloader$suspend fun download( url: String, dest: File, configure: HttpRequestBuilder.() -&gt; Unit = {}, onProgress: ((received: Long, total: Long?) -&gt; Unit)? = null, )</ID>
+    <ID>LongMethod:SessionScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable fun SessionScreen( onBack: () -&gt; Unit, onOpenWorkflows: () -&gt; Unit, onOpenHistory: (live: Boolean) -&gt; Unit, onFork: () -&gt; Unit, onForked: (newId: String) -&gt; Unit, onOpenParent: (String) -&gt; Unit, onOpenSettings: () -&gt; Unit = {}, onMoveToGroup: () -&gt; Unit = {}, vm: SessionViewModel? = null, )</ID>
+    <ID>LongMethod:SessionScreen.kt$@OptIn(ExperimentalMaterial3ExpressiveApi::class) @Composable internal fun SessionContent( s: SessionUiState, realVm: SessionViewModel, onOpenWorkflow: (dev.agentic.domain.WorkflowNode) -&gt; Unit = {}, onOpenParent: (String) -&gt; Unit = {}, onOpenSettings: () -&gt; Unit = {}, /** Long-press a prompt bubble → rewind code to before that turn. Default no-op (wide layout). */ onRewind: (turnIndex: Int) -&gt; Unit = {}, applyImePadding: Boolean = true, modifier: Modifier = Modifier, )</ID>
+    <ID>LongMethod:SessionScreen.kt$@OptIn(ExperimentalMaterial3ExpressiveApi::class) @Composable private fun ForkedHistoryCard(preview: ForkParentPreview, onOpenParent: (String) -&gt; Unit)</ID>
+    <ID>LongMethod:SessionScreen.kt$@OptIn(ExperimentalMaterial3ExpressiveApi::class) @Composable private fun InputBar( input: String, onInput: (String) -&gt; Unit, onSubmit: () -&gt; Unit, onStop: () -&gt; Unit, busy: Boolean, composable: Boolean, canSend: Boolean, streaming: Boolean, workflowActive: Boolean, queueError: String? = null, onOpenSettings: () -&gt; Unit = {}, attachments: List&lt;PendingAttachment&gt; = emptyList(), onAttachFiles: (List&lt;Uri&gt;) -&gt; Unit = {}, onRemovePending: (String) -&gt; Unit = {}, mentionCandidates: List&lt;Session&gt; = emptyList(), onMentionActive: () -&gt; Unit = {}, )</ID>
+    <ID>LongMethod:SessionSearchBar.kt$@Composable internal fun SearchResultsPanel( results: List&lt;SearchHit&gt;, query: String, onOpen: (String) -&gt; Unit, onClearQuery: () -&gt; Unit, modifier: Modifier = Modifier, lastSearchedQuery: String = "", )</ID>
+    <ID>LongMethod:SessionSettingsScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable fun SessionSettingsScreen( sessionId: String, onBack: () -&gt; Unit, )</ID>
+    <ID>LongMethod:SessionViewModel.kt$SessionViewModel$private fun buildUiState( t: TranscriptState, runs: List&lt;WorkflowRun&gt;, shared: List&lt;AttachmentNode&gt;, l: Local, ): SessionUiState</ID>
+    <ID>LongMethod:SessionsRepository.kt$SessionsRepository$private fun openStream(id: String)</ID>
+    <ID>LongMethod:SherpaDictation.kt$SherpaDictation$fun start(quality: Quality, onText: (String) -&gt; Unit, onError: (String) -&gt; Unit)</ID>
+    <ID>LongMethod:SkillStoreScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable fun SkillStoreScreen( onBack: () -&gt; Unit, vm: GlobalSettingsViewModel? = null, )</ID>
+    <ID>LongMethod:SliderField.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable internal fun SliderField( label: String, options: List&lt;Pair&lt;String, String&gt;&gt;, value: String, onSelect: (String) -&gt; Unit, // When true, the label + slider recolor into the workflow/ultracode violet (a smooth tween on // entry/exit) AND the track carries the looping ultracode ripple — the same wave as the session // pill. Defaults off so other sliders (e.g. the Model slider) keep the plain primary look and run // no animation. accentActive: Boolean = false, // When true, the label + slider recolor into the theme error red to flag a dangerous selection // (the Permissions "Dangerous" notch). Takes precedence over accentActive, and is tweened the same // way so sliding onto/off the notch animates instead of snapping. Defaults off. dangerActive: Boolean = false, )</ID>
+    <ID>LongMethod:Transcript.kt$@Composable private fun AttachmentCard( node: AttachmentNode, onPrimary: () -&gt; Unit, onDownload: () -&gt; Unit, /** Non-null while this file is downloading — fraction + live speed + stall flag. */ progress: DownloadUi?, loadImageBytes: suspend (AttachmentNode) -&gt; ByteArray? = { null }, )</ID>
+    <ID>LongMethod:Transcript.kt$@OptIn(ExperimentalFoundationApi::class) @Composable fun Transcript( nodes: List&lt;Node&gt;, onAnswerAsk: (AskNode, String) -&gt; Unit, onRespondPermission: (id: String, decision: String, feedback: String?) -&gt; Unit, onDownloadAttachment: (AttachmentNode) -&gt; Unit, downloadProgress: Map&lt;String, DownloadUi&gt;, canAnswer: Boolean, onOpenWorkflow: (WorkflowNode) -&gt; Unit = {}, loadImageBytes: suspend (AttachmentNode) -&gt; ByteArray? = { null }, /** Long-press a user prompt bubble → rewind the code to just before that turn (0-based index). * Default no-op (e.g. the wide layout doesn't wire it yet). */ onRewind: (turnIndex: Int) -&gt; Unit = {}, hasMore: Boolean = false, loadingEarlier: Boolean = false, onLoadEarlier: () -&gt; Unit = {}, /** Bounded-window (ended sessions): newer pages were evicted off the newest end and can be paged back * in as the user scrolls DOWN. Default off, so live sessions and the wide layout are unaffected. */ hasNewer: Boolean = false, loadingNewer: Boolean = false, onLoadNewer: () -&gt; Unit = {}, latestEventId: Long = 0, firstEventLine: Long = 0, modifier: Modifier = Modifier, )</ID>
+    <ID>LongMethod:Transcript.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class) @Composable private fun AskCardView( node: AskNode, collapsedDefault: Boolean, canAnswer: Boolean, onAnswer: (String) -&gt; Unit, )</ID>
+    <ID>LongMethod:Transcript.kt$fun applyEvent(nodes: List&lt;Node&gt;, o: JsonObject): Pair&lt;List&lt;Node&gt;, Boolean&gt;</ID>
+    <ID>LongMethod:Transcript.kt$fun buildFromLog(log: List&lt;String&gt;): List&lt;Node&gt;</ID>
+    <ID>LongMethod:TranscriptScrollbar.kt$@Composable fun MessageFastScrollbar( state: LazyListState, anchors: List&lt;MsgAnchor&gt;, modifier: Modifier = Modifier, )</ID>
+    <ID>LongMethod:WideThreePaneHome.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun WideThreePaneHome( onNewRequest: () -&gt; Unit, onOpenHistory: (String, Boolean) -&gt; Unit, onOpenSettings: (String) -&gt; Unit, onOpenDiagnostics: () -&gt; Unit, onOpenAdoptPicker: () -&gt; Unit = {}, onOpenGlobalSettings: () -&gt; Unit = {}, initialSelectedId: String? = null, )</ID>
+    <ID>LongMethod:WorkflowScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable fun WorkflowScreen( onBack: () -&gt; Unit, vm: WorkflowViewModel? = null, )</ID>
+    <ID>LongMethod:WorkflowScreen.kt$@OptIn(ExperimentalMaterial3ExpressiveApi::class) @Composable internal fun AgentRail( runs: List&lt;WorkflowRun&gt;, selected: Pair&lt;String, WorkflowAgent&gt;?, onSelect: (Pair&lt;String, WorkflowAgent&gt;) -&gt; Unit, modifier: Modifier = Modifier, onSelectMain: (() -&gt; Unit)? = null, expandedRuns: Set&lt;String&gt;? = null, onToggleRun: ((String) -&gt; Unit)? = null, )</ID>
+    <ID>LongParameterList:AgenticApi.kt$AgenticApi$(id: String, prompt: String, setTitle: Boolean = true, model: String? = null, effort: String? = null, permissionMode: String? = null)</ID>
+    <ID>LongParameterList:AppTextField.kt$( state: TextFieldState, modifier: Modifier = Modifier, label: String? = null, placeholder: String? = null, errorMessage: String? = null, supportingText: String? = null, enabled: Boolean = true, readOnly: Boolean = false, singleLine: Boolean = true, minLines: Int = 1, maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE, leadingIcon: (@Composable () -&gt; Unit)? = null, trailingIcon: (@Composable () -&gt; Unit)? = null, keyboardOptions: KeyboardOptions = KeyboardOptions.Default, shape: Shape = MaterialTheme.shapes.extraSmall, colors: TextFieldColors = OutlinedTextFieldDefaults.colors(), )</ID>
+    <ID>LongParameterList:AppTextField.kt$( value: String, onValueChange: (String) -&gt; Unit, modifier: Modifier = Modifier, label: String? = null, placeholder: String? = null, errorMessage: String? = null, supportingText: String? = null, enabled: Boolean = true, readOnly: Boolean = false, singleLine: Boolean = true, minLines: Int = 1, maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE, leadingIcon: (@Composable () -&gt; Unit)? = null, trailingIcon: (@Composable () -&gt; Unit)? = null, keyboardOptions: KeyboardOptions = KeyboardOptions.Default, keyboardActions: KeyboardActions = KeyboardActions.Default, visualTransformation: VisualTransformation = VisualTransformation.None, // extraSmall is exactly OutlinedTextField's own default shape — pinned here so every field shares // one source of truth without depending on OutlinedTextFieldDefaults.shape's API surface. shape: Shape = MaterialTheme.shapes.extraSmall, colors: TextFieldColors = OutlinedTextFieldDefaults.colors(), )</ID>
+    <ID>LongParameterList:ComponentChip.kt$( label: String, kind: String, effective: Boolean, onClick: () -&gt; Unit, modifier: Modifier = Modifier, enabled: Boolean = true, readOnlyCaption: String? = null, onLongClick: (() -&gt; Unit)? = null, )</ID>
+    <ID>LongParameterList:DiagnosticsScreen.kt$( sessions: List&lt;dev.agentic.data.net.Session&gt;, loading: Boolean, crashCount: Int, bundleBytes: Long, onDismiss: () -&gt; Unit, onSessionPicked: (String, String) -&gt; Unit, )</ID>
+    <ID>LongParameterList:FadingEdge.kt$( text: String, modifier: Modifier = Modifier, style: TextStyle = LocalTextStyle.current, color: Color = Color.Unspecified, fontWeight: FontWeight? = null, fontFamily: FontFamily? = null, fadeWidth: Dp = 28.dp, )</ID>
+    <ID>LongParameterList:GlobalSettingsScreen.kt$( mcps: List&lt;ComponentInfo&gt;, toggling: Set&lt;String&gt;, busy: Boolean, error: String?, onToggle: (ComponentInfo) -&gt; Unit, onAddMcpServer: (McpDraft) -&gt; String?, onDeleteMcpServer: (name: String) -&gt; Unit, )</ID>
+    <ID>LongParameterList:GlobalSettingsScreen.kt$( plugins: List&lt;ComponentInfo&gt;, toggling: Set&lt;String&gt;, busy: Boolean, error: String?, onToggle: (ComponentInfo) -&gt; Unit, onInstallPlugin: (id: String) -&gt; Boolean, onUninstallPlugin: (id: String) -&gt; Unit, )</ID>
+    <ID>LongParameterList:GlobalSettingsScreen.kt$( skills: List&lt;ComponentInfo&gt;, toggling: Set&lt;String&gt;, busy: Boolean, error: String?, onOpenStore: () -&gt; Unit, onToggle: (ComponentInfo) -&gt; Unit, onAddSkill: (name: String, description: String, instructions: String) -&gt; Boolean, onDeleteSkill: (name: String) -&gt; Unit, )</ID>
+    <ID>LongParameterList:HomeAdaptive.kt$( onNewRequest: () -&gt; Unit, onOpenHistory: (String, Boolean) -&gt; Unit, onOpenSettings: (String) -&gt; Unit, onOpenDiagnostics: () -&gt; Unit, onOpenAdoptPicker: () -&gt; Unit = {}, onOpenGlobalSettings: () -&gt; Unit = {}, initialSelectedId: String? = null, // Non-null when hosted by the SESSION route: invoked once the selection this route was opened // for has been shown and then cleared — at that point the narrow scaffold is an exact duplicate // of the Home route's, and the host pops the duplicate entry (narrow leg of "two-layer Home"). onDeselected: (() -&gt; Unit)? = null, )</ID>
+    <ID>LongParameterList:HomeAdaptive.kt$( onNewRequest: () -&gt; Unit, onOpenHistory: (String, Boolean) -&gt; Unit, onOpenSettings: (String) -&gt; Unit, onOpenDiagnostics: () -&gt; Unit, onOpenAdoptPicker: () -&gt; Unit, onOpenGlobalSettings: () -&gt; Unit = {}, initialSelectedId: String?, onDeselected: (() -&gt; Unit)? = null, )</ID>
+    <ID>LongParameterList:HomeScreen.kt$( groups: List&lt;Group&gt;, selectedFilter: String?, onSelectFilter: (String?) -&gt; Unit, onRenameGroup: (String, String) -&gt; Unit, onDeleteGroup: (String) -&gt; Unit, onCreateGroup: (String) -&gt; Unit, )</ID>
+    <ID>LongParameterList:HomeScreen.kt$( onOpenSession: (String) -&gt; Unit, onNewRequest: () -&gt; Unit, onOpenDiagnostics: () -&gt; Unit = {}, onOpenAdoptPicker: () -&gt; Unit = {}, onOpenGlobalSettings: () -&gt; Unit = {}, vm: HomeViewModel? = null, )</ID>
+    <ID>LongParameterList:HomeScreen.kt$( selectionMode: Boolean, selectedCount: Int, totalCount: Int, onCloseSelection: () -&gt; Unit, onSelectAll: () -&gt; Unit, onDeleteSelected: () -&gt; Unit, onForkSelected: () -&gt; Unit, onMoveSelected: () -&gt; Unit = {}, onLogout: () -&gt; Unit, searchQuery: String, searching: Boolean, searchResults: List&lt;dev.agentic.data.net.SearchHit&gt;, onSearchQueryChange: (String) -&gt; Unit, onOpenSession: (String) -&gt; Unit, onSearchExpandedChange: (Boolean) -&gt; Unit = {}, onOpenDiagnostics: () -&gt; Unit = {}, onOpenAdoptPicker: () -&gt; Unit = {}, onOpenGlobalSettings: () -&gt; Unit = {}, )</ID>
+    <ID>LongParameterList:HomeScreen.kt$( session: Session, now: Long, openHighlight: Boolean, inSelectionMode: Boolean, checked: Boolean, unread: Boolean = false, onClick: () -&gt; Unit, onLongClick: () -&gt; Unit, modifier: Modifier = Modifier, )</ID>
+    <ID>LongParameterList:HomeScreen.kt$( session: Session, now: Long, state: HomeUiState, selectedId: String?, onOpen: (String) -&gt; Unit, onDelete: (String) -&gt; Unit, onToggleSelect: (String) -&gt; Unit, onLongPress: (String) -&gt; Unit, modifier: Modifier = Modifier, )</ID>
+    <ID>LongParameterList:HomeScreen.kt$( state: HomeUiState, selectedId: String?, onOpen: (String) -&gt; Unit, onDelete: (String) -&gt; Unit, onRefresh: () -&gt; Unit, onToggleSelect: (String) -&gt; Unit, onLongPress: (String) -&gt; Unit, onClearSearch: () -&gt; Unit, onSelectGroupFilter: (String?) -&gt; Unit = {}, onRenameGroup: (String, String) -&gt; Unit = { _, _ -&gt; }, onDeleteGroup: (String) -&gt; Unit = {}, onCreateGroup: (String) -&gt; Unit = {}, modifier: Modifier = Modifier, listState: androidx.compose.foundation.lazy.LazyListState = rememberLazyListState(), )</ID>
+    <ID>LongParameterList:LoginManualScreen.kt$( state: LoginUiState, onHost: (String) -&gt; Unit, onPassword: (String) -&gt; Unit, onTogglePassword: () -&gt; Unit, onSubmit: () -&gt; Unit, onBack: () -&gt; Unit, )</ID>
+    <ID>LongParameterList:LoginManualScreen.kt$( state: LoginUiState, onPassword: (String) -&gt; Unit, onTogglePassword: () -&gt; Unit, modifier: Modifier = Modifier, keyboardOptions: KeyboardOptions = KeyboardOptions.Default, keyboardActions: KeyboardActions = KeyboardActions.Default, )</ID>
+    <ID>LongParameterList:LoginScanScreen.kt$( state: LoginUiState, onSelect: (String) -&gt; Unit, onPassword: (String) -&gt; Unit, onTogglePassword: () -&gt; Unit, onRescan: () -&gt; Unit, onSubmit: () -&gt; Unit, onManual: () -&gt; Unit, onBack: () -&gt; Unit, )</ID>
+    <ID>LongParameterList:Markdown.kt$( md: String, modifier: Modifier = Modifier, codeBackground: Color = MaterialTheme.colorScheme.surfaceVariant, tableBackground: Color = MaterialTheme.colorScheme.surface, tableHeaderBackground: Color = MaterialTheme.colorScheme.surfaceVariant, tableDivider: Color = MaterialTheme.colorScheme.outlineVariant, )</ID>
+    <ID>LongParameterList:ProvidersScreen.kt$( family: NativeFamily, busy: Boolean, error: String?, onDismiss: () -&gt; Unit, onSave: (NativeOverrideReq) -&gt; Unit, onReset: () -&gt; Unit, )</ID>
+    <ID>LongParameterList:ProvidersScreen.kt$( label: String, value: Float, color: Color, trackColor: Color, labelColor: Color, showLabel: Boolean = false, )</ID>
+    <ID>LongParameterList:SessionIndicatorTest.kt$SessionIndicatorTest$( status: String = "done", errorKind: String? = null, awaitingInput: Boolean? = null, unreadEventId: Long = 0, ackedEventId: Long = 0, workflowRunning: Boolean = false, )</ID>
+    <ID>LongParameterList:SessionScreen.kt$( input: String, onInput: (String) -&gt; Unit, onSubmit: () -&gt; Unit, onStop: () -&gt; Unit, busy: Boolean, composable: Boolean, canSend: Boolean, streaming: Boolean, workflowActive: Boolean, queueError: String? = null, onOpenSettings: () -&gt; Unit = {}, attachments: List&lt;PendingAttachment&gt; = emptyList(), onAttachFiles: (List&lt;Uri&gt;) -&gt; Unit = {}, onRemovePending: (String) -&gt; Unit = {}, mentionCandidates: List&lt;Session&gt; = emptyList(), onMentionActive: () -&gt; Unit = {}, )</ID>
+    <ID>LongParameterList:SessionScreen.kt$( onBack: () -&gt; Unit, onOpenWorkflows: () -&gt; Unit, onOpenHistory: (live: Boolean) -&gt; Unit, onFork: () -&gt; Unit, onForked: (newId: String) -&gt; Unit, onOpenParent: (String) -&gt; Unit, onOpenSettings: () -&gt; Unit = {}, onMoveToGroup: () -&gt; Unit = {}, vm: SessionViewModel? = null, )</ID>
+    <ID>LongParameterList:SessionScreen.kt$( s: SessionUiState, realVm: SessionViewModel, onOpenWorkflow: (dev.agentic.domain.WorkflowNode) -&gt; Unit = {}, onOpenParent: (String) -&gt; Unit = {}, onOpenSettings: () -&gt; Unit = {}, /** Long-press a prompt bubble → rewind code to before that turn. Default no-op (wide layout). */ onRewind: (turnIndex: Int) -&gt; Unit = {}, applyImePadding: Boolean = true, modifier: Modifier = Modifier, )</ID>
+    <ID>LongParameterList:SessionSearchBar.kt$( query: String, onQueryChange: (String) -&gt; Unit, searching: Boolean, @Suppress("UNUSED_PARAMETER") results: List&lt;SearchHit&gt;, selectionMode: Boolean, @Suppress("UNUSED_PARAMETER") onOpen: (String) -&gt; Unit, onExpandedChange: (Boolean) -&gt; Unit = {}, modifier: Modifier = Modifier, )</ID>
+    <ID>LongParameterList:SessionSearchBar.kt$( results: List&lt;SearchHit&gt;, query: String, onOpen: (String) -&gt; Unit, onClearQuery: () -&gt; Unit, modifier: Modifier = Modifier, lastSearchedQuery: String = "", )</ID>
+    <ID>LongParameterList:SessionViewModel.kt$SessionViewModel$( private val sessionsRepo: SessionsRepository, private val workflowsRepo: WorkflowsRepository, private val filesRepo: FilesRepository, private val api: AgenticApi, private val id: String, private val initialPrompt: String? = null, // Dispatcher for the O(n) buildUiState combine (moved off Main via flowOn below). Injectable so unit // tests can pass their TestDispatcher — Dispatchers.Default escapes the test scheduler and would make // uiState emissions non-deterministic under runTest. private val computeDispatcher: CoroutineDispatcher = Dispatchers.Default, /** SavedStateHandle backing this VM, when constructed via the secondary ctor from a nav entry. * Null when constructed via the primary ctor (wide-layout AdaptiveHome right pane has no per-session * nav entry). Retained for forward compatibility (some call sites already pass it) even though * the per-turn settings handoff was removed. */ private val savedStateHandle: SavedStateHandle? = null, )</ID>
+    <ID>LongParameterList:SessionsRepository.kt$SessionsRepository$(id: String, prompt: String, setTitle: Boolean = true, model: String? = null, effort: String? = null, permissionMode: String? = null)</ID>
+    <ID>LongParameterList:SkillStoreScreen.kt$( entry: CatalogSkill, installed: Boolean, showSource: Boolean, busy: Boolean, onInstall: (update: Boolean) -&gt; Unit, onRemove: () -&gt; Unit, )</ID>
+    <ID>LongParameterList:SliderField.kt$( label: String, options: List&lt;Pair&lt;String, String&gt;&gt;, value: String, onSelect: (String) -&gt; Unit, // When true, the label + slider recolor into the workflow/ultracode violet (a smooth tween on // entry/exit) AND the track carries the looping ultracode ripple — the same wave as the session // pill. Defaults off so other sliders (e.g. the Model slider) keep the plain primary look and run // no animation. accentActive: Boolean = false, // When true, the label + slider recolor into the theme error red to flag a dangerous selection // (the Permissions "Dangerous" notch). Takes precedence over accentActive, and is tweened the same // way so sliding onto/off the notch animates instead of snapping. Defaults off. dangerActive: Boolean = false, )</ID>
+    <ID>LongParameterList:StatusIndicator.kt$( status: String, awaitingInput: Boolean? = null, modifier: Modifier = Modifier, size: Dp = 18.dp, accent: Color? = null, unread: Boolean = false, flashOnComplete: Boolean = true, )</ID>
+    <ID>LongParameterList:Transcript.kt$( icon: ImageVector, label: String, container: Color, onColor: Color, expandedDefault: Boolean = false, content: @Composable () -&gt; Unit, )</ID>
+    <ID>LongParameterList:Transcript.kt$( nodes: List&lt;Node&gt;, onAnswerAsk: (AskNode, String) -&gt; Unit, onRespondPermission: (id: String, decision: String, feedback: String?) -&gt; Unit, onDownloadAttachment: (AttachmentNode) -&gt; Unit, downloadProgress: Map&lt;String, DownloadUi&gt;, canAnswer: Boolean, onOpenWorkflow: (WorkflowNode) -&gt; Unit = {}, loadImageBytes: suspend (AttachmentNode) -&gt; ByteArray? = { null }, /** Long-press a user prompt bubble → rewind the code to just before that turn (0-based index). * Default no-op (e.g. the wide layout doesn't wire it yet). */ onRewind: (turnIndex: Int) -&gt; Unit = {}, hasMore: Boolean = false, loadingEarlier: Boolean = false, onLoadEarlier: () -&gt; Unit = {}, /** Bounded-window (ended sessions): newer pages were evicted off the newest end and can be paged back * in as the user scrolls DOWN. Default off, so live sessions and the wide layout are unaffected. */ hasNewer: Boolean = false, loadingNewer: Boolean = false, onLoadNewer: () -&gt; Unit = {}, latestEventId: Long = 0, firstEventLine: Long = 0, modifier: Modifier = Modifier, )</ID>
+    <ID>LongParameterList:VoiceDictationField.kt$( value: String, onValueChange: (String) -&gt; Unit, modifier: Modifier = Modifier, placeholder: String = "", enabled: Boolean = true, maxLines: Int = 6, // Shape + colors are forwarded to the inner AppTextField so a screen can give the dictation // field the same look as its other inputs (e.g. New request's filled, tonal, rounded fields). // Defaults match AppTextField's own defaults, so existing call sites are unchanged. shape: Shape = MaterialTheme.shapes.extraSmall, colors: TextFieldColors = OutlinedTextFieldDefaults.colors(), )</ID>
+    <ID>LongParameterList:WideThreePaneHome.kt$( onNewRequest: () -&gt; Unit, onOpenHistory: (String, Boolean) -&gt; Unit, onOpenSettings: (String) -&gt; Unit, onOpenDiagnostics: () -&gt; Unit, onOpenAdoptPicker: () -&gt; Unit = {}, onOpenGlobalSettings: () -&gt; Unit = {}, initialSelectedId: String? = null, )</ID>
+    <ID>LongParameterList:WorkflowScreen.kt$( runs: List&lt;WorkflowRun&gt;, selected: Pair&lt;String, WorkflowAgent&gt;?, onSelect: (Pair&lt;String, WorkflowAgent&gt;) -&gt; Unit, modifier: Modifier = Modifier, onSelectMain: (() -&gt; Unit)? = null, expandedRuns: Set&lt;String&gt;? = null, onToggleRun: ((String) -&gt; Unit)? = null, )</ID>
+    <ID>LoopWithTooManyJumpStatements:KtorAgenticApi.kt$KtorAgenticApi$while</ID>
+    <ID>LoopWithTooManyJumpStatements:LogcatCollector.kt$LogcatCollector$while</ID>
+    <ID>LoopWithTooManyJumpStatements:SessionsRepository.kt$SessionsRepository$while</ID>
+    <ID>LoopWithTooManyJumpStatements:TranscriptGrouping.kt$for</ID>
+    <ID>MagicNumber:AdoptPickerScreen.kt$150</ID>
+    <ID>MagicNumber:AdoptPickerScreen.kt$50</ID>
+    <ID>MagicNumber:AgenticMessagingService.kt$AgenticMessagingService$8</ID>
+    <ID>MagicNumber:CertPinning.kt$443</ID>
+    <ID>MagicNumber:CertPinning.kt$80</ID>
+    <ID>MagicNumber:CommitGraphScreen.kt$0.5f</ID>
+    <ID>MagicNumber:CommitGraphScreen.kt$0xFF2A2310</ID>
+    <ID>MagicNumber:CommitGraphScreen.kt$0xFF7EC891</ID>
+    <ID>MagicNumber:CommitGraphScreen.kt$0xFFE07070</ID>
+    <ID>MagicNumber:CommitGraphScreen.kt$0xFFE4C77E</ID>
+    <ID>MagicNumber:CommitGraphScreen.kt$3.5f</ID>
+    <ID>MagicNumber:ComponentChip.kt$0.5f</ID>
+    <ID>MagicNumber:CrashHandler.kt$CrashHandler$10</ID>
+    <ID>MagicNumber:DiagnosticsScreen.kt$1024</ID>
+    <ID>MagicNumber:DiagnosticsScreen.kt$1024.0</ID>
+    <ID>MagicNumber:DiagnosticsViewModel.kt$DiagnosticsViewModel$10</ID>
+    <ID>MagicNumber:DiagnosticsViewModel.kt$DiagnosticsViewModel$400</ID>
+    <ID>MagicNumber:DiagnosticsViewModel.kt$DiagnosticsViewModel$8</ID>
+    <ID>MagicNumber:DictationController.kt$100</ID>
+    <ID>MagicNumber:DownloadPace.kt$1024</ID>
+    <ID>MagicNumber:DownloadPace.kt$1024.0</ID>
+    <ID>MagicNumber:DownloadPace.kt$DownloadPace$1000.0</ID>
+    <ID>MagicNumber:FileDiffScreen.kt$0x3327AE60</ID>
+    <ID>MagicNumber:FileDiffScreen.kt$0x33E05656</ID>
+    <ID>MagicNumber:FileDiffScreen.kt$0xFF8FE3AD</ID>
+    <ID>MagicNumber:FileDiffScreen.kt$0xFFEDA3A3</ID>
+    <ID>MagicNumber:FileDiffScreen.kt$7</ID>
+    <ID>MagicNumber:FilesRepository.kt$FilesRepository$7</ID>
+    <ID>MagicNumber:GraphColors.kt$0xFF74D4DC</ID>
+    <ID>MagicNumber:GraphColors.kt$0xFF9BD49A</ID>
+    <ID>MagicNumber:GraphColors.kt$0xFFC9B4F4</ID>
+    <ID>MagicNumber:GraphColors.kt$0xFFE4C77E</ID>
+    <ID>MagicNumber:GraphColors.kt$0xFFEFAAD6</ID>
+    <ID>MagicNumber:GraphColors.kt$0xFFF2B488</ID>
+    <ID>MagicNumber:GraphColors.kt$0xFFF4ABA8</ID>
+    <ID>MagicNumber:HomeScreen.kt$30_000L</ID>
+    <ID>MagicNumber:HomeScreen.kt$50</ID>
+    <ID>MagicNumber:HomeScreen.kt$70.0</ID>
+    <ID>MagicNumber:HomeScreen.kt$8</ID>
+    <ID>MagicNumber:HomeScreen.kt$90.0</ID>
+    <ID>MagicNumber:HomeViewModel.kt$HomeViewModel$5_000L</ID>
+    <ID>MagicNumber:HomeViewModel.kt$HomeViewModel$60_000L</ID>
+    <ID>MagicNumber:KtorAgenticApi.kt$KtorAgenticApi$15_000</ID>
+    <ID>MagicNumber:KtorAgenticApi.kt$KtorAgenticApi$180_000</ID>
+    <ID>MagicNumber:KtorAgenticApi.kt$KtorAgenticApi$20</ID>
+    <ID>MagicNumber:KtorAgenticApi.kt$KtorAgenticApi$20_000</ID>
+    <ID>MagicNumber:KtorAgenticApi.kt$KtorAgenticApi$20_000L</ID>
+    <ID>MagicNumber:KtorAgenticApi.kt$KtorAgenticApi$30_000L</ID>
+    <ID>MagicNumber:KtorAgenticApi.kt$KtorAgenticApi$5</ID>
+    <ID>MagicNumber:KtorAgenticApi.kt$KtorAgenticApi$5_000</ID>
+    <ID>MagicNumber:KtorAgenticApi.kt$KtorAgenticApi$5_000L</ID>
+    <ID>MagicNumber:KtorAgenticApi.kt$KtorAgenticApi$600_000</ID>
+    <ID>MagicNumber:KtorAgenticApi.kt$KtorAgenticApi$60_000</ID>
+    <ID>MagicNumber:KtorAgenticApi.kt$KtorAgenticApi$6_000</ID>
+    <ID>MagicNumber:KtorAgenticApi.kt$KtorAgenticApi$8</ID>
+    <ID>MagicNumber:LanDiscoveryImpl.kt$HealthzServerProbe$1_000_000</ID>
+    <ID>MagicNumber:LanScanner.kt$254</ID>
+    <ID>MagicNumber:LanScanner.kt$255</ID>
+    <ID>MagicNumber:LanScanner.kt$3</ID>
+    <ID>MagicNumber:LanScanner.kt$4</ID>
+    <ID>MagicNumber:LogStore.kt$LogStore$1024</ID>
+    <ID>MagicNumber:LogStore.kt$LogStore$256L</ID>
+    <ID>MagicNumber:LogcatCollector.kt$LogcatCollector$1_000</ID>
+    <ID>MagicNumber:LoginChooser.kt$0.8f</ID>
+    <ID>MagicNumber:LoginViewModel.kt$LoginViewModel$401</ID>
+    <ID>MagicNumber:Motion.kt$AppMotion$0.2f</ID>
+    <ID>MagicNumber:NewRequestViewModel.kt$NewRequestViewModel$1024</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$1.4f</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$10</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$1000</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$1001</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$11</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$12</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$13</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$14</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$15</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$16</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$17</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$18</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$19</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$2.4f</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$20</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$20.0f</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$21</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$22</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$23</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$24</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$25</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$26</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$27</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$28</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$29</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$3</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$30</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$31</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$32</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$33</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$4</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$5</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$6</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$7</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$8</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$9</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$9025</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$9026</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$9027</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$9028</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$9029</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$9030</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$EndpointConfig$1.4f</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$EndpointConfig$2.4f</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$EndpointConfig$20.0f</ID>
+    <ID>MagicNumber:Outcome.kt$200</ID>
+    <ID>MagicNumber:Polling.kt$5</ID>
+    <ID>MagicNumber:Polling.kt$60_000L</ID>
+    <ID>MagicNumber:ProvidersScreen.kt$150</ID>
+    <ID>MagicNumber:ProvidersScreen.kt$ProviderFormState$0.5f</ID>
+    <ID>MagicNumber:RelativeTime.kt$1000</ID>
+    <ID>MagicNumber:RelativeTime.kt$2_629_800</ID>
+    <ID>MagicNumber:RelativeTime.kt$31_557_600</ID>
+    <ID>MagicNumber:RelativeTime.kt$3_600</ID>
+    <ID>MagicNumber:RelativeTime.kt$60</ID>
+    <ID>MagicNumber:RelativeTime.kt$604_800</ID>
+    <ID>MagicNumber:RelativeTime.kt$86_400</ID>
+    <ID>MagicNumber:ResumableDownloader.kt$ResumableDownloader$1024</ID>
+    <ID>MagicNumber:ResumableDownloader.kt$ResumableDownloader$3</ID>
+    <ID>MagicNumber:ResumableDownloader.kt$ResumableDownloader$500</ID>
+    <ID>MagicNumber:ResumableDownloader.kt$ResumableDownloader$500L</ID>
+    <ID>MagicNumber:ResumableDownloader.kt$ResumableDownloader$64</ID>
+    <ID>MagicNumber:SessionIndicator.kt$8</ID>
+    <ID>MagicNumber:SessionScreen.kt$1024</ID>
+    <ID>MagicNumber:SessionScreen.kt$150</ID>
+    <ID>MagicNumber:SessionScreen.kt$64</ID>
+    <ID>MagicNumber:SessionScreen.kt$8</ID>
+    <ID>MagicNumber:SessionViewModel.kt$400</ID>
+    <ID>MagicNumber:SessionViewModel.kt$SessionViewModel$500</ID>
+    <ID>MagicNumber:SessionViewModel.kt$SessionViewModel$5_000L</ID>
+    <ID>MagicNumber:SessionViewModel.kt$SessionViewModel$8</ID>
+    <ID>MagicNumber:SessionViewModel.kt$SessionViewModel$80</ID>
+    <ID>MagicNumber:SessionsRepository.kt$SessionsRepository$10</ID>
+    <ID>MagicNumber:SessionsRepository.kt$SessionsRepository$1_000L</ID>
+    <ID>MagicNumber:SessionsRepository.kt$SessionsRepository$250</ID>
+    <ID>MagicNumber:SessionsRepository.kt$SessionsRepository$2_000L</ID>
+    <ID>MagicNumber:SessionsRepository.kt$SessionsRepository$400</ID>
+    <ID>MagicNumber:SessionsRepository.kt$SessionsRepository$5_000L</ID>
+    <ID>MagicNumber:SessionsRepository.kt$SessionsRepository$8</ID>
+    <ID>MagicNumber:SherpaDictation.kt$SherpaDictation$10</ID>
+    <ID>MagicNumber:SherpaDictation.kt$SherpaDictation$1500</ID>
+    <ID>MagicNumber:SherpaDictation.kt$SherpaDictation$16</ID>
+    <ID>MagicNumber:SherpaDictation.kt$SherpaDictation$16000</ID>
+    <ID>MagicNumber:SherpaDictation.kt$SherpaDictation$2000</ID>
+    <ID>MagicNumber:SherpaDictation.kt$SherpaDictation$30_000</ID>
+    <ID>MagicNumber:SherpaDictation.kt$SherpaDictation$32768.0f</ID>
+    <ID>MagicNumber:SherpaDictation.kt$SherpaDictation.Quality.HIGH$12_833_618L</ID>
+    <ID>MagicNumber:SherpaDictation.kt$SherpaDictation.Quality.HIGH$13_876_452L</ID>
+    <ID>MagicNumber:SherpaDictation.kt$SherpaDictation.Quality.HIGH$330_083_505L</ID>
+    <ID>MagicNumber:SherpaDictation.kt$SherpaDictation.Quality.HIGH$56_317L</ID>
+    <ID>MagicNumber:SherpaDictation.kt$SherpaDictation.Quality.STANDARD$13_091_040L</ID>
+    <ID>MagicNumber:SherpaDictation.kt$SherpaDictation.Quality.STANDARD$181_895_032L</ID>
+    <ID>MagicNumber:SherpaDictation.kt$SherpaDictation.Quality.STANDARD$3_228_404L</ID>
+    <ID>MagicNumber:SherpaDictation.kt$SherpaDictation.Quality.STANDARD$56_317L</ID>
+    <ID>MagicNumber:Theme.kt$0xFF001A43</ID>
+    <ID>MagicNumber:Theme.kt$0xFF001B3D</ID>
+    <ID>MagicNumber:Theme.kt$0xFF002C71</ID>
+    <ID>MagicNumber:Theme.kt$0xFF002F65</ID>
+    <ID>MagicNumber:Theme.kt$0xFF00504C</ID>
+    <ID>MagicNumber:Theme.kt$0xFF0A0F18</ID>
+    <ID>MagicNumber:Theme.kt$0xFF101620</ID>
+    <ID>MagicNumber:Theme.kt$0xFF111C2B</ID>
+    <ID>MagicNumber:Theme.kt$0xFF162440</ID>
+    <ID>MagicNumber:Theme.kt$0xFF18202B</ID>
+    <ID>MagicNumber:Theme.kt$0xFF191C20</ID>
+    <ID>MagicNumber:Theme.kt$0xFF1B61C8</ID>
+    <ID>MagicNumber:Theme.kt$0xFF1C242F</ID>
+    <ID>MagicNumber:Theme.kt$0xFF234776</ID>
+    <ID>MagicNumber:Theme.kt$0xFF241640</ID>
+    <ID>MagicNumber:Theme.kt$0xFF263141</ID>
+    <ID>MagicNumber:Theme.kt$0xFF26447F</ID>
+    <ID>MagicNumber:Theme.kt$0xFF27303C</ID>
+    <ID>MagicNumber:Theme.kt$0xFF2C3A5E</ID>
+    <ID>MagicNumber:Theme.kt$0xFF323B48</ID>
+    <ID>MagicNumber:Theme.kt$0xFF382C5E</ID>
+    <ID>MagicNumber:Theme.kt$0xFF3B5CA8</ID>
+    <ID>MagicNumber:Theme.kt$0xFF3D4758</ID>
+    <ID>MagicNumber:Theme.kt$0xFF410002</ID>
+    <ID>MagicNumber:Theme.kt$0xFF41485A</ID>
+    <ID>MagicNumber:Theme.kt$0xFF424751</ID>
+    <ID>MagicNumber:Theme.kt$0xFF545F71</ID>
+    <ID>MagicNumber:Theme.kt$0xFF59D6CE</ID>
+    <ID>MagicNumber:Theme.kt$0xFF690005</ID>
+    <ID>MagicNumber:Theme.kt$0xFF72777F</ID>
+    <ID>MagicNumber:Theme.kt$0xFF76F3EA</ID>
+    <ID>MagicNumber:Theme.kt$0xFF8B92A1</ID>
+    <ID>MagicNumber:Theme.kt$0xFF93000A</ID>
+    <ID>MagicNumber:Theme.kt$0xFF97BCFC</ID>
+    <ID>MagicNumber:Theme.kt$0xFF9DBBFF</ID>
+    <ID>MagicNumber:Theme.kt$0xFFA7C8FF</ID>
+    <ID>MagicNumber:Theme.kt$0xFFB197FC</ID>
+    <ID>MagicNumber:Theme.kt$0xFFBA1A1A</ID>
+    <ID>MagicNumber:Theme.kt$0xFFBCC7DC</ID>
+    <ID>MagicNumber:Theme.kt$0xFFC1C7D3</ID>
+    <ID>MagicNumber:Theme.kt$0xFFC2C7D2</ID>
+    <ID>MagicNumber:Theme.kt$0xFFC7D9FF</ID>
+    <ID>MagicNumber:Theme.kt$0xFFD6E3FF</ID>
+    <ID>MagicNumber:Theme.kt$0xFFD8E3F8</ID>
+    <ID>MagicNumber:Theme.kt$0xFFD9C7FF</ID>
+    <ID>MagicNumber:Theme.kt$0xFFD9E2FF</ID>
+    <ID>MagicNumber:Theme.kt$0xFFDAE2FF</ID>
+    <ID>MagicNumber:Theme.kt$0xFFDBE2EF</ID>
+    <ID>MagicNumber:Theme.kt$0xFFDEE4EF</ID>
+    <ID>MagicNumber:Theme.kt$0xFFE2E6EE</ID>
+    <ID>MagicNumber:Theme.kt$0xFFE3E9F3</ID>
+    <ID>MagicNumber:Theme.kt$0xFFE9EEF7</ID>
+    <ID>MagicNumber:Theme.kt$0xFFEFF3FB</ID>
+    <ID>MagicNumber:Theme.kt$0xFFF8FAFF</ID>
+    <ID>MagicNumber:Theme.kt$0xFFFFB4AB</ID>
+    <ID>MagicNumber:Theme.kt$0xFFFFDAD6</ID>
+    <ID>MagicNumber:Theme.kt$0xFFFFFFFF</ID>
+    <ID>MagicNumber:Theme.kt$&lt;no name provided&gt;$1400f</ID>
+    <ID>MagicNumber:Theme.kt$&lt;no name provided&gt;$1600f</ID>
+    <ID>MagicNumber:Theme.kt$&lt;no name provided&gt;$280f</ID>
+    <ID>MagicNumber:Theme.kt$&lt;no name provided&gt;$3800f</ID>
+    <ID>MagicNumber:Theme.kt$&lt;no name provided&gt;$600f</ID>
+    <ID>MagicNumber:Theme.kt$&lt;no name provided&gt;$800f</ID>
+    <ID>MagicNumber:ToolDisplay.kt$4000</ID>
+    <ID>MagicNumber:ToolDisplay.kt$64</ID>
+    <ID>MagicNumber:ToolDisplay.kt$800</ID>
+    <ID>MagicNumber:Transcript.kt$100</ID>
+    <ID>MagicNumber:Transcript.kt$1280</ID>
+    <ID>MagicNumber:Transcript.kt$20</ID>
+    <ID>MagicNumber:Transcript.kt$2560</ID>
+    <ID>MagicNumber:Transcript.kt$30</ID>
+    <ID>MagicNumber:Transcript.kt$40</ID>
+    <ID>MagicNumber:Transcript.kt$6f</ID>
+    <ID>MagicNumber:Transcript.kt$8</ID>
+    <ID>MagicNumber:TranscriptScrollbar.kt$0.02f</ID>
+    <ID>MagicNumber:TranscriptScrollbar.kt$50</ID>
+    <ID>MagicNumber:UltracodeRipple.kt$0.01f</ID>
+    <ID>MagicNumber:UltracodeRipple.kt$0.1f</ID>
+    <ID>MagicNumber:UltracodeRipple.kt$0.2f</ID>
+    <ID>MagicNumber:UltracodeRipple.kt$0.5f</ID>
+    <ID>MagicNumber:UltracodeRipple.kt$0.8f</ID>
+    <ID>MagicNumber:UltracodeRipple.kt$2000</ID>
+    <ID>MagicNumber:Usage.kt$1000L</ID>
+    <ID>MagicNumber:Usage.kt$1440</ID>
+    <ID>MagicNumber:Usage.kt$1_000_000_000_000L</ID>
+    <ID>MagicNumber:Usage.kt$60</ID>
+    <ID>MagicNumber:Usage.kt$60_000L</ID>
+    <ID>MagicNumber:WideThreePaneHome.kt$140f</ID>
+    <ID>MagicNumber:WideThreePaneHome.kt$200f</ID>
+    <ID>MagicNumber:WideThreePaneHome.kt$300f</ID>
+    <ID>MagicNumber:WideThreePaneHome.kt$340f</ID>
+    <ID>MagicNumber:WideThreePaneHome.kt$50</ID>
+    <ID>MagicNumber:WideThreePaneHome.kt$500</ID>
+    <ID>MagicNumber:WideThreePaneHome.kt$8</ID>
+    <ID>MagicNumber:WorkflowViewModel.kt$WorkflowViewModel$5_000L</ID>
+    <ID>MagicNumber:WorkflowsRepository.kt$WorkflowsRepository$2_500L</ID>
+    <ID>MagicNumber:WorkflowsRepository.kt$WorkflowsRepository$8</ID>
+    <ID>MatchingDeclarationName:AgentTranscriptPane.kt$AgentTranscriptParts</ID>
+    <ID>MatchingDeclarationName:AppLogPoll.kt$PollLogState</ID>
+    <ID>MatchingDeclarationName:Ask.kt$AskQuestion</ID>
+    <ID>MatchingDeclarationName:Markdown.kt$Block</ID>
+    <ID>MatchingDeclarationName:Motion.kt$AppMotion</ID>
+    <ID>MatchingDeclarationName:Status.kt$StatusVisual</ID>
+    <ID>MaxLineLength:AdoptPickerViewModel.kt$AdoptPickerViewModel$it.copy(loading = false, items = emptyList(), error = "Couldn't load Claude Code sessions. Tap to retry.")</ID>
+    <ID>MaxLineLength:AgenticApi.kt$AgenticApi$suspend</ID>
+    <ID>MaxLineLength:AgenticApi.kt$AgenticApi$suspend fun followUp(id: String, prompt: String, setTitle: Boolean = true, model: String? = null, effort: String? = null, permissionMode: String? = null): Int</ID>
+    <ID>MaxLineLength:AgenticMessagingService.kt$AgenticMessagingService$ContextCompat.checkSelfPermission(applicationContext, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED</ID>
+    <ID>MaxLineLength:AppNav.kt$FileDiffRoute$@Serializable data</ID>
+    <ID>MaxLineLength:CertPinning.kt$TofuTrustManager$fun</ID>
+    <ID>MaxLineLength:CommitGraph.kt$edges.add(GraphEdge(topCols.getValue(id), botCols.getValue(id), id, fromTop = true, toBottom = true, fadeBottom = isLast))</ID>
+    <ID>MaxLineLength:CrashHandler.kt$CrashHandler$try { store.writeCrash(thread, error) } catch (e: Throwable) { AppLog.e("App", "CrashHandler.writeCrash failed", e) }</ID>
+    <ID>MaxLineLength:DiagnosticsScreen.kt$DiagnosticsViewModel(container.logStore, container.logcatCollector, container.api, container.sessionsRepo)</ID>
+    <ID>MaxLineLength:FakeAgenticApi.kt$FakeAgenticApi$override suspend</ID>
+    <ID>MaxLineLength:FakeAgenticApi.kt$FakeAgenticApi$var</ID>
+    <ID>MaxLineLength:FileDiffScreen.kt$s.sha.takeIf { it.isNotBlank() }?.let { if (it == "working") "working tree" else it.take(7) }</ID>
+    <ID>MaxLineLength:GlobalSettingsViewModel.kt$GlobalSettingsViewModel$_uiState.update { it.copy(catalogLoading = false, catalogError = "Couldn't load the store: ${e.message}") }</ID>
+    <ID>MaxLineLength:GlobalSettingsViewModelTest.kt$GlobalSettingsViewModelTest$@Test</ID>
+    <ID>MaxLineLength:GlobalSettingsViewModelTest.kt$GlobalSettingsViewModelTest$dev.agentic.data.net.CatalogSkill(name = "pdf", description = "PDF toolkit", source = "anthropics/skills/skills/pdf")</ID>
+    <ID>MaxLineLength:HomeAdaptive.kt$onForked = { id -&gt; scope.launch { homeVm.refresh(); navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, id) } }</ID>
+    <ID>MaxLineLength:HomeAdaptive.kt$onOpenParent = { id -&gt; scope.launch { navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, id) } }</ID>
+    <ID>MaxLineLength:HomeAdaptive.kt$onOpenSession = { id -&gt; scope.launch { navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, id) } }</ID>
+    <ID>MaxLineLength:HomeAdaptive.kt$onOpenWorkflows = { scope.launch { navigator.navigateTo(ListDetailPaneScaffoldRole.Extra, selectedSid) } }</ID>
+    <ID>MaxLineLength:HomeScreen.kt$Icon(Icons.Rounded.Folder, null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)</ID>
+    <ID>MaxLineLength:HomeScreen.kt$TextButton(onClick = { renameTarget = null; if (text.isNotBlank()) onRenameGroup(rt.id, text.trim()) }) { Text("Rename") }</ID>
+    <ID>MaxLineLength:HomeScreen.kt$enter = expandHorizontally(appSpatialSpec(), expandFrom = Alignment.Start) + fadeIn(appEffectsSpec())</ID>
+    <ID>MaxLineLength:HomeScreen.kt$exit = shrinkHorizontally(appSpatialSpec(), shrinkTowards = Alignment.Start) + fadeOut(appEffectsSpec())</ID>
+    <ID>MaxLineLength:HomeViewModel.kt$HomeViewModel$private</ID>
+    <ID>MaxLineLength:HomeViewModel.kt$HomeViewModel$private val manualUsage = MutableSharedFlow&lt;Usage&gt;(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)</ID>
+    <ID>MaxLineLength:HomeViewModelTest.kt$HomeViewModelTest$@Test</ID>
+    <ID>MaxLineLength:HomeViewModelTest.kt$HomeViewModelTest$assertEquals("live poll reached 52% before backgrounding", 52, vm.uiState.value.usage?.five_hour?.utilization?.toInt())</ID>
+    <ID>MaxLineLength:KtorAgenticApi.kt$KtorAgenticApi$AppLog.d("API", "GET sessions/${id.take(8)}/events -&gt; OK (${r.events.size} events, latestEventId=${r.latestEventId})")</ID>
+    <ID>MaxLineLength:KtorAgenticApi.kt$KtorAgenticApi$AppLog.w("API", "GET sessions/${id.take(8)}/workflows/${runId.take(8)}/agents/${agentId.take(8)} -&gt; FAILED: ${e.message}")</ID>
+    <ID>MaxLineLength:KtorAgenticApi.kt$KtorAgenticApi$auth(); if (limit != null) parameter("limit", limit); if (before != null) parameter("before", before); if (after != null) parameter("after", after); if (around != null) parameter("around", around)</ID>
+    <ID>MaxLineLength:KtorAgenticApi.kt$KtorAgenticApi$heartbeatCapFrom(text)?.let { idleCapMs = it; watchdogConfigured = true; AppLog.v("WS", "hello id=$id cap=${idleCapMs}ms") }</ID>
+    <ID>MaxLineLength:KtorAgenticApi.kt$KtorAgenticApi$if (received == null) { AppLog.w("WS", "watchdog FIRED id=$id idle=${idleCapMs}ms frames=$nFrames"); break }</ID>
+    <ID>MaxLineLength:KtorAgenticApi.kt$KtorAgenticApi$override suspend</ID>
+    <ID>MaxLineLength:KtorAgenticApi.kt$KtorAgenticApi$val r: Int = client.post("$baseUrl/api/sessions/$id/messages") { auth(); contentType(ContentType.Application.Json); setBody(PromptReq(prompt, setTitle, model, effort, permissionMode)) }.body&lt;FollowUpResp&gt;().since</ID>
+    <ID>MaxLineLength:KtorAgenticApi.kt$KtorAgenticApi$val r: List&lt;ComponentInfo&gt; = client.delete("$baseUrl/api/mcp-servers/${name.encodeURLPathPart()}") { auth() }.body()</ID>
+    <ID>MaxLineLength:KtorAgenticApi.kt$KtorAgenticApi$val r: List&lt;ComponentInfo&gt; = client.delete("$baseUrl/api/skills/${name.encodeURLPathPart()}") { auth() }.body()</ID>
+    <ID>MaxLineLength:KtorAgenticApi.kt$KtorAgenticApi$val r: List&lt;RepoCommits&gt; = client.get("$baseUrl/api/sessions/$id/commits") { auth() }.body&lt;CommitsResp&gt;().repos</ID>
+    <ID>MaxLineLength:KtorAgenticApi.kt$KtorAgenticApi$val r: List&lt;WorkflowRun&gt; = client.get("$baseUrl/api/sessions/$id/workflows") { auth() }.body&lt;WorkflowList&gt;().workflows</ID>
+    <ID>MaxLineLength:KtorAgenticApi.kt$KtorAgenticApi$val r: Session = client.get("$baseUrl/api/sessions/$id") { auth(); parameter("limit", 0) }.body&lt;SessionDetail&gt;().session</ID>
+    <ID>MaxLineLength:KtorAgenticApi.kt$KtorAgenticApi$val r: SessionDetail = client.get("$baseUrl/api/sessions/$id") { auth(); if (limit != null) parameter("limit", limit) }.body()</ID>
+    <ID>MaxLineLength:KtorAgenticApi.kt$KtorAgenticApi$val r: String = client.get("$baseUrl/api/sessions/$id/workflows/$runId/agents/$agentId") { auth() }.body&lt;AgentTranscript&gt;().transcript</ID>
+    <ID>MaxLineLength:KtorAgenticApi.kt$KtorAgenticApi$val r: String = client.post("$baseUrl/api/sessions") { auth(); contentType(ContentType.Application.Json); setBody(req) }.body&lt;IdResp&gt;().id</ID>
+    <ID>MaxLineLength:LanDiscoveryImpl.kt$HealthzServerProbe$AppLog.v("Scan", "discovered server at $ip (${if (found.https) "https" else "http"}), latency=${found.latencyMs}ms")</ID>
+    <ID>MaxLineLength:LogStore.kt$LogStore$appendLine("app: ${context.packageName} ${pkg?.versionName ?: "?"} (build ${pkg?.let { versionCodeOf(it) } ?: "?"})")</ID>
+    <ID>MaxLineLength:LoginChooser.kt$Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(32.dp))</ID>
+    <ID>MaxLineLength:LoginChooser.kt$Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)</ID>
+    <ID>MaxLineLength:LoginScanScreen.kt$IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back") }</ID>
+    <ID>MaxLineLength:LoginScanScreen.kt$ServerRow(server, selected = server.baseUrl == state.selectedHost, onSelect = { onSelect(server.baseUrl) })</ID>
+    <ID>MaxLineLength:LoginScanScreen.kt$keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done)</ID>
+    <ID>MaxLineLength:LoginScanScreen.kt$state.notOnLan -&gt; EmptyState("Not on a local network", "Connect to Wi-Fi, or enter the host manually.", onManual)</ID>
+    <ID>MaxLineLength:LoginScreen.kt$.</ID>
+    <ID>MaxLineLength:Markdown.kt$Text(b.text, fontFamily = FontFamily.Monospace, fontSize = 13.sp, modifier = Modifier.padding(10.dp))</ID>
+    <ID>MaxLineLength:Markdown.kt$if (end &gt;= 0) { withStyle(SpanStyle(fontFamily = FontFamily.Monospace, fontSize = 13.sp)) { append(s.substring(i + 1, end)) }; i = end + 1 } else { append(s[i]); i++ }</ID>
+    <ID>MaxLineLength:Markdown.kt$if (end &gt;= 0) { withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(s.substring(i + 2, end)) }; i = end + 2 } else { append(s[i]); i++ }</ID>
+    <ID>MaxLineLength:Markdown.kt$is Block.Code</ID>
+    <ID>MaxLineLength:Markdown.kt$is Block.Heading -&gt; Text(b.text, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 4.dp))</ID>
+    <ID>MaxLineLength:Markdown.kt$line.trimStart().startsWith("#") -&gt; { flush(); out.add(Block.Heading(line.trimStart().trimStart('#').trim())); i++ }</ID>
+    <ID>MaxLineLength:Markdown.kt$while (i &lt; lines.size &amp;&amp; lines[i].trimStart().startsWith("|")) { rows.add(cells(lines[i]).map { inline(it) }); i++ }</ID>
+    <ID>MaxLineLength:Models.kt$PromptReq$data</ID>
+    <ID>MaxLineLength:NetworkMonitor.kt$NetworkMonitor$private</ID>
+    <ID>MaxLineLength:NewRequestViewModel.kt$NewRequestViewModel$forcedOnSkills = s.availableSkillComponents.filter { s.skillOverrides[it.id] == Override.ForceOn }.map { it.id }</ID>
+    <ID>MaxLineLength:NewRequestViewModel.kt$NewRequestViewModel$hiddenSkills = s.availableSkillComponents.filter { s.skillOverrides[it.id] == Override.ForceOff }.map { it.id }</ID>
+    <ID>MaxLineLength:NewRequestViewModel.kt$NewRequestViewModel$resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE), null, null, null)</ID>
+    <ID>MaxLineLength:NewRequestViewModel.kt$NewRequestViewModel$s.copy(attachments = s.attachments.map { if (it.id == att.id) it.copy(state = UploadState.Uploading) else it })</ID>
+    <ID>MaxLineLength:NewRequestViewModelTest.kt$NewRequestViewModelTest$@Test</ID>
+    <ID>MaxLineLength:NewRequestViewModelTest.kt$NewRequestViewModelTest$ComponentInfo(kind = "plugin", id = "github@official", name = "github@official", globalEnabled = true)</ID>
+    <ID>MaxLineLength:NewRequestViewModelTest.kt$NewRequestViewModelTest$ComponentInfo(kind = "plugin", id = "superpowers@official", name = "superpowers@official", globalEnabled = true)</ID>
+    <ID>MaxLineLength:NewRequestViewModelTest.kt$NewRequestViewModelTest$ComponentInfo(kind = "skill", id = "skill-a", name = "skill-a", globalEnabled = true)</ID>
+    <ID>MaxLineLength:NewRequestViewModelTest.kt$NewRequestViewModelTest$ComponentInfo(kind = "skill", id = "skill-b", name = "skill-b", globalEnabled = true)</ID>
+    <ID>MaxLineLength:NewRequestViewModelTest.kt$NewRequestViewModelTest$ComponentInfo(kind = "skill", id = "skill-c", name = "skill-c", globalEnabled = true)</ID>
+    <ID>MaxLineLength:NewRequestViewModelTest.kt$NewRequestViewModelTest$ModelEntry(key = "claude-haiku-4-5-20251001", label = "Haiku 4.5", native = true, default = false, capability = 0.60f)</ID>
+    <ID>MaxLineLength:NewRequestViewModelTest.kt$NewRequestViewModelTest$ModelEntry(key = "claude-sonnet-4-6", label = "Sonnet 4.6", native = true, default = false, capability = 0.85f)</ID>
+    <ID>MaxLineLength:NewRequestViewModelTest.kt$NewRequestViewModelTest$assertNotNull("blank transport", McpDraft(name = "x", transport = "", command = "node", url = "https://x").validationError)</ID>
+    <ID>MaxLineLength:NewRequestViewModelTest.kt$NewRequestViewModelTest$assertNotNull("reserved name", McpDraft(name = "agentic", transport = "stdio", command = "node").validationError)</ID>
+    <ID>MaxLineLength:Node.kt$PermNode$data</ID>
+    <ID>MaxLineLength:Node.kt$ToolGroupNode : Node</ID>
+    <ID>MaxLineLength:Node.kt$WorkflowNode$data</ID>
+    <ID>MaxLineLength:OnlineRecognizer.kt$"sherpa-onnx-qnn-SM8850-binary-x-asr-streaming-zipformer-transducer-zh-en-punct-2026-06-05-chunk-size-480ms"</ID>
+    <ID>MaxLineLength:OnlineRecognizer.kt$"sherpa-onnx-qnn-x-asr-streaming-zipformer-transducer-zh-en-punct-2026-06-05-chunk-size-480ms-android-aarch64"</ID>
+    <ID>MaxLineLength:PrIngestTest.kt$PrIngestTest$"""{"kind":"pr","url":"https://github.com/arcatva/agentic-dev/pull/26","number":26,"repo":"arcatva/agentic-dev","title":"Add PR cards","body":"Backend-driven.\n\n- detail","state":"OPEN"}"""</ID>
+    <ID>MaxLineLength:PrIngestTest.kt$PrIngestTest$"""{"type":"pr","url":"https://github.com/arcatva/agentic-dev/pull/26","number":26,"repo":"arcatva/agentic-dev","title":"Add PR cards","body":"Backend-driven.\n\n- detail","state":"OPEN"}"""</ID>
+    <ID>MaxLineLength:ProvidersScreen.kt$@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class, ExperimentalFoundationApi::class)</ID>
+    <ID>MaxLineLength:ProvidersScreen.kt$FloatSliderField(label = "Relative cost (0 = cheapest)", value = { cost }, onValueChange = { cost = it })</ID>
+    <ID>MaxLineLength:ProvidersScreen.kt$Icon(Icons.Rounded.Star, contentDescription = null, tint = OnAccentViolet, modifier = Modifier.size(12.dp))</ID>
+    <ID>MaxLineLength:ProvidersScreen.kt$Modifier.clip(RoundedCornerShape(8.dp)).background(AccentViolet).padding(horizontal = 8.dp, vertical = 2.dp)</ID>
+    <ID>MaxLineLength:ProvidersScreen.kt$onSave(NativeOverrideReq(capability = capability, priority = priority, cost = cost, description = description))</ID>
+    <ID>MaxLineLength:PullRequestCard.kt$Icon(Icons.Rounded.OpenInNew, "Open pull request", tint = onContainer, modifier = Modifier.size(20.dp))</ID>
+    <ID>MaxLineLength:SearchSnippetTest.kt$SearchSnippetTest$assertEquals(SearchField.Branch, hit(match(SearchField.Repo), match(SearchField.Branch)).bestSnippetMatch("x")?.field)</ID>
+    <ID>MaxLineLength:SearchSnippetTest.kt$SearchSnippetTest$assertNull(hit(match(SearchField.Prompt, "...fix login bug..."), prompt = "fix login bug").bestSnippetMatch("login"))</ID>
+    <ID>MaxLineLength:SessionIndicator.kt$AppLog.v("Read", "unreadCheck id=${session.id.take(8)} unreadEventId=${session.unreadEventId} acked=${session.ackedEventId}")</ID>
+    <ID>MaxLineLength:SessionIndicatorTest.kt$SessionIndicatorTest$@Test</ID>
+    <ID>MaxLineLength:SessionIndicatorTest.kt$SessionIndicatorTest$@Test fun `benign cap renders like done`()</ID>
+    <ID>MaxLineLength:SessionIndicatorTest.kt$SessionIndicatorTest$@Test fun `unreadEventId equal to acked is read`()</ID>
+    <ID>MaxLineLength:SessionIndicatorTest.kt$SessionIndicatorTest$@Test fun `unreadEventId less than acked is read`()</ID>
+    <ID>MaxLineLength:SessionIndicatorTest.kt$SessionIndicatorTest$@Test fun `unreadEventId zero with ack nonzero is read`()</ID>
+    <ID>MaxLineLength:SessionScreen.kt$SessionViewModel(container.sessionsRepo, container.workflowsRepo, container.filesRepo, container.api, createSavedStateHandle())</ID>
+    <ID>MaxLineLength:SessionScreen.kt$Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)</ID>
+    <ID>MaxLineLength:SessionScreen.kt$onRespondPermission = { id, decision, feedback -&gt; realVm.respondPermission(id, decision, feedback) }</ID>
+    <ID>MaxLineLength:SessionScreen.kt$tint = if (dict.listening) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant</ID>
+    <ID>MaxLineLength:SessionTags.kt${ Icon(icon, contentDescription = contentDescription, modifier = Modifier.size(AssistChipDefaults.IconSize)) }</ID>
+    <ID>MaxLineLength:SessionTagsTest.kt$SessionTagsTest$ModelEntry(key = "claude-haiku-4-5-20251001", label = "Haiku 4.5", native = true, default = false, capability = 0.60f)</ID>
+    <ID>MaxLineLength:SessionTagsTest.kt$SessionTagsTest$ModelEntry(key = "claude-sonnet-4-6", label = "Sonnet 4.6", native = true, default = false, capability = 0.85f)</ID>
+    <ID>MaxLineLength:SessionTagsTest.kt$SessionTagsTest$val tags = sessionTags(Session(id = "s", repos = listOf("webapp", "infra-tools"), skills = listOf("deep-research")))</ID>
+    <ID>MaxLineLength:SessionUiStore.kt$SessionUiStore$try { json.decodeFromString&lt;SessionUi&gt;(it) } catch (e: Exception) { AppLog.w("Store", "Failed to decode SessionUi: ${e.message}", e); null }</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$AppLog.w("VM", "downloadAttachment id=${id.take(8)} path=${node.path} =&gt; FAILED: ${e.message ?: "download failed"}")</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$AppLog.w("VM", "launchUpload id=${id.take(8)} uri=${att.localUri} =&gt; FAILED: ${e.message ?: "unknown"}", e)</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$AppLog.w("VM", "launchUpload id=${id.take(8)} uri=${att.localUri} =&gt; FAILED: ${r.error.userMessage()}")</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$AppLog.w("VM", "respondPermission sessionId=${id.take(8)} =&gt; FAILED: ${(r as Outcome.Failure).error.userMessage()}")</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$AppLog.w("VM", "rewind id=${id.take(8)} turnIndex=$turnIndex =&gt; FAILED: ${r.error.userMessage()}")</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$if (n is AskNode) l.answeredOverrides[askKey(n)]?.let { n.copy(answered = true, answer = it) } ?: n else n</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$l.copy(attachments = l.attachments.map { if (it.id == att.id) it.copy(state = UploadState.Uploading) else it })</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE), null, null, null)</ID>
+    <ID>MaxLineLength:SessionViewModelTest.kt$SessionViewModelTest$private val seedLog = listOf("""{"type":"agentic_prompt","text":"go","at":1}""", """{"type":"result","result":"ok"}""")</ID>
+    <ID>MaxLineLength:SessionViewModelTest.kt$SessionViewModelTest$val session = Session(id = "s1", prompt = "go", status = "done", claudeSessionId = "claude-1", unreadEventId = 7)</ID>
+    <ID>MaxLineLength:SessionsRepository.kt$SessionsRepository$AppLog.v("Repo", "load OK id=$id latestEventId=${d.latestEventId} status=${d.session.status} aw=${d.session.awaitingInput}")</ID>
+    <ID>MaxLineLength:SessionsRepository.kt$SessionsRepository$AppLog.v("Repo", "reaper FIRED id=${id.take(8)} — releasing flow after ${idleMs}ms with no UI subscriber")</ID>
+    <ID>MaxLineLength:SessionsRepository.kt$SessionsRepository$AppLog.v("Repo", "reconnectLiveSessions: ${live.size}/${synchronized(lock) { flows.size }} live → ${live.map { it.take(8) }}")</ID>
+    <ID>MaxLineLength:SessionsRepository.kt$SessionsRepository$if (addedEvents.isNotEmpty()) pages.addLast(WindowPage(start = evicted.start, upper = evicted.upper, events = addedEvents))</ID>
+    <ID>MaxLineLength:SessionsRepository.kt$SessionsRepository$if (reseeded != null) { setCursor(id, d.latestEventId); setEvents(id, d.events); firstEventLines[id] = d.firstEventLine; resetWindow(id) }</ID>
+    <ID>MaxLineLength:SessionsRepository.kt$SessionsRepository$suspend</ID>
+    <ID>MaxLineLength:SessionsRepository.kt$SessionsRepository$suspend fun delete(id: String)</ID>
+    <ID>MaxLineLength:SessionsRepository.kt$SessionsRepository$val d = try { api.sessionEvents(id, INITIAL_LOG_LIMIT) } catch (e: CancellationException) { throw e } catch (e: Exception) { AppLog.w("Repo", "refetch FAILED id=$id"); null }</ID>
+    <ID>MaxLineLength:SessionsRepository.kt$SessionsRepository$val newSession = (runCatchingOutcome { api.sessionEvents(id, limit = 1) } as? Outcome.Success)?.value?.session ?: return</ID>
+    <ID>MaxLineLength:SessionsRepository.kt$SessionsRepository$val pages = synchronized(lock) { residentPages[id] } ?: run { flow.update { it.copy(loadingNewer = false) }; return }</ID>
+    <ID>MaxLineLength:SessionsRepository.kt$SessionsRepository$val s = (runCatchingOutcome { api.sessionEvents(id, limit = 1) } as? Outcome.Success)?.value?.session</ID>
+    <ID>MaxLineLength:SessionsRepositoryTest.kt$SessionsRepositoryTest$"""{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Read","input":{"file_path":"/a/B.kt"}}]}}"""</ID>
+    <ID>MaxLineLength:SessionsRepositoryTest.kt$SessionsRepositoryTest$Result.success(eventsResponse(runningSession(), events = seedEvents, latestEventId = total.toLong(), firstEventLine = 17L))</ID>
+    <ID>MaxLineLength:SessionsRepositoryTest.kt$SessionsRepositoryTest$Result.success(eventsResponse(terminalSession(), events = seedEvents + answerEvent))</ID>
+    <ID>MaxLineLength:SessionsRepositoryTest.kt$SessionsRepositoryTest$Result.success(eventsResponse(terminalSession(), events = seedEvents, latestEventId = total.toLong(), firstEventLine = 17L))</ID>
+    <ID>MaxLineLength:SessionsRepositoryTest.kt$SessionsRepositoryTest$assertEquals(SessionsRepository.INITIAL_LOG_LIMIT, api.sessionEventsLimitArgs.first())</ID>
+    <ID>MaxLineLength:SessionsRepositoryTest.kt$SessionsRepositoryTest$runCurrent()</ID>
+    <ID>MaxLineLength:SherpaDictation.kt$SherpaDictation$try { audioRecord?.stop() } catch (_: Throwable) { AppLog.d("Voice", "AudioRecord.stop() on dead recorder") }</ID>
+    <ID>MaxLineLength:SkillStoreScreen.kt$val isExplicitUrl = q.startsWith("https://") || q.startsWith("http://") || q.startsWith("github.com/")</ID>
+    <ID>MaxLineLength:StatusIndicator.kt$Glyph.CHECK -&gt; Icon(Icons.Rounded.CheckCircle, "done", tint = color, modifier = Modifier.requiredSize(iconBox))</ID>
+    <ID>MaxLineLength:StatusIndicator.kt$Glyph.KILLED -&gt; Icon(Icons.Rounded.StopCircle, "killed", tint = color, modifier = Modifier.requiredSize(iconBox))</ID>
+    <ID>MaxLineLength:StatusIndicator.kt$in DONE_STATES -&gt; accent ?: MaterialTheme.colorScheme.primary</ID>
+    <ID>MaxLineLength:StatusIndicator.kt$in RUNNING_STATES -&gt; accent ?: MaterialTheme.colorScheme.tertiary</ID>
+    <ID>MaxLineLength:StopReasonTest.kt$StopReasonTest$assertEquals("Interrupted — crashed or killed", stopReason("crashed", "turn ended without completing", "failed"))</ID>
+    <ID>MaxLineLength:StopReasonTest.kt$StopReasonTest$assertEquals("Interrupted — server restart", stopReason("interrupted", "interrupted by server restart", "failed"))</ID>
+    <ID>MaxLineLength:Transcript.kt$"Skill" -&gt; input?.get("skill")?.jsonPrimitive?.contentOrNull?.let { sk -&gt; nodes = route(nodes, parent) { it + SkillNode(sk) } }</ID>
+    <ID>MaxLineLength:Transcript.kt$"text" -&gt; if (!streamedThisTurn) nodes = route(nodes, parent) { appendText(it, b["text"]?.jsonPrimitive?.contentOrNull ?: "") }</ID>
+    <ID>MaxLineLength:Transcript.kt$"text_delta" -&gt; { nodes = route(nodes, parent) { appendText(it, d["text"]?.jsonPrimitive?.contentOrNull ?: "") }; streamedThisTurn = true }</ID>
+    <ID>MaxLineLength:Transcript.kt$"thinking" -&gt; route(nodes, parent) { appendThinking(it, o["text"]?.jsonPrimitive?.contentOrNull ?: "") } to false</ID>
+    <ID>MaxLineLength:Transcript.kt$"thinking_delta" -&gt; { nodes = route(nodes, parent) { appendThinking(it, d["thinking"]?.jsonPrimitive?.contentOrNull ?: "") }; streamedThisTurn = true }</ID>
+    <ID>MaxLineLength:Transcript.kt$.</ID>
+    <ID>MaxLineLength:Transcript.kt$FadingText(label, style = MaterialTheme.typography.labelMedium, color = OnAccentVioletContainer, modifier = Modifier.weight(1f))</ID>
+    <ID>MaxLineLength:Transcript.kt$FadingText(label, style = MaterialTheme.typography.labelMedium, color = onColor, modifier = Modifier.weight(1f))</ID>
+    <ID>MaxLineLength:Transcript.kt$Icon(Icons.Rounded.Code, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))</ID>
+    <ID>MaxLineLength:Transcript.kt$Row</ID>
+    <ID>MaxLineLength:Transcript.kt$b["thinking"]?.jsonPrimitive?.contentOrNull ?: b["text"]?.jsonPrimitive?.contentOrNull ?: ""</ID>
+    <ID>MaxLineLength:Transcript.kt$color = if (answered) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface</ID>
+    <ID>MaxLineLength:Transcript.kt$else -&gt; nodes = route(nodes, parent) { it + ToolNode(name, toolSummary(name, input), toolDetail(name, input)) }</ID>
+    <ID>MaxLineLength:Transcript.kt$input?.get("title")?.jsonPrimitive?.contentOrNull?.takeIf { t -&gt; t.isNotBlank() } ?: "delegate"</ID>
+    <ID>MaxLineLength:Transcript.kt$is SkillNode -&gt; EventChip(Icons.Rounded.AutoAwesome, skillChipLabel(n), AccentCyanContainer, OnAccentCyanContainer)</ID>
+    <ID>MaxLineLength:Transcript.kt$is WorkflowNode -&gt; EventChip(Icons.Rounded.AccountTree, workflowChipLabel(n), AccentVioletContainer, OnAccentVioletContainer, onClick = { onOpenWorkflow(n) })</ID>
+    <ID>MaxLineLength:Transcript.kt$runCatching { loadImageBytes(node)?.let { decodeSampledImage(it, 1280)?.asImageBitmap() } }.getOrNull()</ID>
+    <ID>MaxLineLength:TranscriptGroupingTest.kt$TranscriptGroupingTest$assertEquals("anchored after the delivering message despite truncation", 2, out.indexOfFirst { it is AttachmentNode })</ID>
+    <ID>MaxLineLength:TranscriptReducerTest.kt$TranscriptReducerTest$"""{"type":"assistant","message":{"content":[{"type":"tool_use","id":"tu_1","name":"Task","input":{"subagent_type":"Explore","description":"search"}}]}}"""</ID>
+    <ID>MaxLineLength:TranscriptReducerTest.kt$TranscriptReducerTest$"""{"type":"assistant","message":{"content":[{"type":"tool_use","name":"AskUserQuestion","input":{"questions":[{"question":"Q1","options":["A"]},{"question":"Q2","options":["B"]}]}}]}}"""</ID>
+    <ID>MaxLineLength:TranscriptTest.kt$TranscriptTest$"""{"type":"assistant","message":{"content":[{"type":"tool_use","id":"tu_1","name":"Agent","input":{"subagent_type":"Explore","description":"search"}}]}}"""</ID>
+    <ID>MaxLineLength:TranscriptTest.kt$TranscriptTest$"""{"type":"assistant","parent_tool_use_id":"tu_1","message":{"content":[{"type":"tool_use","id":"tu_2","name":"Bash","input":{"command":"echo h"}}]}}"""</ID>
+    <ID>MaxLineLength:TranscriptTest.kt$TranscriptTest$"""{"type":"stream_event","parent_tool_use_id":"tu_1","event":{"delta":{"type":"text_delta","text":"Hel"}}}"""</ID>
+    <ID>MaxLineLength:TranscriptTest.kt$TranscriptTest$"""{"type":"stream_event","parent_tool_use_id":"tu_1","event":{"delta":{"type":"text_delta","text":"lo"}}}"""</ID>
+    <ID>MaxLineLength:TranscriptTest.kt$TranscriptTest$"""{"type":"tool_use","id":"tu_1","name":"AskUserQuestion","input":{"questions":[{"question":"Pick one","options":[{"label":"A"},{"label":"B"}]}]}}"""</ID>
+    <ID>MaxLineLength:TranscriptTest.kt$TranscriptTest$n = applyEvent(n, """{"kind":"tool","name":"Bash","input":{"command":"echo h"},"parentToolUseId":"tu_1"}""").first</ID>
+    <ID>MaxLineLength:TranscriptTest.kt$TranscriptTest$n = applyEvent(n, """{"kind":"tool","name":"Read","input":{"file_path":"/x/Y.kt"},"parentToolUseId":"tu_2"}""").first</ID>
+    <ID>MaxLineLength:TranscriptTest.kt$TranscriptTest$val (a, _) = applyEvent(emptyList(), """{"kind":"agent","agents":[{"id":"tu_1","agentType":"Explore","description":"search"}]}""")</ID>
+    <ID>MaxLineLength:TranscriptTest.kt$TranscriptTest$val (a, _) = applyEvent(emptyList(), """{"kind":"agent","agents":[{"id":"tu_1","agentType":"Explore","description":"x"}]}""")</ID>
+    <ID>MaxLineLength:TranscriptTest.kt$TranscriptTest$val (a, _) = applyEvent(main, """{"kind":"agent","agents":[{"id":"tu_1","agentType":"Explore","description":"x"}]}""")</ID>
+    <ID>MaxLineLength:TranscriptTest.kt$TranscriptTest$val (b, _) = applyEvent(a, """{"kind":"tool","name":"Bash","input":{"command":"echo h"},"parentToolUseId":"tu_1"}""")</ID>
+    <ID>MaxLineLength:TranscriptTest.kt$TranscriptTest$val (b, _) = applyEvent(a, """{"kind":"tool","name":"Read","input":{"file_path":"/x/Y.kt"}}""") // no parentToolUseId</ID>
+    <ID>MaxLineLength:TranscriptTest.kt$TranscriptTest$val (n, _) = applyEvent(emptyList(), """{"kind":"tool","name":"Bash","input":{"command":"echo h"},"parentToolUseId":"tu_missing"}""")</ID>
+    <ID>MaxLineLength:TranscriptTest.kt$TranscriptTest$var n = applyEvent(emptyList(), """{"kind":"agent","agents":[{"id":"tu_1","agentType":"Explore","description":"a"}]}""").first</ID>
+    <ID>MaxLineLength:ViewModels.kt$*</ID>
+    <ID>MaxLineLength:WideThreePaneHome.kt$.</ID>
+    <ID>MaxLineLength:WideThreePaneHome.kt$Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, top = 8.dp, bottom = 4.dp)</ID>
+    <ID>MaxLineLength:WideThreePaneHome.kt$Toast.makeText(context, "Couldn't fork: ${st.message}", Toast.LENGTH_LONG).show()</ID>
+    <ID>MaxLineLength:WideThreePaneHome.kt$Toast.makeText(context, "Download failed: ${eff.message}", Toast.LENGTH_LONG).show()</ID>
+    <ID>MaxLineLength:WideThreePaneHome.kt$Toast.makeText(context, "Downloading ${eff.name}…", Toast.LENGTH_SHORT).show()</ID>
+    <ID>MaxLineLength:WideThreePaneHome.kt$expandedRuns = if (rid in expandedRuns) expandedRuns - rid else expandedRuns + rid</ID>
+    <ID>MaxLineLength:WideThreePaneHome.kt$if (ok) "Saved to Downloads: ${eff.name}" else "Couldn't save ${eff.name}"</ID>
+    <ID>MaxLineLength:WideThreePaneHome.kt$if (rid != null) { railHidden = false; expandedRuns = expandedRuns + rid }</ID>
+    <ID>MaxLineLength:WideThreePaneHome.kt$railWidth = nw.coerceIn(minRail, (maxW - listWidth - minChat - splittersReserve).coerceAtLeast(minRail))</ID>
+    <ID>MaxLineLength:WideThreePaneHome.kt$try { saveToDownloads(context, eff.name, eff.file) } finally { eff.file.delete() }</ID>
+    <ID>MaxLineLength:WideThreePaneHome.kt$var railWidth by remember(currentSid) { mutableStateOf(store.get(currentSid).railWidth.coerceAtLeast(minRail)) }</ID>
+    <ID>MaxLineLength:WorkflowRunLinkTest.kt$WorkflowRunLinkTest$"""{"type":"tool_use","id":"toolu_D","name":"mcp__agentic__delegate","input":{"title":"audit","tasks":[{"prompt":"x"}]}}]}}"""</ID>
+    <ID>MaxLineLength:WorkflowViewModel.kt$WorkflowViewModel$selectionState.update { it.copy(selectedAgent = runId to agent, loadingTranscript = true, agentTranscript = null) }</ID>
+    <ID>MaxLineLength:WorkflowViewModel.kt$state.trim().lowercase() !in setOf("done", "complete", "completed", "failed", "error", "cancelled", "canceled", "killed")</ID>
+    <ID>NestedBlockDepth:CommitGraph.kt$fun buildCommitGraph(commits: List&lt;CommitNode&gt;, hasUncommitted: Boolean): List&lt;GraphRow&gt;</ID>
+    <ID>NestedBlockDepth:LogcatCollector.kt$LogcatCollector$private fun runLoop()</ID>
+    <ID>NestedBlockDepth:SessionScreen.kt$internal fun saveToDownloads(context: Context, name: String, file: File): Boolean</ID>
+    <ID>NestedBlockDepth:SessionsRepository.kt$SessionsRepository$suspend fun followUp(id: String, prompt: String, setTitle: Boolean = true, model: String? = null, effort: String? = null, permissionMode: String? = null): Outcome&lt;Int&gt;</ID>
+    <ID>NestedBlockDepth:SherpaDictation.kt$SherpaDictation$fun downloadModel(quality: Quality, onProgress: (downloaded: Long, total: Long) -&gt; Unit): Boolean</ID>
+    <ID>NestedBlockDepth:Transcript.kt$fun buildFromLog(log: List&lt;String&gt;): List&lt;Node&gt;</ID>
+    <ID>NewLineAtEndOfFile:NativeModelsViewModel.kt$dev.agentic.ui.providers.NativeModelsViewModel.kt</ID>
+    <ID>NewLineAtEndOfFile:PendingAttachment.kt$dev.agentic.domain.PendingAttachment.kt</ID>
+    <ID>NewLineAtEndOfFile:SessionSearchBar.kt$dev.agentic.ui.home.SessionSearchBar.kt</ID>
+    <ID>NewLineAtEndOfFile:SessionSettingsViewModel.kt$dev.agentic.ui.session.SessionSettingsViewModel.kt</ID>
+    <ID>RethrowCaughtException:NewRequestViewModel.kt$NewRequestViewModel$throw e</ID>
+    <ID>RethrowCaughtException:SessionViewModel.kt$SessionViewModel$throw e</ID>
+    <ID>ReturnCount:AgentTranscriptPane.kt$fun splitAgentTranscript(raw: String): AgentTranscriptParts</ID>
+    <ID>ReturnCount:FakeAgenticApi.kt$FakeAgenticApi$override suspend fun sessionEvents(id: String, limit: Int?, before: Long?, after: Long?, around: Long?): SessionEventsResponse</ID>
+    <ID>ReturnCount:GlobalSettingsViewModel.kt$GlobalSettingsViewModel$fun addMcpServer(draft: McpDraft): String?</ID>
+    <ID>ReturnCount:OnlineRecognizer.kt$fun getModelConfig(type: Int): OnlineModelConfig?</ID>
+    <ID>ReturnCount:QueryHighlight.kt$fun snippetAroundMatch(snippet: String, query: String, lead: Int = 10): String</ID>
+    <ID>ReturnCount:ResumableDownloader.kt$internal fun contentRangeStart(header: String?): Long?</ID>
+    <ID>ReturnCount:ResumableDownloader.kt$internal fun contentRangeTotal(header: String?): Long?</ID>
+    <ID>ReturnCount:SessionMention.kt$fun activeMentionQuery(text: String, caret: Int): MentionQuery?</ID>
+    <ID>ReturnCount:SessionScreen.kt$internal fun saveToDownloads(context: Context, name: String, file: File): Boolean</ID>
+    <ID>ReturnCount:SessionsRepository.kt$SessionsRepository$private suspend fun load(id: String)</ID>
+    <ID>ReturnCount:SessionsRepository.kt$SessionsRepository$suspend fun loadEarlier(id: String)</ID>
+    <ID>ReturnCount:SessionsRepository.kt$SessionsRepository$suspend fun loadNewer(id: String)</ID>
+    <ID>ReturnCount:SherpaDictation.kt$SherpaDictation$fun downloadModel(quality: Quality, onProgress: (downloaded: Long, total: Long) -&gt; Unit): Boolean</ID>
+    <ID>ReturnCount:SherpaDictation.kt$SherpaDictation$fun start(quality: Quality, onText: (String) -&gt; Unit, onError: (String) -&gt; Unit)</ID>
+    <ID>ReturnCount:SkillStoreScreen.kt$internal fun githubRefQuery(q: String): String?</ID>
+    <ID>ReturnCount:Transcript.kt$fun setWorkflowRunId(nodes: List&lt;Node&gt;, id: String, runId: String): List&lt;Node&gt;</ID>
+    <ID>ReturnCount:Transcript.kt$private fun route(nodes: List&lt;Node&gt;, parentId: String?, op: (List&lt;Node&gt;) -&gt; List&lt;Node&gt;): List&lt;Node&gt;</ID>
+    <ID>ReturnCount:TranscriptGrouping.kt$fun interleaveShared(display: List&lt;Node&gt;, shared: List&lt;AttachmentNode&gt;, truncatedStart: Boolean = false): List&lt;Node&gt;</ID>
+    <ID>ReturnCount:TranscriptReducer.kt$TranscriptReducer$@Synchronized fun applyFrameWithBusy(frame: String): FrameResult</ID>
+    <ID>ReturnCount:TranscriptReducer.kt$TranscriptReducer$private fun beginStreamIfDelta(frame: String)</ID>
+    <ID>ReturnCount:TranscriptReducer.kt$TranscriptReducer$private fun materialize()</ID>
+    <ID>ReturnCount:TranscriptReducer.kt$TranscriptReducer$private fun replaceInScope(ns: List&lt;Node&gt;, parent: String?, old: Node, new: Node): List&lt;Node&gt;</ID>
+    <ID>ReturnCount:TranscriptReducer.kt$TranscriptReducer$private fun scopeList(ns: List&lt;Node&gt;, parent: String?): List&lt;Node&gt;?</ID>
+    <ID>ReturnCount:TranscriptReducer.kt$TranscriptReducer$private fun streamDelta(frame: String): FrameResult?</ID>
+    <ID>ReturnCount:Usage.kt$fun parseResetAt(resetsAt: String?): Long?</ID>
+    <ID>SwallowedException:Outcome.kt$e: UnauthorizedException</ID>
+    <ID>SwallowedException:OutcomeTest.kt$OutcomeTest$e: kotlinx.coroutines.CancellationException</ID>
+    <ID>SwallowedException:SessionScreen.kt$e: Exception</ID>
+    <ID>SwallowedException:SessionSettingsScreen.kt$e: Exception</ID>
+    <ID>SwallowedException:SessionsRepository.kt$SessionsRepository$e: Exception</ID>
+    <ID>SwallowedException:Transcript.kt$e: Exception</ID>
+    <ID>SwallowedException:TranscriptReducer.kt$TranscriptReducer$e: Exception</ID>
+    <ID>SwallowedException:WorkflowsRepository.kt$WorkflowsRepository$e: Exception</ID>
+    <ID>ThrowsCount:ResumableDownloader.kt$ResumableDownloader$suspend fun download( url: String, dest: File, configure: HttpRequestBuilder.() -&gt; Unit = {}, onProgress: ((received: Long, total: Long?) -&gt; Unit)? = null, )</ID>
+    <ID>ThrowsCount:SessionsRepository.kt$SessionsRepository$private fun openStream(id: String)</ID>
+    <ID>TooGenericExceptionCaught:AppLogCatch.kt$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:CrashHandler.kt$CrashHandler$e: Throwable</ID>
+    <ID>TooGenericExceptionCaught:DiagnosticsViewModel.kt$DiagnosticsViewModel$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:FilesRepository.kt$FilesRepository$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:GlobalSettingsViewModel.kt$GlobalSettingsViewModel$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:KtorAgenticApi.kt$KtorAgenticApi$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:LogcatCollector.kt$LogcatCollector$t: Throwable</ID>
+    <ID>TooGenericExceptionCaught:NewRequestViewModel.kt$NewRequestViewModel$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:Outcome.kt$e: Throwable</ID>
+    <ID>TooGenericExceptionCaught:Polling.kt$e: Throwable</ID>
+    <ID>TooGenericExceptionCaught:ResumableDownloader.kt$ResumableDownloader$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:SessionScreen.kt$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:SessionSettingsScreen.kt$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:SessionSettingsViewModel.kt$SessionSettingsViewModel$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:SessionUiStore.kt$SessionUiStore$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:SessionViewModel.kt$SessionViewModel$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:SessionsRepository.kt$SessionsRepository$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:SherpaDictation.kt$SherpaDictation$t: Throwable</ID>
+    <ID>TooGenericExceptionCaught:Transcript.kt$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:TranscriptReducer.kt$TranscriptReducer$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:WorkflowsRepository.kt$WorkflowsRepository$e: Exception</ID>
+    <ID>TooGenericExceptionThrown:PollingTest.kt$PollingTest$throw RuntimeException("boom")</ID>
+    <ID>TooGenericExceptionThrown:SherpaDictation.kt$SherpaDictation$throw RuntimeException("AudioRecord.read error $read")</ID>
+    <ID>TooManyFunctions:AgenticApi.kt$AgenticApi</ID>
+    <ID>TooManyFunctions:GlobalSettingsViewModel.kt$GlobalSettingsViewModel : ViewModel</ID>
+    <ID>TooManyFunctions:HomeViewModel.kt$HomeViewModel : ViewModel</ID>
+    <ID>TooManyFunctions:KtorAgenticApi.kt$KtorAgenticApi : AgenticApi</ID>
+    <ID>TooManyFunctions:LoginViewModel.kt$LoginViewModel : ViewModel</ID>
+    <ID>TooManyFunctions:NewRequestViewModel.kt$NewRequestViewModel : ViewModel</ID>
+    <ID>TooManyFunctions:OnlineRecognizer.kt$OnlineRecognizer</ID>
+    <ID>TooManyFunctions:OnlineStream.kt$OnlineStream</ID>
+    <ID>TooManyFunctions:SessionViewModel.kt$SessionViewModel : ViewModel</ID>
+    <ID>TooManyFunctions:SessionsRepository.kt$SessionsRepository</ID>
+    <ID>TooManyFunctions:Transcript.kt$dev.agentic.domain.Transcript.kt</ID>
+    <ID>TooManyFunctions:Transcript.kt$dev.agentic.ui.session.Transcript.kt</ID>
+    <ID>TooManyFunctions:TranscriptReducer.kt$TranscriptReducer</ID>
+    <ID>TopLevelPropertyNaming:WideThreePaneHome.kt$/** *Touch* width of each [PaneSplitter], in dp. The draggable area is measured this wide and centred over * the slim [SplitterWidthDp] lane, overflowing ~12dp into each neighbouring pane, so finger presses land * reliably even though the visible gutter is thin. 48dp = Material's minimum interactive size. The * overflow can't steal the neighbours' taps/scrolls: [draggable] only consumes after the horizontal * touch-slop, so taps (no slop) and vertical scrolls (wrong orientation) fall through to the pane below. */ private const val SplitterTouchTargetDp = 48f</ID>
+    <ID>TopLevelPropertyNaming:WideThreePaneHome.kt$/** *Visual* width of each [PaneSplitter] lane, in dp — the gap the gutter occupies between panes, and * the width it reports to the layout. Kept thin so the gutters don't look bulky. The *touch* target is * the larger [SplitterTouchTargetDp] (the lane overflows symmetrically into the neighbours as an * invisible grab zone), so a slim look doesn't cost drag reliability. The pane-width clamps reserve * `2 ×` this so the two gutters can never starve the chat column. */ private const val SplitterWidthDp = 24f</ID>
+    <ID>UnusedParameter:SessionScreen.kt$streaming: Boolean</ID>
+    <ID>UnusedParameter:SessionScreen.kt$workflowActive: Boolean</ID>
+    <ID>UnusedParameter:Transcript.kt$firstEventLine: Long = 0</ID>
+    <ID>UnusedParameter:Transcript.kt$latestEventId: Long = 0</ID>
+    <ID>UnusedPrivateMember:StatusIndicator.kt$@Preview @Composable private fun StatusIndicatorUnreadPreview()</ID>
+    <ID>UnusedPrivateProperty:SessionViewModel.kt$SessionViewModel$/** SavedStateHandle backing this VM, when constructed via the secondary ctor from a nav entry. * Null when constructed via the primary ctor (wide-layout AdaptiveHome right pane has no per-session * nav entry). Retained for forward compatibility (some call sites already pass it) even though * the per-turn settings handoff was removed. */ private val savedStateHandle: SavedStateHandle? = null</ID>
+    <ID>UnusedPrivateProperty:SessionViewModelPermTest.kt$SessionViewModelPermTest$// A log entry that produces a PlanNode (agentic_perm with permKind=plan). private val planLog = listOf( """{"type":"agentic_prompt","text":"go","at":1}""", """{"type":"result","result":"ok"}""", """{"type":"agentic_perm","id":"plan-1","permKind":"plan","plan":"Step 1: do the thing"}""", )</ID>
+    <ID>UnusedPrivateProperty:SessionViewModelPermTest.kt$SessionViewModelPermTest$// A terminal session (claudeSessionId set) whose log contains an agentic_perm event. // The JSON format matches the reducer in Transcript.kt: type=agentic_perm, id, tool, input={}. private val permLog = listOf( """{"type":"agentic_prompt","text":"go","at":1}""", """{"type":"result","result":"ok"}""", """{"type":"agentic_perm","id":"perm-1","tool":"Bash","input":{"command":"rm -rf /tmp/x"}}""", )</ID>
+    <ID>UnusedPrivateProperty:SessionViewModelTest.kt$SessionViewModelTest$private val seedLog = listOf("""{"type":"agentic_prompt","text":"go","at":1}""", """{"type":"result","result":"ok"}""")</ID>
+    <ID>UnusedPrivateProperty:SessionsRepositoryTest.kt$SessionsRepositoryTest$// Log entries (buildFromLog shape) that produce a ToolNode and an AnswerNode — used as the // post-stream persisted log so a reseed-on-reconnect reproduces what the live stream delivered. private val toolLogEntry = """{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Read","input":{"file_path":"/a/B.kt"}}]}}"""</ID>
+    <ID>UnusedPrivateProperty:SessionsRepositoryTest.kt$SessionsRepositoryTest$private val answerLogEntry = """{"type":"result","result":"done"}"""</ID>
+    <ID>UnusedPrivateProperty:Theme.kt$// Fixed M3 (Expressive) brand scheme — a single, unified BLUE family built the way the M3 color // system prescribes (each key color → a tonal palette; roles map to specific tones; same role serves // light + dark at different tones). Primary = vibrant azure blue, secondary = slate blue, tertiary = // a brighter sky-blue accent (NOT teal/green — kept in the blue family so the app reads as one hue), // error = semantic red, neutrals = blue-tinted greys. No device dynamic color, no off-brand hues. private val LightExpressive = lightColorScheme( primary = Color(0xFF1B61C8), onPrimary = Color.White, primaryContainer = Color(0xFFD6E3FF), onPrimaryContainer = Color(0xFF001B3D), secondary = Color(0xFF545F71), onSecondary = Color.White, secondaryContainer = Color(0xFFD8E3F8), onSecondaryContainer = Color(0xFF111C2B), // tertiary: cornflower/royal blue accent (was teal) — same blue family as primary, slightly // more saturated for accent presence. tertiary = Color(0xFF3B5CA8), onTertiary = Color.White, tertiaryContainer = Color(0xFFDAE2FF), onTertiaryContainer = Color(0xFF001A43), error = Color(0xFFBA1A1A), onError = Color.White, errorContainer = Color(0xFFFFDAD6), onErrorContainer = Color(0xFF410002), background = Color(0xFFF8FAFF), onBackground = Color(0xFF191C20), surface = Color(0xFFF8FAFF), onSurface = Color(0xFF191C20), surfaceTint = Color(0xFF1B61C8), surfaceVariant = Color(0xFFDBE2EF), onSurfaceVariant = Color(0xFF424751), surfaceContainerLowest = Color(0xFFFFFFFF), surfaceContainerLow = Color(0xFFEFF3FB), surfaceContainer = Color(0xFFE9EEF7), surfaceContainerHigh = Color(0xFFE3E9F3), surfaceContainerHighest = Color(0xFFDEE4EF), outline = Color(0xFF72777F), outlineVariant = Color(0xFFC2C7D2), )</ID>
+    <ID>UnusedPrivateProperty:WorkflowViewModelTest.kt$WorkflowViewModelTest$var callCount = 0</ID>
+    <ID>UnusedPrivateProperty:WorkflowsRepository.kt$WorkflowsRepository$private val scope: CoroutineScope</ID>
+    <ID>WildcardImport:AskParsingTest.kt$import kotlinx.serialization.json.*</ID>
+    <ID>WildcardImport:AskParsingTest.kt$import org.junit.Assert.*</ID>
+    <ID>WildcardImport:SessionIndicatorTest.kt$import org.junit.Assert.*</ID>
+    <ID>WildcardImport:SessionViewModelTest.kt$import kotlinx.coroutines.*</ID>
+    <ID>WildcardImport:SessionViewModelTest.kt$import kotlinx.coroutines.test.*</ID>
+    <ID>WildcardImport:SessionViewModelTest.kt$import org.junit.*</ID>
+    <ID>WildcardImport:ToolDisplayTest.kt$import kotlinx.serialization.json.*</ID>
+    <ID>WildcardImport:TranscriptGroupingTest.kt$import org.junit.Assert.*</ID>
+    <ID>WildcardImport:TranscriptReducerStreamingTest.kt$import org.junit.Assert.*</ID>
+    <ID>WildcardImport:TranscriptReducerTest.kt$import org.junit.Assert.*</ID>
+    <ID>WildcardImport:TranscriptTest.kt$import org.junit.Assert.*</ID>
+  </CurrentIssues>
+</SmellBaseline>

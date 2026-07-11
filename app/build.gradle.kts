@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.detekt)
     // TODO: uncomment once google-services.json is placed in app/ (get it from Firebase Console,
     //       project package dev.agentic).  Also add the matching root-project plugin line — see
     //       the TODO block in AndroidManifest.xml for the full instructions.
@@ -105,4 +106,11 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     // 用脚本化响应驱动 ResumableDownloader（中途断流、206 续传）。
     testImplementation(libs.ktor.client.mock)
+}
+
+// Static analysis (A2). Existing findings live in detekt-baseline.xml — CI fails only on NEW
+// findings. Shrink the baseline over time; don't add to it.
+detekt {
+    buildUponDefaultConfig = true
+    baseline = file("detekt-baseline.xml")
 }
