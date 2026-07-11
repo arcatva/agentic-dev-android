@@ -68,10 +68,12 @@ class GlobalSettingsViewModel(
         load()
     }
 
-    /** Reload the component list from the server. */
+    /** Reload the component list from the server. The full-screen loading flag is only raised
+     *  while we have nothing to show — a re-load (e.g. returning from the skill store, which
+     *  runs its own ViewModel) refreshes quietly behind the existing content. */
     fun load() {
         viewModelScope.launch {
-            _uiState.update { it.copy(loading = true, error = null) }
+            _uiState.update { it.copy(loading = it.components.isEmpty(), error = null) }
             try {
                 val list = api.getGlobalSettings()
                 _uiState.update { it.copy(loading = false, components = list) }
