@@ -111,6 +111,7 @@ dependencies {
 // Static analysis (A2). Existing findings live in detekt-baseline.xml — CI fails only on NEW
 // findings. Shrink the baseline over time; don't add to it.
 detekt {
+    parallel = true
     buildUponDefaultConfig = true
     baseline = file("detekt-baseline.xml")
 }
