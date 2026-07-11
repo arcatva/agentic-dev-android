@@ -5,6 +5,8 @@
 agp = "8.7.2"
 # Kotlin 2.0.x 在 kotlin-android / compose-compiler / serialization 三插件间保持一致
 kotlin = "2.0.21"
+# detekt 1.23.x supports Kotlin 2.0 (ships its own embedded compiler); used for static analysis (A2)
+detekt = "1.23.8"
 
 # ── Compose ────────────────────────────────────────────────
 # 1.9.0 已验证可在 AGP 8.7.2 / compileSdk 35 / Gradle 8.10.2 上构建
@@ -64,6 +66,7 @@ junit = { group = "junit", name = "junit", version.ref = "junit" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "kotlinxCoroutinesTest" }
 
 [plugins]
+detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
