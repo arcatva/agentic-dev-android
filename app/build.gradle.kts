@@ -77,7 +77,7 @@ android {
 
 dependencies {
     // Compose —— 版本经由 catalog 统一管理。material3 1.4.0-alpha18 公开 Expressive API 且
-    // 依赖 compose 1.8.x（仍以 compileSdk 35 为目标）；compose 1.9.0 已验证在 AGP 8.7.2 上构建。
+    // 依赖 compose 1.8.x（仍以 compileSdk 35 为目标）；compose 1.9.5 verified on AGP 8.7.3 (checkDebugAarMetadata + lintVitalRelease pass)
     implementation(libs.bundles.compose)
     debugImplementation(libs.compose.ui.tooling)
     implementation(libs.androidx.activity.compose)
@@ -97,7 +97,7 @@ dependencies {
     // Firebase Cloud Messaging —— 会话完成推送。
     // TODO: 构建前把 google-services.json 放进 app/ 并启用上方 google-services 插件。
     implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.messaging.ktx)
+    implementation(libs.firebase.messaging)
     // kotlinx-coroutines-play-services 提供 Firebase Task<T> 的 .await()
     implementation(libs.kotlinx.coroutines.play.services)
 
