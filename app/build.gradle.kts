@@ -2,10 +2,10 @@ import java.io.FileInputStream
 import java.util.Properties
 
 plugins {
-    id("com.android.application")
-    id("org.jetbrains.kotlin.android")
-    id("org.jetbrains.kotlin.plugin.compose")
-    id("org.jetbrains.kotlin.plugin.serialization")
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
     // TODO: uncomment once google-services.json is placed in app/ (get it from Firebase Console,
     //       project package dev.agentic).  Also add the matching root-project plugin line — see
     //       the TODO block in AndroidManifest.xml for the full instructions.
@@ -75,54 +75,34 @@ android {
 }
 
 dependencies {
-    // Explicit pins (no BOM). material3 1.4.0-alpha18 exposes the Expressive APIs publicly
-    // (they were marked `internal` at the 1.4.0 beta/stable cut) AND depends on compose 1.8.x,
-    // which still targets compileSdk 35 — so AGP 8.7.2 stays put. The 1.5.0-alpha line needs
-    // compose 1.12 → compileSdk 37 → a newer toolchain.
-    // Bumped 1.8.2 → 1.9.0 to get material3-adaptive 1.2.0 (native pane-expansion drag handle for
-    // the resizable 3-pane home). Verified: 1.9.0 still builds on AGP 8.7.2 / compileSdk 35 /
-    // Gradle 8.10.2 (checkDebugAarMetadata passes — no compileSdk 36 / AGP bump needed). material3
-    // 1.4.0-alpha18 (Expressive APIs public) stays; it resolves its compose deps up to 1.9.0.
-    val compose = "1.9.0"
-    implementation("androidx.compose.material3:material3:1.4.0-alpha18")
-    implementation("androidx.compose.material:material-icons-extended:1.7.8")
-    implementation("androidx.compose.ui:ui:$compose")
-    implementation("androidx.compose.foundation:foundation:$compose")
-    implementation("androidx.compose.ui:ui-tooling-preview:$compose")
-    debugImplementation("androidx.compose.ui:ui-tooling:$compose")
-    implementation("androidx.activity:activity-compose:1.9.3")
-    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
-    // ProcessLifecycleOwner: a single app-foreground signal used to force a stream reconnect for every
-    // live session on warm return (backstop to the per-screen ON_RESUME refresh).
-    implementation("androidx.lifecycle:lifecycle-process:2.8.7")
-    implementation("androidx.navigation:navigation-compose:2.8.4")
-    // Material3 adaptive panes (single-tree list/detail/extra + native pane-expansion drag handle).
-    val adaptive = "1.2.0"
-    implementation("androidx.compose.material3.adaptive:adaptive:$adaptive")
-    implementation("androidx.compose.material3.adaptive:adaptive-layout:$adaptive")
-    implementation("androidx.compose.material3.adaptive:adaptive-navigation:$adaptive")
+    // Compose —— 版本经由 catalog 统一管理。material3 1.4.0-alpha18 公开 Expressive API 且
+    // 依赖 compose 1.8.x（仍以 compileSdk 35 为目标）；compose 1.9.0 已验证在 AGP 8.7.2 上构建。
+    implementation(libs.bundles.compose)
+    debugImplementation(libs.compose.ui.tooling)
+    implementation(libs.androidx.activity.compose)
 
-    // networking: Ktor (REST + WebSocket) + kotlinx-serialization
-    val ktor = "2.3.12"
-    implementation("io.ktor:ktor-client-okhttp:$ktor")
-    implementation("io.ktor:ktor-client-content-negotiation:$ktor")
-    implementation("io.ktor:ktor-serialization-kotlinx-json:$ktor")
-    implementation("io.ktor:ktor-client-websockets:$ktor")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+    // lifecycle 2.8.7：runtime-compose + viewmodel-compose + process（ProcessLifecycleOwner，
+    // 用于热返回时强制每个活跃会话重连）。lint 禁用见下方 android{} lint 块。
+    implementation(libs.bundles.lifecycle)
+    implementation(libs.androidx.navigation.compose)
 
-    // Firebase Cloud Messaging — push notifications for session finish events.
-    // TODO: add google-services.json to app/ and uncomment the google-services plugin above
-    //       before building. The two lines below make the code compile regardless.
-    implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
-    implementation("com.google.firebase:firebase-messaging-ktx")
-    // kotlinx-coroutines-play-services provides .await() for Firebase Task<T> (pulled transitively
-    // by firebase-messaging-ktx, but pinned here for clarity).
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
+    // Material3 adaptive panes（单树 list/detail/extra + 原生 pane 展开拖拽手柄）。
+    implementation(libs.bundles.compose.adaptive)
 
-    // Unit testing (JVM) — pure domain transforms, repositories (fake Api), ViewModels.
-    testImplementation("junit:junit:4.13.2")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
-    // Drives ResumableDownloader through scripted responses (mid-stream cuts, 206 resumes).
-    testImplementation("io.ktor:ktor-client-mock:$ktor")
+    // networking: Ktor(REST + WebSocket) + kotlinx-serialization
+    implementation(libs.bundles.ktor)
+    implementation(libs.kotlinx.serialization.json)
+
+    // Firebase Cloud Messaging —— 会话完成推送。
+    // TODO: 构建前把 google-services.json 放进 app/ 并启用上方 google-services 插件。
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.messaging.ktx)
+    // kotlinx-coroutines-play-services 提供 Firebase Task<T> 的 .await()
+    implementation(libs.kotlinx.coroutines.play.services)
+
+    // 单元测试（JVM）——纯领域变换、仓库（fake Api）、ViewModel。
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
+    // 用脚本化响应驱动 ResumableDownloader（中途断流、206 续传）。
+    testImplementation(libs.ktor.client.mock)
 }
