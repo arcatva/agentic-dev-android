@@ -12,6 +12,7 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
             extensions.configure(ApplicationExtension::class.java) {
                 configureAndroidCommon(this)
                 defaultConfig.targetSdk = 35
+                buildFeatures.compose = true
             }
         }
     }
