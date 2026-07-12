@@ -312,16 +312,21 @@ class NewRequestViewModelTest {
         assertNull(McpDraft(name = "remote", transport = "http", url = "https://x.com/mcp").validationError)
         assertNotNull("empty name", McpDraft(name = "", transport = "stdio", command = "node").validationError)
         assertNotNull("blank name", McpDraft(name = "   ", transport = "stdio", command = "node").validationError)
-        assertNotNull("reserved name", McpDraft(name = "agentic", transport = "stdio", command = "node").validationError)
-        assertNotNull("blank transport", McpDraft(name = "x", transport = "", command = "node", url = "https://x").validationError)
+        assertNotNull("reserved name",
+            McpDraft(name = "agentic", transport = "stdio", command = "node").validationError)
+        assertNotNull("blank transport",
+            McpDraft(name = "x", transport = "", command = "node", url = "https://x").validationError)
         assertNotNull("stdio needs command", McpDraft(name = "x", transport = "stdio", command = "").validationError)
         assertNotNull("http needs url", McpDraft(name = "x", transport = "http", url = "").validationError)
         assertNotNull("non-http scheme", McpDraft(name = "x", transport = "http", url = "ftp://x.com").validationError)
         assertNotNull("no scheme", McpDraft(name = "x", transport = "http", url = "x.com/mcp").validationError)
         assertNotNull("empty host", McpDraft(name = "x", transport = "http", url = "https://").validationError)
-        assertNotNull("no host, path only", McpDraft(name = "x", transport = "http", url = "https:///mcp").validationError)
-        assertNotNull("no host, query only", McpDraft(name = "x", transport = "http", url = "http://?x=1").validationError)
-        assertNotNull("inner whitespace", McpDraft(name = "x", transport = "http", url = "https://x .com").validationError)
+        assertNotNull("no host, path only",
+            McpDraft(name = "x", transport = "http", url = "https:///mcp").validationError)
+        assertNotNull("no host, query only",
+            McpDraft(name = "x", transport = "http", url = "http://?x=1").validationError)
+        assertNotNull("inner whitespace",
+            McpDraft(name = "x", transport = "http", url = "https://x .com").validationError)
         assertNull(McpDraft(name = "x", transport = "http", url = " https://x.com ").validationError)
     }
 
