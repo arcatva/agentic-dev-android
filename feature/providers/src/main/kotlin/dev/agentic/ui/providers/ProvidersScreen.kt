@@ -398,11 +398,10 @@ private fun ChatgptLoginCard(onConnected: () -> Unit) {
 
         Spacer(Modifier.height(8.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (ui.status == "connected") {
-                TextButton(onClick = { vm.logout(onConnected) }, enabled = !ui.busy) {
-                    Text("Disconnect")
-                }
-            } else {
+            // A login button unless fully connected. In needs_reauth the backend still holds a token
+            // record, so ALSO offer Disconnect there (not just when connected) — otherwise a stale
+            // subscription can't be cleared from this card.
+            if (ui.status != "connected") {
                 Button(
                     onClick = {
                         vm.login(
@@ -418,6 +417,11 @@ private fun ChatgptLoginCard(onConnected: () -> Unit) {
                     enabled = !ui.busy,
                 ) {
                     Text(if (ui.status == "needs_reauth") "Log in again" else "Login with ChatGPT")
+                }
+            }
+            if (ui.status == "connected" || ui.status == "needs_reauth") {
+                TextButton(onClick = { vm.logout(onConnected) }, enabled = !ui.busy) {
+                    Text("Disconnect")
                 }
             }
         }

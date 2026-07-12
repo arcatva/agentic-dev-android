@@ -91,13 +91,12 @@ class ChatgptLoginViewModel(private val repo: ProvidersRepository) : ViewModel()
                             expiresAt = s.value.expiresAt,
                         )
                     }
-                    if (s.value.status == "connected") {
+                    // Any status other than pending is terminal: connected (success), needs_reauth,
+                    // or not_connected (the server's listener timed out / was cancelled). Stop
+                    // polling and clear busy so the button isn't stuck for the full 5 min.
+                    if (s.value.status != "pending") {
                         _ui.update { it.copy(busy = false) }
-                        onConnected()
-                        return
-                    }
-                    if (s.value.status == "needs_reauth") {
-                        _ui.update { it.copy(busy = false) }
+                        if (s.value.status == "connected") onConnected()
                         return
                     }
                 }
@@ -111,11 +110,19 @@ class ChatgptLoginViewModel(private val repo: ProvidersRepository) : ViewModel()
     fun logout(onDone: () -> Unit) {
         _ui.update { it.copy(busy = true, error = null) }
         viewModelScope.launch {
-            runCatchingOutcome { repo.chatgptLogout() }
-            _ui.update {
-                it.copy(status = "not_connected", accountEmail = null, expiresAt = null, busy = false)
+            when (val r = runCatchingOutcome { repo.chatgptLogout() }) {
+                is Outcome.Success -> {
+                    _ui.update {
+                        it.copy(status = "not_connected", accountEmail = null, expiresAt = null, busy = false)
+                    }
+                    onDone()
+                }
+                is Outcome.Failure -> {
+                    // Backend may still hold the connection — keep the status, surface the error.
+                    AppLog.w("VM", "chatgpt logout failed err=${r.error}")
+                    _ui.update { it.copy(busy = false, error = r.error.toString()) }
+                }
             }
-            onDone()
         }
     }
 }
