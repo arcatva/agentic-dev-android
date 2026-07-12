@@ -725,8 +725,9 @@ internal fun GroupFilterRow(
                     modifier = Modifier.animateWidth(src),
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (group.icon != null) {
-                            Text(group.icon, style = MaterialTheme.typography.bodySmall, maxLines = 1)
+                        val icon = group.icon
+                        if (icon != null) {
+                            Text(icon, style = MaterialTheme.typography.bodySmall, maxLines = 1)
                             Spacer(Modifier.width(4.dp))
                         }
                         Text(group.name, style = MaterialTheme.typography.bodySmall, maxLines = 1, softWrap = false)

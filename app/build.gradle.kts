@@ -66,6 +66,8 @@ android {
 dependencies {
     implementation(project(":core:model"))
     implementation(project(":core:common"))
+    implementation(project(":core:network"))
+    implementation(project(":core:data"))
 
     // Compose —— 版本经由 catalog 统一管理。material3 1.4.0-alpha18 公开 Expressive API 且
     // 依赖 compose 1.8.x（仍以 compileSdk 35 为目标）；compose 1.9.5 verified on AGP 8.7.3 (checkDebugAarMetadata + lintVitalRelease pass)
@@ -93,6 +95,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.play.services)
 
     // 单元测试（JVM）——纯领域变换、仓库（fake Api）、ViewModel。
+    testImplementation(project(":core:testing"))
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     // 用脚本化响应驱动 ResumableDownloader（中途断流、206 续传）。
