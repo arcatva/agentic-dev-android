@@ -110,6 +110,7 @@ dependencies {
 
     // 单元测试（JVM）——纯领域变换、仓库（fake Api）、ViewModel。
     testImplementation(project(":core:testing"))
+    testImplementation(libs.konsist)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     // 用脚本化响应驱动 ResumableDownloader（中途断流、206 续传）。
