@@ -12,9 +12,25 @@ to master" convention.
 1. **Adversarially verify the change BEFORE you commit.** Fan out sub-agents with `delegate`
    (per the model-routing rule in the session CLAUDE.md — leave `model` UNSET so each task is
    cost-routed; give them a `title` + `phase`). Give each worker the diff and a distinct
-   *refutation* angle — logic/regression, edge cases & error paths, security, and test/coverage
-   gaps — and tell it to actively try to prove the change wrong. Fix anything real before
-   committing. This is our own pre-flight gate; it runs in ADDITION to Codex review, not instead.
+   *refutation* angle and tell it to actively try to prove the change wrong. Run at least one worker
+   per angle below — the first three are the classics; the last three are REQUIRED and are the ones
+   a single review panel most often misses:
+   - **logic / regression** — does it break existing behavior or any caller?
+   - **edge cases & error paths** — nulls, timeouts, retries, cancellation, config/permission loss.
+   - **security** — token/secret at rest and in logs, auth, deep-link/redirect validation.
+   - **failure-mode test coverage** — enumerate EVERY failure mode the diff can hit (network error,
+     non-2xx response, timeout, empty/null field, expired/again) and require a test for each one not
+     yet covered. A test whose name implies a path it never exercises counts as MISSING; happy-path-only fails.
+   - **reuse / reinvention** — before accepting any new helper, grep for an existing one (existing
+     `core/network` client methods, `core/data` repositories, shared util/extension functions). Re-implementing
+     something the codebase already provides is a defect to fix, not ship.
+   - **cross-layer / cross-repo contract** — this app is the ONLY client of the `agentic-dev` server;
+     when the diff calls a server endpoint, verify both sides match: route path, JSON field names,
+     nullability, status/enum values, error shape. A response body the client silently discards (so a
+     server 4xx/5xx reads as success), or a field the server renamed and the client didn't, is a
+     contract break — fix it or land both sides together.
+   Fix anything real before committing. This is our own pre-flight gate; it runs in ADDITION to Codex
+   review, not instead. When a finding is one we keep hitting, capture it with `/ce-compound`.
 2. Commit on the session branch, push, open a PR with `gh pr create` (targets `master`). One PR
    per coherent change. Opening a non-draft PR triggers a Codex review automatically; if it was a
    draft, mark it ready (or comment `@codex review`) to trigger one.
