@@ -417,7 +417,7 @@ fun AppNav() {
             val sharedVm: GlobalSettingsViewModel = viewModel(
                 viewModelStoreOwner = backStackEntry,
                 factory = viewModelFactory {
-                    initializer { GlobalSettingsViewModel(container.api) }
+                    initializer { GlobalSettingsViewModel(container.globalSettingsRepo) }
                 },
             )
             GlobalSettingsScreen(
@@ -434,7 +434,7 @@ fun AppNav() {
             val sharedVm: GlobalSettingsViewModel = viewModel(
                 viewModelStoreOwner = settingsEntry,
                 factory = viewModelFactory {
-                    initializer { GlobalSettingsViewModel(container.api) }
+                    initializer { GlobalSettingsViewModel(container.globalSettingsRepo) }
                 },
             )
             SkillStoreScreen(onBack = { nav.popBackStack() }, vm = sharedVm)

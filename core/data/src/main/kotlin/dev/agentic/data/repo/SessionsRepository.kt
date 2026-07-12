@@ -245,6 +245,18 @@ class SessionsRepository(
     suspend fun skills(): List<SkillInfo> = api.skills()
     suspend fun plugins(): List<PluginInfo> = api.plugins()
     suspend fun templates(): List<Template> = runCatching { api.getTemplates() }.getOrDefault(emptyList())
+    /** Mark events up to [eventId] read (server-side unread cursor). */
+    suspend fun ack(id: String, eventId: Long) = api.ackSession(id, eventId)
+
+    /** Raw event window for a session (diagnostics / transcript paging). */
+    suspend fun sessionEvents(
+        id: String,
+        limit: Int? = null,
+        before: Long? = null,
+        after: Long? = null,
+        around: Long? = null,
+    ) = api.sessionEvents(id, limit, before, after, around)
+
     /** Globally-configured components (skills, plugins, MCP); callers filter by kind. */
     suspend fun globalSettings(): List<dev.agentic.data.net.ComponentInfo> = api.getGlobalSettings()
     /** Fetch the model catalog and cache it in [ModelCatalog] so [modelLabel] / [MODEL_OPTIONS] work without a suspend call. Returns entries or empty on error. */

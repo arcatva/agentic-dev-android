@@ -3,7 +3,7 @@ package dev.agentic.ui.providers
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.agentic.data.log.AppLog
-import dev.agentic.data.net.AgenticApi
+import dev.agentic.data.repo.ProvidersRepository
 import dev.agentic.data.net.NewProviderReq
 import dev.agentic.data.net.Outcome
 import dev.agentic.data.net.Provider
@@ -26,7 +26,7 @@ data class ProvidersUiState(
  * cheap workers to these providers. Keys are write-only: the list never carries the key back
  * (`Provider.hasKey` only reflects whether one is stored).
  */
-class ProvidersViewModel(private val api: AgenticApi) : ViewModel() {
+class ProvidersViewModel(private val repo: ProvidersRepository) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProvidersUiState())
     val uiState: StateFlow<ProvidersUiState> = _uiState.asStateFlow()
@@ -36,7 +36,7 @@ class ProvidersViewModel(private val api: AgenticApi) : ViewModel() {
     fun refresh() {
         _uiState.update { it.copy(loading = true, error = null) }
         viewModelScope.launch {
-            when (val r = runCatchingOutcome { api.providers() }) {
+            when (val r = runCatchingOutcome { repo.providers() }) {
                 is Outcome.Success -> {
                     AppLog.d("VM", "providers list loaded count=${r.value.size}")
                     _uiState.update { it.copy(providers = r.value, loading = false) }
@@ -55,7 +55,7 @@ class ProvidersViewModel(private val api: AgenticApi) : ViewModel() {
         if (_uiState.value.busy) return
         _uiState.update { it.copy(busy = true, error = null) }
         viewModelScope.launch {
-            when (val r = runCatchingOutcome { api.addProvider(req) }) {
+            when (val r = runCatchingOutcome { repo.addProvider(req) }) {
                 is Outcome.Success -> {
                     AppLog.d("VM", "provider added name=${req.name}")
                     _uiState.update { it.copy(busy = false) }
@@ -77,7 +77,7 @@ class ProvidersViewModel(private val api: AgenticApi) : ViewModel() {
         if (_uiState.value.busy) return
         _uiState.update { it.copy(busy = true, error = null) }
         viewModelScope.launch {
-            when (val r = runCatchingOutcome { api.deleteProvider(name) }) {
+            when (val r = runCatchingOutcome { repo.deleteProvider(name) }) {
                 is Outcome.Success -> {
                     AppLog.d("VM", "provider removed name=$name")
                     _uiState.update { it.copy(busy = false) }

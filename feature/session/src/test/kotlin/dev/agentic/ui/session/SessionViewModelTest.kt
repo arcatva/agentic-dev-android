@@ -32,7 +32,7 @@ class SessionViewModelTest {
     private fun sessionsRepo() = SessionsRepository(api, repoScope)
     private fun workflowsRepo() = WorkflowsRepository(api, repoScope)
     private fun vm(handle: SavedStateHandle = SavedStateHandle(mapOf("id" to "s1"))) =
-        SessionViewModel(sessionsRepo(), workflowsRepo(), FilesRepository(api), api, handle, dispatcher)
+        SessionViewModel(sessionsRepo(), workflowsRepo(), FilesRepository(api), handle, dispatcher)
 
     private val seedLog = listOf("""{"type":"agentic_prompt","text":"go","at":1}""", """{"type":"result","result":"ok"}""")
 

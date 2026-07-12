@@ -193,8 +193,7 @@ private fun NarrowScaffoldHome(
                                     container.sessionsRepo,
                                     container.workflowsRepo,
                                     container.filesRepo,
-                                    container.api,
-                                    selectedSid,
+                                                                        selectedSid,
                                 )
                             }
                         },

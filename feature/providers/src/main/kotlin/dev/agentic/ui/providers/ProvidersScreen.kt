@@ -198,7 +198,7 @@ private class ProviderFormState {
 fun ModelsSections() {
     val container = appContainer()
     val vm: ProvidersViewModel = viewModel(
-        factory = viewModelFactory { initializer { ProvidersViewModel(container.api) } },
+        factory = viewModelFactory { initializer { ProvidersViewModel(container.providersRepo) } },
     )
     val ui by vm.uiState.collectAsStateWithLifecycle()
     val form = remember { ProviderFormState() }
@@ -778,7 +778,7 @@ private fun ProtocolSelector(selected: String, enabled: Boolean, onSelect: (Stri
 private fun NativeModelsSection() {
     val container = appContainer()
     val vm: NativeModelsViewModel = viewModel(
-        factory = viewModelFactory { initializer { NativeModelsViewModel(container.api) } },
+        factory = viewModelFactory { initializer { NativeModelsViewModel(container.providersRepo) } },
     )
     val ui by vm.uiState.collectAsStateWithLifecycle()
     var expanded by rememberSaveable { mutableStateOf(false) }

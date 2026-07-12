@@ -70,7 +70,6 @@ class RewindTest {
         SessionsRepository(api, repoScope),
         WorkflowsRepository(api, repoScope),
         FilesRepository(api),
-        api,
         SavedStateHandle(mapOf("id" to "s1")),
         dispatcher,
     )

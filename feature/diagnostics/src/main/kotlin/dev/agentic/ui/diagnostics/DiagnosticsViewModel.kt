@@ -5,7 +5,7 @@ import androidx.lifecycle.viewModelScope
 import dev.agentic.data.log.LogStore
 import dev.agentic.data.log.AppLog
 import dev.agentic.data.log.LogcatCollector
-import dev.agentic.data.net.AgenticApi
+import dev.agentic.data.repo.FilesRepository
 import dev.agentic.data.net.Outcome
 import dev.agentic.data.net.Session
 import dev.agentic.data.repo.SessionsRepository
@@ -71,7 +71,7 @@ internal fun composeAttachPrompt(message: String, path: String): String {
 class DiagnosticsViewModel(
     private val store: LogStore,
     private val collector: LogcatCollector,
-    private val api: AgenticApi,
+    private val filesRepo: FilesRepository,
     private val sessionsRepo: SessionsRepository,
 ) : ViewModel() {
 
@@ -180,7 +180,7 @@ class DiagnosticsViewModel(
         viewModelScope.launch {
             _state.update { it.copy(loadingSessions = true) }
             try {
-                val list = api.sessions()
+                val list = sessionsRepo.sessions()
                 AppLog.d("Diag", "loadSessions OK count=${list.size}")
                 _state.update { it.copy(sessions = list, loadingSessions = false) }
             } catch (e: Exception) {
@@ -213,7 +213,14 @@ class DiagnosticsViewModel(
                 val zip = buildExport()
                 val bytes = withContext(Dispatchers.IO) { zip.readBytes() }
                 AppLog.d("Diag", "attachToSession id=${sessionId.take(8)} bytes=${bytes.size}")
-                val path = api.uploadFile(sessionId, bytes, zip.name)
+                val path = when (val up = filesRepo.upload(sessionId, bytes, zip.name)) {
+                    is Outcome.Success -> up.value
+                    is Outcome.Failure -> {
+                        AppLog.w("Diag", "attachToSession upload FAILED id=${sessionId.take(8)}: ${up.error}")
+                        _toast.emit("Upload failed: ${up.error}")
+                        return@launch
+                    }
+                }
                 uploadedPath = path
                 // Route through the repo, NOT api.followUp: the repo handles the classic backend's
                 // stale-terminal race (polls until status leaves TERMINAL before reopening the stream),
@@ -233,7 +240,7 @@ class DiagnosticsViewModel(
                 // running sessions the first check breaks out.
                 var tries = 0
                 while (tries < 10) {
-                    val s = runCatching { api.sessionEvents(sessionId, limit = 1) }.getOrNull()?.session
+                    val s = runCatching { sessionsRepo.sessionEvents(sessionId, limit = 1) }.getOrNull()?.session
                     if (s == null || s.status !in TERMINAL) break
                     delay(400)
                     tries++

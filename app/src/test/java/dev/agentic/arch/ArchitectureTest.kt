@@ -86,6 +86,23 @@ class ArchitectureTest {
             }
     }
 
+    /**
+     * The API client is a data-layer implementation detail: features reach the transport only
+     * through repositories. (AgenticApi leaked into 5 ViewModels before CA-2 closed the seam.)
+     */
+    @Test
+    fun `features never touch the api client`() {
+        scope
+            .files
+            .filter { it.path.contains("/feature/") && it.path.contains("/src/main/") }
+            .assertFalse { file ->
+                file.imports.any {
+                    it.name == "dev.agentic.data.net.AgenticApi" ||
+                        it.name == "dev.agentic.data.net.KtorAgenticApi"
+                }
+            }
+    }
+
     /** Core layering: core modules never import feature code. */
     @Test
     fun `core never imports features`() {
