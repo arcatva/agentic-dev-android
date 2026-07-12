@@ -66,6 +66,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
@@ -138,6 +139,7 @@ private class ProviderFormState {
     var priority by mutableFloatStateOf(0.5f)
     var cost by mutableFloatStateOf(0.5f)
     var router by mutableStateOf(false)
+    var enabled by mutableStateOf(true)
     var description by mutableStateOf("")
     var editing by mutableStateOf(false)
 
@@ -151,6 +153,7 @@ private class ProviderFormState {
         priority = 0.5f
         cost = 0.5f
         router = false
+        enabled = true
         description = ""
         editing = false
     }
@@ -167,6 +170,7 @@ private class ProviderFormState {
         priority = p.priority
         cost = p.cost
         router = p.router
+        enabled = p.enabled
         description = p.description.orEmpty()
         editing = true
     }
@@ -175,6 +179,7 @@ private class ProviderFormState {
         name = name.trim(), baseUrl = baseUrl.trim(), apiKey = apiKey,
         model = model.trim(), protocol = protocol, capability = capability,
         description = description.trim().ifBlank { null }, priority = priority, cost = cost, router = router,
+        enabled = enabled,
     )
 
     val valid: Boolean
@@ -234,6 +239,25 @@ fun ModelsSections() {
     val err = ui.error
     if (err != null) {
         Text(err, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+    }
+
+    // ── Global routing preference — the single cost⇄quality knob feeding the delegate router ──
+    SectionCard("Routing") {
+        // Local drag state; re-seeded when the loaded value arrives. Persist on release only (the
+        // slider is continuous, so saving every tick would spam the API).
+        var tradeoff by remember(ui.tradeoff) { mutableFloatStateOf(ui.tradeoff) }
+        FloatSliderField(
+            label = "Prefer cheaper ⇄ stronger",
+            value = { tradeoff },
+            onValueChange = { tradeoff = it },
+            onValueChangeFinished = { vm.saveTradeoff(tradeoff) },
+        )
+        Text(
+            "0 = always the cheapest capable model · 1 = always the strongest. " +
+                "Per-model priority fine-tunes within near-ties.",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 
     val router = ui.providers.firstOrNull { it.router }
@@ -397,7 +421,8 @@ private fun ProviderCard(
     Surface(
         color = container,
         shape = MaterialTheme.shapes.large,
-        modifier = Modifier.fillMaxWidth(),
+        // Disabled models are dimmed — they're excluded from routing until re-enabled.
+        modifier = Modifier.fillMaxWidth().alpha(if (p.enabled) 1f else 0.4f),
     ) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -675,7 +700,7 @@ private fun AddOrEditForm(
             onValueChange = { form.capability = it },
         )
         FloatSliderField(
-            label = "Scheduling priority",
+            label = "Scheduling priority (higher = preferred)",
             value = { form.priority },
             onValueChange = { form.priority = it },
         )
@@ -691,6 +716,37 @@ private fun AddOrEditForm(
             shape = fieldShape, colors = fieldColors,
             modifier = Modifier.fillMaxWidth(),
         )
+
+        // Enabled toggle — off removes the model from the routing candidate pool entirely.
+        Surface(
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            shape = MaterialTheme.shapes.small,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        "Enabled",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        "Off → never used for routing (excluded from the candidate pool)",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = form.enabled,
+                    onCheckedChange = { form.enabled = it },
+                    enabled = !busy,
+                )
+            }
+        }
 
         // Router toggle — styled as a tonal row within the card.
         // Title uses titleSmall + SemiBold (same weight as every section header — not an outlier).
@@ -857,7 +913,8 @@ private fun NativeFamilyCard(fam: NativeFamily, busy: Boolean, onEdit: () -> Uni
     Surface(
         color = container,
         shape = MaterialTheme.shapes.large,
-        modifier = Modifier.fillMaxWidth(),
+        // Disabled families are dimmed — excluded from routing until re-enabled.
+        modifier = Modifier.fillMaxWidth().alpha(if (fam.enabled) 1f else 0.4f),
     ) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -956,6 +1013,7 @@ private fun NativeOverrideDialog(
     var priority by remember(family.family) { mutableFloatStateOf(family.priority) }
     var cost by remember(family.family) { mutableFloatStateOf(family.cost) }
     var description by remember(family.family) { mutableStateOf(family.description) }
+    var enabled by remember(family.family) { mutableStateOf(family.enabled) }
 
     AlertDialog(
         // Don't let a tap-outside dismiss mid-request (would lose the in-flight save/reset feedback).
@@ -967,7 +1025,7 @@ private fun NativeOverrideDialog(
                     Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 }
                 FloatSliderField(label = "Capability", value = { capability }, onValueChange = { capability = it })
-                FloatSliderField(label = "Scheduling priority", value = { priority }, onValueChange = { priority = it })
+                FloatSliderField(label = "Scheduling priority (higher = preferred)", value = { priority }, onValueChange = { priority = it })
                 FloatSliderField(label = "Relative cost (0 = cheapest)", value = { cost }, onValueChange = { cost = it })
                 AppTextField(
                     value = description,
@@ -976,6 +1034,14 @@ private fun NativeOverrideDialog(
                     enabled = !busy,
                     modifier = Modifier.fillMaxWidth(),
                 )
+                Row(
+                    Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text("Enabled", Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                    Switch(checked = enabled, onCheckedChange = { enabled = it }, enabled = !busy)
+                }
                 if (family.customized) {
                     TextButton(onClick = onReset, enabled = !busy) {
                         Text("Reset to default", color = MaterialTheme.colorScheme.error)
@@ -987,7 +1053,7 @@ private fun NativeOverrideDialog(
             TextButton(
                 enabled = !busy,
                 onClick = {
-                    onSave(NativeOverrideReq(capability = capability, priority = priority, cost = cost, description = description))
+                    onSave(NativeOverrideReq(capability = capability, priority = priority, cost = cost, description = description, enabled = enabled))
                 },
             ) { Text("Save") }
         },

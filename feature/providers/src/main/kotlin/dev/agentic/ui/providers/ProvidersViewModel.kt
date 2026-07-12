@@ -16,6 +16,8 @@ import kotlinx.coroutines.launch
 
 data class ProvidersUiState(
     val providers: List<Provider> = emptyList(),
+    /** Global cost⇄quality routing knob (0=cheapest..1=strongest). */
+    val tradeoff: Float = 0.5f,
     val loading: Boolean = true,
     val busy: Boolean = false,
     val error: String? = null,
@@ -45,6 +47,23 @@ class ProvidersViewModel(private val repo: ProvidersRepository) : ViewModel() {
                     AppLog.w("VM", "providers list load failed err=${r.error}")
                     _uiState.update { it.copy(loading = false, error = r.error.toString()) }
                 }
+            }
+            // Global tradeoff knob (best-effort; keeps the default on failure).
+            when (val rc = runCatchingOutcome { repo.getRouting() }) {
+                is Outcome.Success -> _uiState.update { it.copy(tradeoff = rc.value.tradeoff) }
+                is Outcome.Failure -> AppLog.w("VM", "routing load failed err=${rc.error}")
+            }
+        }
+    }
+
+    /** Persist the global tradeoff. Optimistic: the UI value updates immediately (on drag release);
+     *  the network write is best-effort (the slider already reflects the chosen value). */
+    fun saveTradeoff(value: Float) {
+        _uiState.update { it.copy(tradeoff = value) }
+        viewModelScope.launch {
+            when (val r = runCatchingOutcome { repo.setRouting(value) }) {
+                is Outcome.Success -> AppLog.d("VM", "tradeoff saved value=$value")
+                is Outcome.Failure -> AppLog.w("VM", "tradeoff save failed err=${r.error}")
             }
         }
     }

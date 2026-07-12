@@ -17,4 +17,7 @@ class ProvidersRepository(private val api: AgenticApi) {
     suspend fun nativeModels() = api.nativeModels()
     suspend fun putNativeOverride(family: String, req: NativeOverrideReq) = api.putNativeOverride(family, req)
     suspend fun deleteNativeOverride(family: String) = api.deleteNativeOverride(family)
+
+    suspend fun getRouting() = api.getRouting()
+    suspend fun setRouting(tradeoff: Float) = api.setRouting(tradeoff)
 }
