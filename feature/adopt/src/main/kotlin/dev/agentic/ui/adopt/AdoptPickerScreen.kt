@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
@@ -43,6 +44,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import dev.agentic.domain.cleanSessionPreview
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import dev.agentic.data.net.Adoptable
@@ -221,8 +223,9 @@ private fun AdoptRow(
         )
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
+            val preview = cleanSessionPreview(item.firstPrompt)
             Text(
-                if (item.firstPrompt.isNotBlank()) item.firstPrompt else "(no prompt)",
+                preview.ifBlank { "(no prompt)" },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (muted) 0.6f else 1f),
                 maxLines = 2,
@@ -253,11 +256,9 @@ private fun AdoptRow(
             )
         } else {
             Spacer(Modifier.width(8.dp))
-            Text(
-                "Adopt",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-            )
+            // A real tonal button, not bare primary-colored text — the old label read like a link/
+            // download affordance. The whole row is still tappable; the button just makes the action clear.
+            FilledTonalButton(onClick = onTap) { Text("Adopt") }
         }
     }
 }

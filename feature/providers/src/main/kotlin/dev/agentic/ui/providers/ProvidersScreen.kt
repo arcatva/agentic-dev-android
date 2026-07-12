@@ -32,8 +32,6 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.Edit
-import androidx.compose.material.icons.rounded.ExpandLess
-import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
@@ -62,7 +60,6 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -781,48 +778,28 @@ private fun NativeModelsSection() {
         factory = viewModelFactory { initializer { NativeModelsViewModel(container.providersRepo) } },
     )
     val ui by vm.uiState.collectAsStateWithLifecycle()
-    var expanded by rememberSaveable { mutableStateOf(false) }
     var editing by remember { mutableStateOf<NativeFamily?>(null) }
 
-    SectionCard(
-        title = "Claude models",
-        trailing = {
-            IconButton(onClick = { expanded = !expanded }) {
-                Icon(
-                    if (expanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
-                    contentDescription = if (expanded) "Collapse" else "Expand",
-                )
-            }
-        },
-    ) {
-        // Single Column child so a collapsed AnimatedVisibility doesn't double the card's gap.
+    // Always expanded — no collapse chevron. Users open Settings to see/edit their model overrides;
+    // hiding them behind a tap was friction with no payoff.
+    SectionCard(title = "Claude models") {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            // Errors render regardless of expand state — a save/reset failure while collapsed
-            // must not be silent.
             val err = ui.error
             if (err != null) {
                 Text(err, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             }
-            AnimatedVisibility(
-                visible = expanded,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut(),
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    when {
-                        // Spinner only on the FIRST load (empty list); a post-edit refresh updates
-                        // the cards in place instead of flashing the whole list to a spinner.
-                        ui.loading && ui.families.isEmpty() -> LoadingIndicator()
-                        ui.families.isEmpty() -> Text(
-                            "No native Claude models discovered.",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                        else -> ui.families.forEach { fam ->
-                            key(fam.family) {
-                                NativeFamilyCard(fam, ui.busy, onEdit = { editing = fam })
-                            }
-                        }
+            when {
+                // Spinner only on the FIRST load (empty list); a post-edit refresh updates
+                // the cards in place instead of flashing the whole list to a spinner.
+                ui.loading && ui.families.isEmpty() -> LoadingIndicator()
+                ui.families.isEmpty() -> Text(
+                    "No native Claude models discovered.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                else -> ui.families.forEach { fam ->
+                    key(fam.family) {
+                        NativeFamilyCard(fam, ui.busy, onEdit = { editing = fam })
                     }
                 }
             }

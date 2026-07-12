@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -167,9 +168,9 @@ fun GlobalSettingsScreen(
 
 @Composable
 private fun AddHeaderButton(label: String, onAdd: () -> Unit) {
-    // Text-only — the header context already names what gets added; semantics supplies TalkBack text.
-    TextButton(onClick = onAdd, modifier = Modifier.semantics { contentDescription = "Add $label" }) {
-        Text("Add")
+    // Icon-only "+" in the header slot; contentDescription names what gets added for TalkBack.
+    IconButton(onClick = onAdd) {
+        Icon(Icons.Rounded.Add, contentDescription = "Add $label")
     }
 }
 
