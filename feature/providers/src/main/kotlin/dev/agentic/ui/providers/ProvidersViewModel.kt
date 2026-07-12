@@ -11,6 +11,7 @@ import dev.agentic.data.net.runCatchingOutcome
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -56,12 +57,18 @@ class ProvidersViewModel(private val repo: ProvidersRepository) : ViewModel() {
         }
     }
 
+    /** In-flight tradeoff POST, cancelled when a newer release supersedes it (below). */
+    private var tradeoffSaveJob: Job? = null
+
     /** Persist the global tradeoff. Optimistic: the UI value updates immediately (on drag release);
-     *  on a network failure it rolls back to the previous value and surfaces the error. */
+     *  on a network failure it rolls back to the previous value and surfaces the error. Rapid
+     *  releases cancel the prior in-flight save so only the LATEST released value can win (a slow
+     *  older request can't land last and persist a stale value). */
     fun saveTradeoff(value: Float) {
         val previous = _uiState.value.tradeoff
         _uiState.update { it.copy(tradeoff = value, error = null) }
-        viewModelScope.launch {
+        tradeoffSaveJob?.cancel()
+        tradeoffSaveJob = viewModelScope.launch {
             when (val r = runCatchingOutcome { repo.setRouting(value) }) {
                 is Outcome.Success -> AppLog.d("VM", "tradeoff saved value=$value")
                 is Outcome.Failure -> {

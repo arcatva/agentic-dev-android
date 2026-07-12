@@ -395,6 +395,9 @@ private fun Modifier.fadeTrailingEdge(enabled: Boolean, width: Dp = 28.dp): Modi
             )
         }
 
+/** Dim factor applied to a model card whose `enabled` flag is off (excluded from routing). */
+private const val DISABLED_CARD_ALPHA = 0.4f
+
 // ── Provider card (Expressive: lives INSIDE a SectionCard now) ──────────────
 
 @Composable
@@ -422,7 +425,7 @@ private fun ProviderCard(
         color = container,
         shape = MaterialTheme.shapes.large,
         // Disabled models are dimmed — they're excluded from routing until re-enabled.
-        modifier = Modifier.fillMaxWidth().alpha(if (p.enabled) 1f else 0.4f),
+        modifier = Modifier.fillMaxWidth().alpha(if (p.enabled) 1f else DISABLED_CARD_ALPHA),
     ) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -742,7 +745,9 @@ private fun AddOrEditForm(
                 }
                 Switch(
                     checked = form.enabled,
-                    onCheckedChange = { form.enabled = it },
+                    // Turning a model off also clears its router flag — a disabled model can't route
+                    // (the backend skips a disabled router), so it must not stay flagged as one.
+                    onCheckedChange = { form.enabled = it; if (!it) form.router = false },
                     enabled = !busy,
                 )
             }
@@ -775,7 +780,8 @@ private fun AddOrEditForm(
                 Switch(
                     checked = form.router,
                     onCheckedChange = { form.router = it },
-                    enabled = !busy && form.protocol == "anthropic",
+                    // A disabled model can't be the router (see the Enabled toggle above).
+                    enabled = !busy && form.protocol == "anthropic" && form.enabled,
                 )
             }
         }
@@ -914,7 +920,7 @@ private fun NativeFamilyCard(fam: NativeFamily, busy: Boolean, onEdit: () -> Uni
         color = container,
         shape = MaterialTheme.shapes.large,
         // Disabled families are dimmed — excluded from routing until re-enabled.
-        modifier = Modifier.fillMaxWidth().alpha(if (fam.enabled) 1f else 0.4f),
+        modifier = Modifier.fillMaxWidth().alpha(if (fam.enabled) 1f else DISABLED_CARD_ALPHA),
     ) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1025,7 +1031,11 @@ private fun NativeOverrideDialog(
                     Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 }
                 FloatSliderField(label = "Capability", value = { capability }, onValueChange = { capability = it })
-                FloatSliderField(label = "Scheduling priority (higher = preferred)", value = { priority }, onValueChange = { priority = it })
+                FloatSliderField(
+                    label = "Scheduling priority (higher = preferred)",
+                    value = { priority },
+                    onValueChange = { priority = it },
+                )
                 FloatSliderField(label = "Relative cost (0 = cheapest)", value = { cost }, onValueChange = { cost = it })
                 AppTextField(
                     value = description,
@@ -1053,7 +1063,15 @@ private fun NativeOverrideDialog(
             TextButton(
                 enabled = !busy,
                 onClick = {
-                    onSave(NativeOverrideReq(capability = capability, priority = priority, cost = cost, description = description, enabled = enabled))
+                    onSave(
+                        NativeOverrideReq(
+                            capability = capability,
+                            priority = priority,
+                            cost = cost,
+                            description = description,
+                            enabled = enabled,
+                        ),
+                    )
                 },
             ) { Text("Save") }
         },
