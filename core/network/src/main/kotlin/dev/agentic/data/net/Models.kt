@@ -484,6 +484,23 @@ data class ModelEntry(
 @Serializable
 data class ModelsResponse(val models: List<ModelEntry> = emptyList())
 
+// ── ChatGPT subscription OAuth ──
+
+/** Response of POST /api/providers/oauth/chatgpt/start — the URL to open in a browser. */
+@Serializable
+data class ChatgptStartResp(@SerialName("authorize_url") val authorizeUrl: String = "")
+
+/**
+ * GET /api/providers/oauth/chatgpt/status.
+ * [status] ∈ not_connected | pending | connected | needs_reauth.
+ */
+@Serializable
+data class ChatgptStatus(
+    val status: String = "not_connected",
+    @SerialName("account_email") val accountEmail: String? = null,
+    @SerialName("expires_at") val expiresAt: Long? = null,
+)
+
 // ── Provider registry (BYOK cheap models for delegate fan-out) ────────────────
 
 // ── Feature: Global Settings (S5a) ───────────────────────────────────────────

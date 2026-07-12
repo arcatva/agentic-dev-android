@@ -2,6 +2,8 @@
 
 package dev.agentic.ui.providers
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -20,6 +22,7 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -83,6 +86,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
@@ -260,6 +264,13 @@ fun ModelsSections() {
         )
     }
 
+    // ── ChatGPT subscription (OAuth) — connect a paid ChatGPT account as a delegate provider ──
+    // On connect, refresh so the new GPT provider appears in the list below and the catalog reloads.
+    ChatgptLoginCard(onConnected = {
+        dev.agentic.ui.ModelCatalog.invalidate()
+        vm.refresh()
+    })
+
     val router = ui.providers.firstOrNull { it.router }
     val currentRouter = router?.name
     val onEdit: (Provider) -> Unit = { form.loadFrom(it); formVisible = true }
@@ -352,6 +363,78 @@ fun ModelsSections() {
     // Claude Code official (native) models — per-family routing override editor.
     NativeModelsSection()
 }
+
+/**
+ * "ChatGPT subscription" card: connect a paid ChatGPT account by OAuth (no API key) so GPT joins the
+ * delegate routing pool. The login is completed server-side (the OpenAI redirect is a fixed loopback
+ * on the platform host); this card just starts it, opens the authorize URL in a browser, shows the
+ * connection status, and calls [onConnected] when the server reports success.
+ */
+@Composable
+private fun ChatgptLoginCard(onConnected: () -> Unit) {
+    val container = appContainer()
+    val vm: ChatgptLoginViewModel = viewModel(
+        factory = viewModelFactory { initializer { ChatgptLoginViewModel(container.providersRepo) } },
+    )
+    val ui by vm.ui.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+
+    SectionCard("ChatGPT subscription") {
+        val statusText = when (ui.status) {
+            "connected" -> buildString {
+                append("Connected")
+                ui.accountEmail?.let { append(" · ").append(it) }
+                ui.expiresAt?.let { append(" · token expires ").append(formatEpochSeconds(it)) }
+            }
+            "pending" -> "Waiting for browser sign-in…"
+            "needs_reauth" -> "Session expired — please log in again"
+            else -> "Not connected"
+        }
+        Text(statusText, style = MaterialTheme.typography.bodyMedium)
+
+        ui.error?.let {
+            Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+        }
+
+        Spacer(Modifier.height(8.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (ui.status == "connected") {
+                TextButton(onClick = { vm.logout(onConnected) }, enabled = !ui.busy) {
+                    Text("Disconnect")
+                }
+            } else {
+                Button(
+                    onClick = {
+                        vm.login(
+                            openUrl = { url ->
+                                context.startActivity(
+                                    Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                )
+                            },
+                            onConnected = onConnected,
+                        )
+                    },
+                    enabled = !ui.busy,
+                ) {
+                    Text(if (ui.status == "needs_reauth") "Log in again" else "Login with ChatGPT")
+                }
+            }
+        }
+        Text(
+            "GPT joins the delegate routing pool on your ChatGPT subscription. Complete the sign-in " +
+                "in the browser on the machine running the platform.",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+/** Format a unix-seconds timestamp for the token-expiry line (device local time). */
+private fun formatEpochSeconds(sec: Long): String =
+    java.time.Instant.ofEpochSecond(sec)
+        .atZone(java.time.ZoneId.systemDefault())
+        .format(java.time.format.DateTimeFormatter.ofPattern("MMM d, HH:mm"))
 
 // ── Router color helpers ──────────────────────────────────────────────────
 // Every provider card gets a tinted container: violet for the router, blue for everyone else,
