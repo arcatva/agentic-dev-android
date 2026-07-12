@@ -469,6 +469,24 @@ data class NativeOverrideReq(
 @Serializable
 data class RoutingConfig(val tradeoff: Float = 0.5f)
 
+// ── ChatGPT subscription (OAuth) ──
+
+/** Response of POST /api/providers/openai-subscription/login — the authorize URL to open in a
+ *  browser on the server host (the OAuth redirect lands on the server's loopback :1455). */
+@Serializable
+data class SubscriptionLogin(@SerialName("authorize_url") val authorizeUrl: String = "")
+
+/** GET /api/providers/openai-subscription/status — the ChatGPT subscription connection state. */
+@Serializable
+data class SubscriptionStatus(
+    val connected: Boolean = false,
+    @SerialName("account_id") val accountId: String = "",
+    /** Unix seconds when the access token expires (0 = unknown / not connected). */
+    @SerialName("expires_at") val expiresAt: Long = 0,
+    /** A refresh failed — the user must log in again. */
+    @SerialName("needs_reauth") val needsReauth: Boolean = false,
+)
+
 // ── Model catalog ──
 
 @Serializable
