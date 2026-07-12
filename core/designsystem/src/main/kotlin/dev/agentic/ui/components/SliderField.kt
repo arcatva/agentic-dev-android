@@ -27,7 +27,7 @@ import kotlin.math.roundToInt
 // @OptIn: value-based full-slot Slider overload + SliderDefaults.Track are @ExperimentalMaterial3Api on 1.4.0-alpha18.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun SliderField(
+fun SliderField(
     label: String,
     options: List<Pair<String, String>>,
     value: String,
@@ -127,7 +127,7 @@ internal fun SliderField(
  * (non-experimental) one — so unlike [SliderField], this needs no @OptIn.
  */
 @Composable
-internal fun FloatSliderField(
+fun FloatSliderField(
     label: String,
     value: () -> Float,
     onValueChange: (Float) -> Unit,
