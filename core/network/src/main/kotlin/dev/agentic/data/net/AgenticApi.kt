@@ -67,6 +67,12 @@ interface AgenticApi {
     suspend fun providers(): List<Provider> = emptyList()
     suspend fun addProvider(req: NewProviderReq) {}
     suspend fun deleteProvider(name: String) {}
+    /** ChatGPT subscription OAuth: begin the PKCE login (server returns the browser URL + state). */
+    suspend fun chatgptLoginStart(): ChatgptLoginStart = ChatgptLoginStart("", "")
+    /** Complete the login: hand the server the authorization [code] + [state]; returns the new status. */
+    suspend fun chatgptLoginComplete(code: String, state: String): ChatgptStatus = ChatgptStatus()
+    /** Current ChatGPT connection status (account / expiry / whether re-login is needed). */
+    suspend fun chatgptStatus(): ChatgptStatus = ChatgptStatus()
     suspend fun nativeModels(): List<NativeFamily> = emptyList()
     suspend fun putNativeOverride(family: String, req: NativeOverrideReq) {}
     suspend fun deleteNativeOverride(family: String) {}

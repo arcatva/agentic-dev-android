@@ -18,6 +18,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
+import android.content.Intent
+import android.net.Uri
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -260,6 +265,9 @@ fun ModelsSections() {
         )
     }
 
+    // ── ChatGPT subscription — OAuth login so GPT models join the delegate pool ──
+    ChatGptConnectSection(ui, vm)
+
     val router = ui.providers.firstOrNull { it.router }
     val currentRouter = router?.name
     val onEdit: (Provider) -> Unit = { form.loadFrom(it); formVisible = true }
@@ -351,6 +359,69 @@ fun ModelsSections() {
 
     // Claude Code official (native) models — per-family routing override editor.
     NativeModelsSection()
+}
+
+/**
+ * "Connect ChatGPT" — starts the OAuth login (server hands back a browser URL + PKCE state), opens
+ * the system browser, then listens on the device's `127.0.0.1:1455` for the redirect and hands the
+ * code back to the server. On success the GPT model joins the catalog.
+ */
+@Composable
+private fun ChatGptConnectSection(ui: ProvidersUiState, vm: ProvidersViewModel) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val status = ui.chatgpt
+    val connected = status?.connected == true
+    SectionCard("ChatGPT subscription") {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                "Route GPT models through your ChatGPT plan — OAuth login, no API key.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            val statusText = when {
+                status == null -> "Checking…"
+                connected && status.needsRelogin ->
+                    "Session expired — reconnect" + (status.accountId?.let { " · $it" } ?: "")
+                connected -> "Connected" + (status.accountId?.let { " · $it" } ?: "")
+                else -> "Not connected"
+            }
+            Text(statusText, style = MaterialTheme.typography.bodyMedium)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    onClick = {
+                        scope.launch {
+                            val start = vm.startChatgptLogin() ?: return@launch
+                            val opened = runCatching {
+                                context.startActivity(
+                                    Intent(Intent.ACTION_VIEW, Uri.parse(start.authorizeUrl))
+                                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                                )
+                            }.isSuccess
+                            if (!opened) {
+                                vm.failChatgptLogin("No browser available to open the login page")
+                                return@launch
+                            }
+                            // Browser is open; catch the redirect on the loopback (user logs in first).
+                            ChatGptOAuthLoopback.awaitCode(start.state).fold(
+                                onSuccess = { code -> vm.finishChatgptLogin(code, start.state) },
+                                onFailure = { vm.failChatgptLogin(it.message) },
+                            )
+                        }
+                    },
+                    enabled = !ui.chatgptBusy,
+                ) {
+                    if (ui.chatgptBusy) LoadingIndicator()
+                    else Text(if (connected) "Reconnect" else "Connect ChatGPT")
+                }
+                if (connected) {
+                    TextButton(onClick = { vm.disconnectChatgpt() }, enabled = !ui.busy) {
+                        Text("Disconnect")
+                    }
+                }
+            }
+        }
+    }
 }
 
 // ── Router color helpers ──────────────────────────────────────────────────
