@@ -1,14 +1,10 @@
 plugins {
-    id("agentic.android.library")
-}
-
-android {
-    namespace = "dev.agentic.core.model"
+    id("agentic.jvm.library")
 }
 
 dependencies {
-    // Runtime JSON tree APIs (JsonObject/JsonElement parsing) — no @Serializable derives here,
-    // so the serialization compiler plugin is not needed.
+    // Runtime JSON tree APIs (transcripts are JSON documents — a domain reality, not a
+    // transport concern). Pure-JVM artifact.
     implementation(libs.kotlinx.serialization.json)
 
     testImplementation(libs.junit)

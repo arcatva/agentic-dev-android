@@ -1,6 +1,5 @@
 package dev.agentic.domain
 
-import dev.agentic.data.net.WorkflowRun
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -57,20 +56,20 @@ class StatusTest {
     // ── WorkflowRun.isActive ──────────────────────────────────────────────────
 
     @Test fun done_run_is_not_active() =
-        assertFalse(WorkflowRun(runId = "1", status = "done").isActive())
+        assertFalse(TestRun("done").isActive())
 
     @Test fun running_run_is_active() =
-        assertTrue(WorkflowRun(runId = "2", status = "running").isActive())
+        assertTrue(TestRun("running").isActive())
 
     @Test fun completed_run_is_not_active() =
-        assertFalse(WorkflowRun(runId = "3", status = "completed").isActive())
+        assertFalse(TestRun("completed").isActive())
 
     @Test fun failed_run_is_not_active() =
-        assertFalse(WorkflowRun(runId = "4", status = "failed").isActive())
+        assertFalse(TestRun("failed").isActive())
 
     @Test fun killed_run_is_not_active() =
-        assertFalse(WorkflowRun(runId = "5", status = "killed").isActive())
+        assertFalse(TestRun("killed").isActive())
 
     @Test fun isActive_is_case_insensitive() =
-        assertFalse(WorkflowRun(runId = "6", status = "  DONE  ").isActive())
+        assertFalse(TestRun("  DONE  ").isActive())
 }

@@ -9,6 +9,9 @@ android {
 
 dependencies {
     implementation(project(":core:model"))
+    // Wire DTOs implement the domain ports (SessionSnapshot/WorkflowRunState/CommitLike):
+    // the dependency arrow points INTO domain, never back.
+    api(project(":core:domain"))
     implementation(project(":core:common"))
 
     implementation(libs.bundles.ktor)

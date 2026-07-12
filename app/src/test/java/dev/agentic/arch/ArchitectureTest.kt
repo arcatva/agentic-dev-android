@@ -59,6 +59,33 @@ class ArchitectureTest {
             .assertFalse { file -> file.text.contains("as AgenticApp") }
     }
 
+    /**
+     * Strict clean: the inner layers are PURE. :core:domain and :core:model may not touch
+     * Android, the transport, ktor, or any outer dev.agentic layer — the wire DTOs implement
+     * the domain ports (Ports.kt), never the reverse. Build-level enforcement exists too
+     * (both are agentic.jvm.library modules with no Android SDK on the classpath); this rule
+     * catches source-level regressions before the classpath does.
+     */
+    @Test
+    fun `domain and model stay pure`() {
+        scope
+            .files
+            .filter { file ->
+                (file.path.contains("/core/domain/") || file.path.contains("/core/model/")) &&
+                    file.path.contains("/src/main/")
+            }
+            .assertFalse { file ->
+                file.imports.any { imp ->
+                    imp.name.startsWith("android.") ||
+                        imp.name.startsWith("androidx.") ||
+                        imp.name.startsWith("io.ktor") ||
+                        imp.name.startsWith("dev.agentic.data.") ||
+                        imp.name.startsWith("dev.agentic.ui.") ||
+                        imp.name.startsWith("dev.agentic.di.")
+                }
+            }
+    }
+
     /** Core layering: core modules never import feature code. */
     @Test
     fun `core never imports features`() {

@@ -225,7 +225,7 @@ class NewRequestViewModel(
         AppLog.d("VM", "attaching ${uris.size} file(s)")
         val newOnes = uris.map { uri ->
             val (name, size) = queryDisplayNameAndSize(resolver, uri)
-            PendingAttachment.of(uri, name, size)
+            PendingAttachment.of(uri.toString(), name, size)
         }
         _uiState.update { it.copy(attachments = it.attachments + newOnes) }
         for (att in newOnes) launchUpload(att, resolver)
@@ -252,7 +252,7 @@ class NewRequestViewModel(
                 UploadState.Failed("File too large (max ${MAX_ATTACHMENT_BYTES / (1024 * 1024)} MB)")
             } else {
                 val outcome = runCatching {
-                    val bytes = readBytes(resolver, att.localUri)
+                    val bytes = readBytes(resolver, android.net.Uri.parse(att.localUri))
                     sessionsRepo.uploadStaging(bytes, att.displayName)
                 }
                 outcome.fold(

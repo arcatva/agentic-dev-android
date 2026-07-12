@@ -1,6 +1,5 @@
 package dev.agentic.domain
 
-import dev.agentic.data.net.WorkflowRun
 
 /** Distinct visuals a session status can map to (enum so AnimatedContent only re-animates on meaningful transitions). */
 enum class StatusVisual { DONE, FAILED, KILLED, RUNNING, IDLE, PENDING }
@@ -31,4 +30,4 @@ fun statusVisual(status: String, awaitingInput: Boolean?): StatusVisual {
 }
 
 /** Returns true when this workflow run has not yet reached a terminal state. */
-fun WorkflowRun.isActive(): Boolean = status.trim().lowercase() !in WORKFLOW_DONE
+fun WorkflowRunState.isActive(): Boolean = status.trim().lowercase() !in WORKFLOW_DONE
