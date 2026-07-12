@@ -1,5 +1,8 @@
 plugins {
     id("agentic.android.library")
+    // SessionUiStore persists @Serializable SessionUi as JSON — without this plugin the annotation is
+    // inert (no generated serializer) and encode/decode throws "Serializer not found" at runtime.
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
