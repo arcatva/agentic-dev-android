@@ -1,0 +1,24 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>FunctionNaming:ProvidersScreen.kt$@Composable fun ModelsSections()</ID>
+    <ID>FunctionNaming:ProvidersScreen.kt$@Composable private fun AddOrEditForm( form: ProviderFormState, busy: Boolean, currentRouter: String?, onSubmit: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:ProvidersScreen.kt$@Composable private fun MetricRow( label: String, value: Float, color: Color, trackColor: Color, labelColor: Color, showLabel: Boolean = false, )</ID>
+    <ID>FunctionNaming:ProvidersScreen.kt$@Composable private fun NativeFamilyCard(fam: NativeFamily, busy: Boolean, onEdit: () -&gt; Unit)</ID>
+    <ID>FunctionNaming:ProvidersScreen.kt$@Composable private fun NativeModelsSection()</ID>
+    <ID>FunctionNaming:ProvidersScreen.kt$@Composable private fun NativeOverrideDialog( family: NativeFamily, busy: Boolean, error: String?, onDismiss: () -&gt; Unit, onSave: (NativeOverrideReq) -&gt; Unit, onReset: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:ProvidersScreen.kt$@Composable private fun ProtocolSelector(selected: String, enabled: Boolean, onSelect: (String) -&gt; Unit)</ID>
+    <ID>FunctionNaming:ProvidersScreen.kt$@Composable private fun ProviderCard( p: Provider, busy: Boolean, onEdit: (Provider) -&gt; Unit, onDelete: (String) -&gt; Unit, // True when this card is rendered inside the SectionCard("Router") group. The section // header + violet container already say "this is the router", so the in-card Router // badge would be redundant there — it only shows for a router card rendered elsewhere. inRouterSection: Boolean = false, )</ID>
+    <ID>MagicNumber:ProvidersScreen.kt$150</ID>
+    <ID>MagicNumber:ProvidersScreen.kt$ProviderFormState$0.5f</ID>
+    <ID>MaxLineLength:ProvidersScreen.kt$@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class, ExperimentalFoundationApi::class)</ID>
+    <ID>MaxLineLength:ProvidersScreen.kt$FloatSliderField(label = "Relative cost (0 = cheapest)", value = { cost }, onValueChange = { cost = it })</ID>
+    <ID>MaxLineLength:ProvidersScreen.kt$Icon(Icons.Rounded.Star, contentDescription = null, tint = OnAccentBlue, modifier = Modifier.size(12.dp))</ID>
+    <ID>MaxLineLength:ProvidersScreen.kt$Icon(Icons.Rounded.Star, contentDescription = null, tint = OnAccentViolet, modifier = Modifier.size(12.dp))</ID>
+    <ID>MaxLineLength:ProvidersScreen.kt$Modifier.clip(RoundedCornerShape(8.dp)).background(AccentBlue).padding(horizontal = 8.dp, vertical = 2.dp)</ID>
+    <ID>MaxLineLength:ProvidersScreen.kt$Modifier.clip(RoundedCornerShape(8.dp)).background(AccentViolet).padding(horizontal = 8.dp, vertical = 2.dp)</ID>
+    <ID>MaxLineLength:ProvidersScreen.kt$onSave(NativeOverrideReq(capability = capability, priority = priority, cost = cost, description = description))</ID>
+    <ID>NewLineAtEndOfFile:NativeModelsViewModel.kt$dev.agentic.ui.providers.NativeModelsViewModel.kt</ID>
+  </CurrentIssues>
+</SmellBaseline>

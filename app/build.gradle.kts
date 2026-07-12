@@ -72,6 +72,16 @@ dependencies {
     implementation(project(":core:di"))
     implementation(project(":core:designsystem"))
     implementation(project(":core:voice"))
+    implementation(project(":feature:session"))
+    implementation(project(":feature:workflow"))
+    implementation(project(":feature:home"))
+    implementation(project(":feature:diagnostics"))
+    implementation(project(":feature:providers"))
+    implementation(project(":feature:newrequest"))
+    implementation(project(":feature:globalsettings"))
+    implementation(project(":feature:adopt"))
+    implementation(project(":feature:login"))
+    implementation(project(":feature:tree"))
 
     // Compose —— 版本经由 catalog 统一管理。material3 1.4.0-alpha18 公开 Expressive API 且
     // 依赖 compose 1.8.x（仍以 compileSdk 35 为目标）；compose 1.9.5 verified on AGP 8.7.3 (checkDebugAarMetadata + lintVitalRelease pass)

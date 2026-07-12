@@ -1,0 +1,24 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>FunctionNaming:LoginChooser.kt$@OptIn(ExperimentalMaterial3ExpressiveApi::class) @Composable fun LoginChooser( state: LoginUiState, onScan: () -&gt; Unit, onManual: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:LoginChooser.kt$@OptIn(ExperimentalMaterial3ExpressiveApi::class) @Composable private fun ChooserCard( icon: ImageVector, title: String, subtitle: String, showSpinner: Boolean, onClick: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:LoginManualScreen.kt$@Composable fun PasswordField( state: LoginUiState, onPassword: (String) -&gt; Unit, onTogglePassword: () -&gt; Unit, modifier: Modifier = Modifier, keyboardOptions: KeyboardOptions = KeyboardOptions.Default, keyboardActions: KeyboardActions = KeyboardActions.Default, )</ID>
+    <ID>FunctionNaming:LoginManualScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun LoginManualScreen( state: LoginUiState, onHost: (String) -&gt; Unit, onPassword: (String) -&gt; Unit, onTogglePassword: () -&gt; Unit, onSubmit: () -&gt; Unit, onBack: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:LoginScanScreen.kt$@Composable private fun EmptyState(title: String, body: String, onManual: () -&gt; Unit)</ID>
+    <ID>FunctionNaming:LoginScanScreen.kt$@Composable private fun ServerRow(server: DiscoveredServer, selected: Boolean, onSelect: () -&gt; Unit)</ID>
+    <ID>FunctionNaming:LoginScanScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun LoginScanScreen( state: LoginUiState, onSelect: (String) -&gt; Unit, onPassword: (String) -&gt; Unit, onTogglePassword: () -&gt; Unit, onRescan: () -&gt; Unit, onSubmit: () -&gt; Unit, onManual: () -&gt; Unit, onBack: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:LoginScreen.kt$@Composable fun LoginScreen( onLoggedIn: () -&gt; Unit, vm: LoginViewModel? = null, )</ID>
+    <ID>MagicNumber:LoginChooser.kt$0.8f</ID>
+    <ID>MagicNumber:LoginViewModel.kt$LoginViewModel$401</ID>
+    <ID>MaxLineLength:LoginChooser.kt$Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(32.dp))</ID>
+    <ID>MaxLineLength:LoginChooser.kt$Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)</ID>
+    <ID>MaxLineLength:LoginScanScreen.kt$IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back") }</ID>
+    <ID>MaxLineLength:LoginScanScreen.kt$ServerRow(server, selected = server.baseUrl == state.selectedHost, onSelect = { onSelect(server.baseUrl) })</ID>
+    <ID>MaxLineLength:LoginScanScreen.kt$keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done)</ID>
+    <ID>MaxLineLength:LoginScanScreen.kt$state.notOnLan -&gt; EmptyState("Not on a local network", "Connect to Wi-Fi, or enter the host manually.", onManual)</ID>
+    <ID>MaxLineLength:LoginScreen.kt$.</ID>
+    <ID>TooManyFunctions:LoginViewModel.kt$LoginViewModel : ViewModel</ID>
+  </CurrentIssues>
+</SmellBaseline>

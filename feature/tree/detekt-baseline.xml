@@ -1,0 +1,40 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>CyclomaticComplexMethod:CommitGraphScreen.kt$private fun DrawScope.drawGraphRow( row: GraphRow, trunk: Color, sessionRing: Color, tipColor: Color, )</ID>
+    <ID>FunctionNaming:CommitGraphScreen.kt$@Composable private fun CommitFileRow(file: CommitFile, onClick: () -&gt; Unit = {})</ID>
+    <ID>FunctionNaming:CommitGraphScreen.kt$@Composable private fun CommitRow( commit: CommitNode, graphRow: GraphRow?, onClick: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:CommitGraphScreen.kt$@Composable private fun LiveWorktreeBanner()</ID>
+    <ID>FunctionNaming:CommitGraphScreen.kt$@Composable private fun RefChip(ref: GitRef)</ID>
+    <ID>FunctionNaming:CommitGraphScreen.kt$@Composable private fun RepoHeader(repo: String)</ID>
+    <ID>FunctionNaming:CommitGraphScreen.kt$@Composable private fun SessionChip(accent: Color)</ID>
+    <ID>FunctionNaming:CommitGraphScreen.kt$@Composable private fun UncommittedRow( unc: Uncommitted, graphRow: GraphRow?, onClick: () -&gt; Unit, onDiscard: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:CommitGraphScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable fun CommitGraphScreen( onBack: () -&gt; Unit, live: Boolean = false, /** Open full-screen line-level diff for one (repo, sha, path). Default no-op for previews/tests. */ onOpenDiff: (repo: String, sha: String, path: String) -&gt; Unit = { _, _, _ -&gt; }, vm: CommitGraphViewModel? = null, )</ID>
+    <ID>FunctionNaming:FileDiffScreen.kt$@Composable private fun CenteredNote(text: String)</ID>
+    <ID>FunctionNaming:FileDiffScreen.kt$@Composable private fun DiffLineRow(line: DiffLine, text: String)</ID>
+    <ID>FunctionNaming:FileDiffScreen.kt$@Composable private fun GutterNum(n: Int?, color: Color)</ID>
+    <ID>FunctionNaming:FileDiffScreen.kt$@Composable private fun HunkHeaderRow(hunk: DiffHunk)</ID>
+    <ID>FunctionNaming:FileDiffScreen.kt$@Composable private fun TruncatedBanner()</ID>
+    <ID>FunctionNaming:FileDiffScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable fun FileDiffScreen( onBack: () -&gt; Unit, vm: FileDiffViewModel? = null, )</ID>
+    <ID>MagicNumber:CommitGraphScreen.kt$0.5f</ID>
+    <ID>MagicNumber:CommitGraphScreen.kt$0xFF2A2310</ID>
+    <ID>MagicNumber:CommitGraphScreen.kt$0xFF7EC891</ID>
+    <ID>MagicNumber:CommitGraphScreen.kt$0xFFE07070</ID>
+    <ID>MagicNumber:CommitGraphScreen.kt$0xFFE4C77E</ID>
+    <ID>MagicNumber:CommitGraphScreen.kt$3.5f</ID>
+    <ID>MagicNumber:FileDiffScreen.kt$0x3327AE60</ID>
+    <ID>MagicNumber:FileDiffScreen.kt$0x33E05656</ID>
+    <ID>MagicNumber:FileDiffScreen.kt$0xFF8FE3AD</ID>
+    <ID>MagicNumber:FileDiffScreen.kt$0xFFEDA3A3</ID>
+    <ID>MagicNumber:FileDiffScreen.kt$7</ID>
+    <ID>MagicNumber:GraphColors.kt$0xFF74D4DC</ID>
+    <ID>MagicNumber:GraphColors.kt$0xFF9BD49A</ID>
+    <ID>MagicNumber:GraphColors.kt$0xFFC9B4F4</ID>
+    <ID>MagicNumber:GraphColors.kt$0xFFE4C77E</ID>
+    <ID>MagicNumber:GraphColors.kt$0xFFEFAAD6</ID>
+    <ID>MagicNumber:GraphColors.kt$0xFFF2B488</ID>
+    <ID>MagicNumber:GraphColors.kt$0xFFF4ABA8</ID>
+    <ID>MaxLineLength:FileDiffScreen.kt$s.sha.takeIf { it.isNotBlank() }?.let { if (it == "working") "working tree" else it.take(7) }</ID>
+  </CurrentIssues>
+</SmellBaseline>

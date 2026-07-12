@@ -1,0 +1,114 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>CyclomaticComplexMethod:Markdown.kt$private fun parseBlocks(md: String): List&lt;Block&gt;</ID>
+    <ID>EmptyElseBlock:Markdown.kt$if (para.isNotBlank()) out.add(Block.Para(inline(para.toString().trim())))</ID>
+    <ID>EmptyFunctionBlock:DictationController.kt$&lt;no name provided&gt;${}</ID>
+    <ID>FunctionNaming:AppTextField.kt$@Composable fun AppTextField( value: String, onValueChange: (String) -&gt; Unit, modifier: Modifier = Modifier, label: String? = null, placeholder: String? = null, errorMessage: String? = null, supportingText: String? = null, enabled: Boolean = true, readOnly: Boolean = false, singleLine: Boolean = true, minLines: Int = 1, maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE, leadingIcon: (@Composable () -&gt; Unit)? = null, trailingIcon: (@Composable () -&gt; Unit)? = null, keyboardOptions: KeyboardOptions = KeyboardOptions.Default, keyboardActions: KeyboardActions = KeyboardActions.Default, visualTransformation: VisualTransformation = VisualTransformation.None, // extraSmall matches OutlinedTextField's own default shape — pinned here so every field shares one source. shape: Shape = MaterialTheme.shapes.extraSmall, colors: TextFieldColors = OutlinedTextFieldDefaults.colors(), )</ID>
+    <ID>FunctionNaming:AppTextField.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun AppTextField( state: TextFieldState, modifier: Modifier = Modifier, label: String? = null, placeholder: String? = null, errorMessage: String? = null, supportingText: String? = null, enabled: Boolean = true, readOnly: Boolean = false, singleLine: Boolean = true, minLines: Int = 1, maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE, leadingIcon: (@Composable () -&gt; Unit)? = null, trailingIcon: (@Composable () -&gt; Unit)? = null, keyboardOptions: KeyboardOptions = KeyboardOptions.Default, shape: Shape = MaterialTheme.shapes.extraSmall, colors: TextFieldColors = OutlinedTextFieldDefaults.colors(), )</ID>
+    <ID>FunctionNaming:AttachmentChip.kt$@Composable fun AttachmentChip(att: PendingAttachment, onRemove: () -&gt; Unit, modifier: Modifier = Modifier)</ID>
+    <ID>FunctionNaming:CappedScrollColumn.kt$@Composable fun CappedScrollColumn( maxHeight: Dp, modifier: Modifier = Modifier, content: @Composable ColumnScope.() -&gt; Unit, )</ID>
+    <ID>FunctionNaming:ComponentChip.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class) @Composable fun ComponentChip( label: String, kind: String, effective: Boolean, onClick: () -&gt; Unit, modifier: Modifier = Modifier, enabled: Boolean = true, readOnlyCaption: String? = null, onLongClick: (() -&gt; Unit)? = null, )</ID>
+    <ID>FunctionNaming:DictationController.kt$@Composable fun DictationDownloadDialog(controller: DictationController)</ID>
+    <ID>FunctionNaming:FadingEdge.kt$@Composable fun FadingText( text: String, modifier: Modifier = Modifier, style: TextStyle = LocalTextStyle.current, color: Color = Color.Unspecified, fontWeight: FontWeight? = null, fontFamily: FontFamily? = null, fadeWidth: Dp = 28.dp, )</ID>
+    <ID>FunctionNaming:Markdown.kt$@Composable fun MarkdownText( md: String, modifier: Modifier = Modifier, codeBackground: Color = MaterialTheme.colorScheme.surfaceVariant, tableBackground: Color = MaterialTheme.colorScheme.surface, tableHeaderBackground: Color = MaterialTheme.colorScheme.surfaceVariant, tableDivider: Color = MaterialTheme.colorScheme.outlineVariant, )</ID>
+    <ID>FunctionNaming:Markdown.kt$@Composable private fun TableBlock(t: Block.Table, surface: Color, headerBackground: Color, divider: Color)</ID>
+    <ID>FunctionNaming:SearchBar.kt$@Composable fun SearchBar( query: String, onQueryChange: (String) -&gt; Unit, modifier: Modifier = Modifier, @Suppress("UNUSED_PARAMETER") searching: Boolean = false, onSearch: (() -&gt; Unit)? = null, )</ID>
+    <ID>FunctionNaming:SectionCard.kt$@Composable fun SectionCard( title: String, modifier: Modifier = Modifier, trailing: (@Composable () -&gt; Unit)? = null, content: @Composable ColumnScope.() -&gt; Unit, )</ID>
+    <ID>FunctionNaming:SliderField.kt$@Composable fun FloatSliderField( label: String, value: () -&gt; Float, onValueChange: (Float) -&gt; Unit, valueRange: ClosedFloatingPointRange&lt;Float&gt; = 0f..1f, )</ID>
+    <ID>FunctionNaming:SliderField.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun SliderField( label: String, options: List&lt;Pair&lt;String, String&gt;&gt;, value: String, onSelect: (String) -&gt; Unit, // When true, label + slider recolor into workflow/ultracode violet (tween) AND the track // carries the looping ultracode ripple. Defaults off so non-accent sliders keep plain primary. accentActive: Boolean = false, // When true, label + slider recolor into theme error red (Permissions "Dangerous" notch). // Takes precedence over accentActive; tweened so sliding on/off animates instead of snapping. dangerActive: Boolean = false, )</ID>
+    <ID>FunctionNaming:StatusIndicator.kt$@OptIn(ExperimentalMaterial3ExpressiveApi::class) @Composable fun StatusIndicator( status: String, awaitingInput: Boolean? = null, modifier: Modifier = Modifier, size: Dp = 18.dp, accent: Color? = null, unread: Boolean = false, flashOnComplete: Boolean = true, )</ID>
+    <ID>FunctionNaming:StatusIndicator.kt$@Preview @Composable private fun StatusIndicatorUnreadPreview()</ID>
+    <ID>FunctionNaming:Theme.kt$@OptIn(ExperimentalMaterial3ExpressiveApi::class) @Composable fun AppTheme(content: @Composable () -&gt; Unit)</ID>
+    <ID>FunctionNaming:VoiceDictationField.kt$@OptIn(ExperimentalMaterial3ExpressiveApi::class) @Composable fun VoiceDictationField( value: String, onValueChange: (String) -&gt; Unit, modifier: Modifier = Modifier, placeholder: String = "", enabled: Boolean = true, maxLines: Int = 6, // Shape + colors forwarded to the inner AppTextField so a screen can give the dictation field // the same look as its other inputs. Defaults match AppTextField's own, so existing sites unchanged. shape: Shape = MaterialTheme.shapes.extraSmall, colors: TextFieldColors = OutlinedTextFieldDefaults.colors(), )</ID>
+    <ID>MagicNumber:ComponentChip.kt$0.5f</ID>
+    <ID>MagicNumber:DictationController.kt$100</ID>
+    <ID>MagicNumber:Motion.kt$AppMotion$0.2f</ID>
+    <ID>MagicNumber:Theme.kt$0xFF001A43</ID>
+    <ID>MagicNumber:Theme.kt$0xFF001B3D</ID>
+    <ID>MagicNumber:Theme.kt$0xFF002C71</ID>
+    <ID>MagicNumber:Theme.kt$0xFF002F65</ID>
+    <ID>MagicNumber:Theme.kt$0xFF00504C</ID>
+    <ID>MagicNumber:Theme.kt$0xFF0A0F18</ID>
+    <ID>MagicNumber:Theme.kt$0xFF101620</ID>
+    <ID>MagicNumber:Theme.kt$0xFF111C2B</ID>
+    <ID>MagicNumber:Theme.kt$0xFF162440</ID>
+    <ID>MagicNumber:Theme.kt$0xFF18202B</ID>
+    <ID>MagicNumber:Theme.kt$0xFF191C20</ID>
+    <ID>MagicNumber:Theme.kt$0xFF1B61C8</ID>
+    <ID>MagicNumber:Theme.kt$0xFF1C242F</ID>
+    <ID>MagicNumber:Theme.kt$0xFF234776</ID>
+    <ID>MagicNumber:Theme.kt$0xFF241640</ID>
+    <ID>MagicNumber:Theme.kt$0xFF263141</ID>
+    <ID>MagicNumber:Theme.kt$0xFF26447F</ID>
+    <ID>MagicNumber:Theme.kt$0xFF27303C</ID>
+    <ID>MagicNumber:Theme.kt$0xFF2C3A5E</ID>
+    <ID>MagicNumber:Theme.kt$0xFF323B48</ID>
+    <ID>MagicNumber:Theme.kt$0xFF382C5E</ID>
+    <ID>MagicNumber:Theme.kt$0xFF3B5CA8</ID>
+    <ID>MagicNumber:Theme.kt$0xFF3D4758</ID>
+    <ID>MagicNumber:Theme.kt$0xFF410002</ID>
+    <ID>MagicNumber:Theme.kt$0xFF41485A</ID>
+    <ID>MagicNumber:Theme.kt$0xFF424751</ID>
+    <ID>MagicNumber:Theme.kt$0xFF545F71</ID>
+    <ID>MagicNumber:Theme.kt$0xFF59D6CE</ID>
+    <ID>MagicNumber:Theme.kt$0xFF690005</ID>
+    <ID>MagicNumber:Theme.kt$0xFF72777F</ID>
+    <ID>MagicNumber:Theme.kt$0xFF76F3EA</ID>
+    <ID>MagicNumber:Theme.kt$0xFF8B92A1</ID>
+    <ID>MagicNumber:Theme.kt$0xFF93000A</ID>
+    <ID>MagicNumber:Theme.kt$0xFF97BCFC</ID>
+    <ID>MagicNumber:Theme.kt$0xFF9DBBFF</ID>
+    <ID>MagicNumber:Theme.kt$0xFFA7C8FF</ID>
+    <ID>MagicNumber:Theme.kt$0xFFB197FC</ID>
+    <ID>MagicNumber:Theme.kt$0xFFBA1A1A</ID>
+    <ID>MagicNumber:Theme.kt$0xFFBCC7DC</ID>
+    <ID>MagicNumber:Theme.kt$0xFFC1C7D3</ID>
+    <ID>MagicNumber:Theme.kt$0xFFC2C7D2</ID>
+    <ID>MagicNumber:Theme.kt$0xFFC7D9FF</ID>
+    <ID>MagicNumber:Theme.kt$0xFFD6E3FF</ID>
+    <ID>MagicNumber:Theme.kt$0xFFD8E3F8</ID>
+    <ID>MagicNumber:Theme.kt$0xFFD9C7FF</ID>
+    <ID>MagicNumber:Theme.kt$0xFFD9E2FF</ID>
+    <ID>MagicNumber:Theme.kt$0xFFDAE2FF</ID>
+    <ID>MagicNumber:Theme.kt$0xFFDBE2EF</ID>
+    <ID>MagicNumber:Theme.kt$0xFFDEE4EF</ID>
+    <ID>MagicNumber:Theme.kt$0xFFE2E6EE</ID>
+    <ID>MagicNumber:Theme.kt$0xFFE3E9F3</ID>
+    <ID>MagicNumber:Theme.kt$0xFFE9EEF7</ID>
+    <ID>MagicNumber:Theme.kt$0xFFEFF3FB</ID>
+    <ID>MagicNumber:Theme.kt$0xFFF8FAFF</ID>
+    <ID>MagicNumber:Theme.kt$0xFFFFB4AB</ID>
+    <ID>MagicNumber:Theme.kt$0xFFFFDAD6</ID>
+    <ID>MagicNumber:Theme.kt$0xFFFFFFFF</ID>
+    <ID>MagicNumber:Theme.kt$&lt;no name provided&gt;$1400f</ID>
+    <ID>MagicNumber:Theme.kt$&lt;no name provided&gt;$1600f</ID>
+    <ID>MagicNumber:Theme.kt$&lt;no name provided&gt;$280f</ID>
+    <ID>MagicNumber:Theme.kt$&lt;no name provided&gt;$3800f</ID>
+    <ID>MagicNumber:Theme.kt$&lt;no name provided&gt;$600f</ID>
+    <ID>MagicNumber:Theme.kt$&lt;no name provided&gt;$800f</ID>
+    <ID>MagicNumber:UltracodeRipple.kt$0.01f</ID>
+    <ID>MagicNumber:UltracodeRipple.kt$0.1f</ID>
+    <ID>MagicNumber:UltracodeRipple.kt$0.2f</ID>
+    <ID>MagicNumber:UltracodeRipple.kt$0.5f</ID>
+    <ID>MagicNumber:UltracodeRipple.kt$0.8f</ID>
+    <ID>MagicNumber:UltracodeRipple.kt$2000</ID>
+    <ID>MatchingDeclarationName:Markdown.kt$Block</ID>
+    <ID>MatchingDeclarationName:Motion.kt$AppMotion</ID>
+    <ID>MaxLineLength:AnimateContentHeight.kt$/** Like [androidx.compose.animation.animateContentSize] but height-only — width snaps instantly so resize doesn't grow fillMaxWidth cards. */</ID>
+    <ID>MaxLineLength:FadingEdge.kt$/** Fade [width] px at left/right; [fadeStart]/[fadeEnd] evaluated at draw time so only the edge with off-screen content fades. */</ID>
+    <ID>MaxLineLength:Markdown.kt$Text(b.text, fontFamily = FontFamily.Monospace, fontSize = 13.sp, modifier = Modifier.padding(10.dp))</ID>
+    <ID>MaxLineLength:Markdown.kt$if (end &gt;= 0) { withStyle(SpanStyle(fontFamily = FontFamily.Monospace, fontSize = 13.sp)) { append(s.substring(i + 1, end)) }; i = end + 1 } else { append(s[i]); i++ }</ID>
+    <ID>MaxLineLength:Markdown.kt$if (end &gt;= 0) { withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(s.substring(i + 2, end)) }; i = end + 2 } else { append(s[i]); i++ }</ID>
+    <ID>MaxLineLength:Markdown.kt$is Block.Code</ID>
+    <ID>MaxLineLength:Markdown.kt$is Block.Heading -&gt; Text(b.text, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 4.dp))</ID>
+    <ID>MaxLineLength:Markdown.kt$line.trimStart().startsWith("#") -&gt; { flush(); out.add(Block.Heading(line.trimStart().trimStart('#').trim())); i++ }</ID>
+    <ID>MaxLineLength:Markdown.kt$while (i &lt; lines.size &amp;&amp; lines[i].trimStart().startsWith("|")) { rows.add(cells(lines[i]).map { inline(it) }); i++ }</ID>
+    <ID>MaxLineLength:StatusIndicator.kt$Glyph.CHECK -&gt; Icon(Icons.Rounded.CheckCircle, "done", tint = color, modifier = Modifier.requiredSize(iconBox))</ID>
+    <ID>MaxLineLength:StatusIndicator.kt$Glyph.KILLED -&gt; Icon(Icons.Rounded.StopCircle, "killed", tint = color, modifier = Modifier.requiredSize(iconBox))</ID>
+    <ID>ReturnCount:QueryHighlight.kt$fun snippetAroundMatch(snippet: String, query: String, lead: Int = 10): String</ID>
+    <ID>UnusedPrivateMember:StatusIndicator.kt$@Preview @Composable private fun StatusIndicatorUnreadPreview()</ID>
+    <ID>UnusedPrivateProperty:Theme.kt$// Fixed M3 (Expressive) brand scheme — one unified BLUE family: primary/secondary/tertiary all blue tones; // error = semantic red; neutrals = blue-tinted greys. No device dynamic color. private val LightExpressive = lightColorScheme( primary = Color(0xFF1B61C8), onPrimary = Color.White, primaryContainer = Color(0xFFD6E3FF), onPrimaryContainer = Color(0xFF001B3D), secondary = Color(0xFF545F71), onSecondary = Color.White, secondaryContainer = Color(0xFFD8E3F8), onSecondaryContainer = Color(0xFF111C2B), // Tertiary: cornflower/royal blue accent (was teal) — same blue family as primary, slightly more saturated. tertiary = Color(0xFF3B5CA8), onTertiary = Color.White, tertiaryContainer = Color(0xFFDAE2FF), onTertiaryContainer = Color(0xFF001A43), error = Color(0xFFBA1A1A), onError = Color.White, errorContainer = Color(0xFFFFDAD6), onErrorContainer = Color(0xFF410002), background = Color(0xFFF8FAFF), onBackground = Color(0xFF191C20), surface = Color(0xFFF8FAFF), onSurface = Color(0xFF191C20), surfaceTint = Color(0xFF1B61C8), surfaceVariant = Color(0xFFDBE2EF), onSurfaceVariant = Color(0xFF424751), surfaceContainerLowest = Color(0xFFFFFFFF), surfaceContainerLow = Color(0xFFEFF3FB), surfaceContainer = Color(0xFFE9EEF7), surfaceContainerHigh = Color(0xFFE3E9F3), surfaceContainerHighest = Color(0xFFDEE4EF), outline = Color(0xFF72777F), outlineVariant = Color(0xFFC2C7D2), )</ID>
+  </CurrentIssues>
+</SmellBaseline>

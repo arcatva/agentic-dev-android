@@ -1,0 +1,29 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>FunctionNaming:NewRequestScreen.kt$@Composable private fun LimitedChipRows(content: @Composable () -&gt; Unit)</ID>
+    <ID>FunctionNaming:NewRequestScreen.kt$@Composable private fun TemplateVarDialog( template: Template, onApply: (Map&lt;String, String&gt;) -&gt; Unit, onDismiss: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:NewRequestScreen.kt$@OptIn( ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class, ExperimentalMaterial3ExpressiveApi::class, ) @Composable fun NewRequestScreen( onBack: () -&gt; Unit, onCreated: (id: String, prompt: String) -&gt; Unit, vm: NewRequestViewModel? = null, )</ID>
+    <ID>FunctionNaming:NewRequestScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable private fun ChipPicker( label: String, options: List&lt;String&gt;, selected: Set&lt;String&gt;, onToggle: (String) -&gt; Unit, displayLabel: (String) -&gt; String = { it }, )</ID>
+    <ID>MagicNumber:NewRequestViewModel.kt$NewRequestViewModel$1024</ID>
+    <ID>MaxLineLength:NewRequestViewModel.kt$/** Default session-CLAUDE.md text; tells each session how the agentic-dev worktree/PR workflow works. Branch-agnostic. */</ID>
+    <ID>MaxLineLength:NewRequestViewModel.kt$NewRequestViewModel$forcedOnSkills = s.availableSkillComponents.filter { s.skillOverrides[it.id] == Override.ForceOn }.map { it.id }</ID>
+    <ID>MaxLineLength:NewRequestViewModel.kt$NewRequestViewModel$hiddenSkills = s.availableSkillComponents.filter { s.skillOverrides[it.id] == Override.ForceOff }.map { it.id }</ID>
+    <ID>MaxLineLength:NewRequestViewModel.kt$NewRequestViewModel$resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE), null, null, null)</ID>
+    <ID>MaxLineLength:NewRequestViewModel.kt$NewRequestViewModel$s.copy(attachments = s.attachments.map { if (it.id == att.id) it.copy(state = UploadState.Uploading) else it })</ID>
+    <ID>MaxLineLength:NewRequestViewModelTest.kt$NewRequestViewModelTest$@Test</ID>
+    <ID>MaxLineLength:NewRequestViewModelTest.kt$NewRequestViewModelTest$ComponentInfo(kind = "plugin", id = "github@official", name = "github@official", globalEnabled = true)</ID>
+    <ID>MaxLineLength:NewRequestViewModelTest.kt$NewRequestViewModelTest$ComponentInfo(kind = "plugin", id = "superpowers@official", name = "superpowers@official", globalEnabled = true)</ID>
+    <ID>MaxLineLength:NewRequestViewModelTest.kt$NewRequestViewModelTest$ComponentInfo(kind = "skill", id = "skill-a", name = "skill-a", globalEnabled = true)</ID>
+    <ID>MaxLineLength:NewRequestViewModelTest.kt$NewRequestViewModelTest$ComponentInfo(kind = "skill", id = "skill-b", name = "skill-b", globalEnabled = true)</ID>
+    <ID>MaxLineLength:NewRequestViewModelTest.kt$NewRequestViewModelTest$ComponentInfo(kind = "skill", id = "skill-c", name = "skill-c", globalEnabled = true)</ID>
+    <ID>MaxLineLength:NewRequestViewModelTest.kt$NewRequestViewModelTest$ModelEntry(key = "claude-haiku-4-5-20251001", label = "Haiku 4.5", native = true, default = false, capability = 0.60f)</ID>
+    <ID>MaxLineLength:NewRequestViewModelTest.kt$NewRequestViewModelTest$ModelEntry(key = "claude-sonnet-4-6", label = "Sonnet 4.6", native = true, default = false, capability = 0.85f)</ID>
+    <ID>MaxLineLength:NewRequestViewModelTest.kt$NewRequestViewModelTest$assertNotNull("blank transport", McpDraft(name = "x", transport = "", command = "node", url = "https://x").validationError)</ID>
+    <ID>MaxLineLength:NewRequestViewModelTest.kt$NewRequestViewModelTest$assertNotNull("reserved name", McpDraft(name = "agentic", transport = "stdio", command = "node").validationError)</ID>
+    <ID>RethrowCaughtException:NewRequestViewModel.kt$NewRequestViewModel$throw e</ID>
+    <ID>TooGenericExceptionCaught:NewRequestViewModel.kt$NewRequestViewModel$e: Exception</ID>
+    <ID>TooManyFunctions:NewRequestViewModel.kt$NewRequestViewModel : ViewModel</ID>
+  </CurrentIssues>
+</SmellBaseline>

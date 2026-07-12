@@ -1,0 +1,21 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>CyclomaticComplexMethod:FakeAgenticApi.kt$FakeAgenticApi$override suspend fun sessionEvents(id: String, limit: Int?, before: Long?, after: Long?, around: Long?): SessionEventsResponse</ID>
+    <ID>EmptyFunctionBlock:FakeAgenticApi.kt$FakeAgenticApi${ }</ID>
+    <ID>MagicNumber:FakeAgenticApi.kt$FakeAgenticApi$100</ID>
+    <ID>MaxLineLength:FakeAgenticApi.kt$FakeAgenticApi$// Defaults model the happy-path CLI hand-off shape so callers can render the resume command without wiring each field.</ID>
+    <ID>MaxLineLength:FakeAgenticApi.kt$FakeAgenticApi$// Minimal in-memory fake for AgenticApi; only login/registerDevice/onUnauthorized/baseUrl/token/close have real behaviour, others stub-throw TODO().</ID>
+    <ID>MaxLineLength:FakeAgenticApi.kt$FakeAgenticApi$// Paged-log mode: when set, sessionEvents serves tail/before/after/around windows over this immutable event list (stride 1), EXCLUSIVE cursors, capped at pagedPageLimit.</ID>
+    <ID>MaxLineLength:FakeAgenticApi.kt$FakeAgenticApi$// Per-id sequence of sessionEvents(id, …) results consumed one-per-call; falls back to pagedEvents/sessionEventsResult.</ID>
+    <ID>MaxLineLength:FakeAgenticApi.kt$FakeAgenticApi$// Session-start catalog reuses modelsResult/modelsException so the VM's sessionStartModels() call for the new-request picker surfaces the same scripted data.</ID>
+    <ID>MaxLineLength:FakeAgenticApi.kt$FakeAgenticApi$// Suspend so handlers can park on test gates; a BLOCKING runBlocking gate deadlocks runTest's single-threaded dispatcher.</ID>
+    <ID>MaxLineLength:FakeAgenticApi.kt$FakeAgenticApi$// When true, stream() replays streamFrames then suspends open until cancelled — models a persistent socket for reconnect-loop tests.</ID>
+    <ID>MaxLineLength:FakeAgenticApi.kt$FakeAgenticApi$// downloadFileTo writes this into dest; downloadFileCalls records each (id, path); progress replays (received, total) pairs.</ID>
+    <ID>MaxLineLength:FakeAgenticApi.kt$FakeAgenticApi$override suspend</ID>
+    <ID>MaxLineLength:FakeAgenticApi.kt$FakeAgenticApi$var</ID>
+    <ID>ReturnCount:FakeAgenticApi.kt$FakeAgenticApi$override suspend fun sessionEvents(id: String, limit: Int?, before: Long?, after: Long?, around: Long?): SessionEventsResponse</ID>
+    <ID>TooManyFunctions:FakeAgenticApi.kt$FakeAgenticApi : AgenticApi</ID>
+  </CurrentIssues>
+</SmellBaseline>

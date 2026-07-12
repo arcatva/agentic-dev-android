@@ -1,0 +1,15 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>FunctionNaming:DiagnosticsScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable fun DiagnosticsScreen( onBack: () -&gt; Unit, onOpenSettings: () -&gt; Unit = {}, onOpenSession: (String) -&gt; Unit = {}, )</ID>
+    <ID>FunctionNaming:DiagnosticsScreen.kt$@OptIn(ExperimentalMaterial3ExpressiveApi::class) @Composable private fun SessionPickerSheet( sessions: List&lt;dev.agentic.data.net.Session&gt;, loading: Boolean, crashCount: Int, bundleBytes: Long, onDismiss: () -&gt; Unit, onSessionPicked: (String, String) -&gt; Unit, )</ID>
+    <ID>MagicNumber:DiagnosticsScreen.kt$1024</ID>
+    <ID>MagicNumber:DiagnosticsScreen.kt$1024.0</ID>
+    <ID>MagicNumber:DiagnosticsViewModel.kt$DiagnosticsViewModel$10</ID>
+    <ID>MagicNumber:DiagnosticsViewModel.kt$DiagnosticsViewModel$400</ID>
+    <ID>MagicNumber:DiagnosticsViewModel.kt$DiagnosticsViewModel$8</ID>
+    <ID>MaxLineLength:DiagnosticsScreen.kt$DiagnosticsViewModel(container.logStore, container.logcatCollector, container.api, container.sessionsRepo)</ID>
+    <ID>TooGenericExceptionCaught:DiagnosticsViewModel.kt$DiagnosticsViewModel$e: Exception</ID>
+  </CurrentIssues>
+</SmellBaseline>

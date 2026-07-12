@@ -1,0 +1,43 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>LoopWithTooManyJumpStatements:LogcatCollector.kt$LogcatCollector$while</ID>
+    <ID>MagicNumber:CrashHandler.kt$CrashHandler$10</ID>
+    <ID>MagicNumber:LogStore.kt$LogStore$1024</ID>
+    <ID>MagicNumber:LogStore.kt$LogStore$256L</ID>
+    <ID>MagicNumber:LogcatCollector.kt$LogcatCollector$1_000</ID>
+    <ID>MagicNumber:Polling.kt$5</ID>
+    <ID>MagicNumber:Polling.kt$60_000L</ID>
+    <ID>MatchingDeclarationName:AppLogPoll.kt$PollLogState</ID>
+    <ID>MaxLineLength:AppLog.kt$AppLog$/** Diagnostics gate. OFF → [v]/[d] are no-ops (normal run is quiet, capture stays small); ON → per-frame / lifecycle seams (WS, Repo, Net, VM, Life) light up. */</ID>
+    <ID>MaxLineLength:AppLog.kt$AppLog$/** Logging facade over [android.util.Log]. Lines land in logcat under our pid; [LogcatCollector] mirrors them to a file. [v]/[d] gated by [verbose]; [i]/[w]/[e] always fire. */</ID>
+    <ID>MaxLineLength:AppLogCatch.kt$/** Run [block], log the caught exception at [level] ('w' default, 'e' or 'd'), and return [fallback]. For silent catches that should still record into the captured log. */</ID>
+    <ID>MaxLineLength:AppLogPoll.kt$PollLogState$/** Polling accumulator: logs ONCE on first failure, then ONCE on recovery. Silent in steady state — avoids per-tick noise. */</ID>
+    <ID>MaxLineLength:CrashHandler.kt$CrashHandler$/** Catches uncaught exceptions on any thread, writes a crash report via [LogStore], then chains to the previous handler so the OS still shows its dialog / kills the process. Install once, as early as possible (from [dev.agentic.AgenticApp.onCreate]). */</ID>
+    <ID>MaxLineLength:CrashHandler.kt$CrashHandler$try { store.writeCrash(thread, error) } catch (e: Throwable) { AppLog.e("App", "CrashHandler.writeCrash failed", e) }</ID>
+    <ID>MaxLineLength:LogNoise.kt$LogNoise$/** Line filter for [LogcatCollector]: drops known framework spam (e.g. Samsung `setRequestedFrameRate` per Compose draw) before it hits the capture file so the rotation budget holds hours instead of seconds. Keep patterns NARROW (message substrings, not whole tags) — blanket tag drops would discard genuine View warnings/errors a crash run-up might need. */</ID>
+    <ID>MaxLineLength:LogNoiseTest.kt$LogNoiseTest$// LogNoise drops framework spam (e.g. Samsung Android 16's 92.5% setRequestedFrameRate INFO spam) before it hits the capture file.</ID>
+    <ID>MaxLineLength:LogStore.kt$LogStore$/** Mark all current crashes as seen so the next-launch prompt doesn't re-fire. Anchors the marker to the newest crash file's mtime (not the wall clock) so a backward clock jump between crash and ack can't make a seen crash look unseen again. */</ID>
+    <ID>MaxLineLength:LogStore.kt$LogStore$/** Owns the on-disk logs dir: rolling logcat capture, crash reports, zip export, tail viewer, clear, seen-state. App-private storage (no permission); [clear] must be called while the collector is stopped to avoid racing its open writer. */</ID>
+    <ID>MaxLineLength:LogStore.kt$LogStore$/** Tail (last [maxBytes]) of the active capture file. Tails rather than loads whole file so multi-MB logs don't blow Compose / memory. */</ID>
+    <ID>MaxLineLength:LogStore.kt$LogStore$/** Verbose-logging gate (drives [AppLog.verbose] and the logcat→file capture). Crash reports write independently and are never lost when this is off. */</ID>
+    <ID>MaxLineLength:LogStore.kt$LogStore$/** Writes a standalone crash report and prunes old ones. Best-effort, never throws (runs inside the uncaught-exception handler). */</ID>
+    <ID>MaxLineLength:LogStore.kt$LogStore$/** Zips the logs dir (capture + rotations + crashes) plus a device-info header into cacheDir/log-exports. Old exports deleted first so the share sheet never offers a stale file. */</ID>
+    <ID>MaxLineLength:LogStore.kt$LogStore$// closeEntry() in finally: if the copy throws (disk full, concurrent change), the entry is still closed so the stream stays valid and remaining files still zip.</ID>
+    <ID>MaxLineLength:LogStore.kt$LogStore$appendLine("app: ${context.packageName} ${pkg?.versionName ?: "?"} (build ${pkg?.let { versionCodeOf(it) } ?: "?"})")</ID>
+    <ID>MaxLineLength:LogStore.kt$LogStore.Companion$// SimpleDateFormat is not thread-safe; build a fresh instance per call. Locale.US keeps timestamps stable regardless of device locale.</ID>
+    <ID>MaxLineLength:LogcatCollector.kt$LogcatCollector$/** Streams this process's logcat into [LogStore.logFile] with size rotation. At most one worker thread + one logcat subprocess at a time; [stop] joins before returning so a fast off→on toggle can't leave two writers open. Reading our own pid needs no permission; on locked-down ROMs that deny exec'ing logcat the read loop degrades quietly — crash reports still write via [CrashHandler]. */</ID>
+    <ID>MaxLineLength:LogcatCollector.kt$LogcatCollector$// -T 1 → start from the most recent line (avoid re-dumping the entire ring buffer on every (re)start); --pid → only our process.</ID>
+    <ID>MaxLineLength:LogcatCollector.kt$LogcatCollector$// Always tear down on ANY exit path (stop(), EOF, or exception): clear running so a later start() can restart, destroy the subprocess so an EOF/exception exit never leaks a logcat child.</ID>
+    <ID>MaxLineLength:LogcatCollector.kt$LogcatCollector$// Publish handle under the lock, re-checking `running` so a stop() that raced our start() tears this subprocess down instead of orphaning it.</ID>
+    <ID>MaxLineLength:LogcatCollector.kt$LogcatCollector$// Update shared state under the lock, then join OUTSIDE the lock — joining inside would deadlock the worker, which needs the same lock to publish its subprocess handle.</ID>
+    <ID>MaxLineLength:Polling.kt$/** Cold Flow: immediately emit [block], then every [intervalMs]. Cancellation propagates; other errors trigger capped-exponential backoff (max 60s) and resume the normal cadence on the next success. */</ID>
+    <ID>NestedBlockDepth:LogcatCollector.kt$LogcatCollector$private fun runLoop()</ID>
+    <ID>TooGenericExceptionCaught:AppLogCatch.kt$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:CrashHandler.kt$CrashHandler$e: Throwable</ID>
+    <ID>TooGenericExceptionCaught:LogcatCollector.kt$LogcatCollector$t: Throwable</ID>
+    <ID>TooGenericExceptionCaught:Polling.kt$e: Throwable</ID>
+    <ID>TooGenericExceptionThrown:PollingTest.kt$PollingTest$throw RuntimeException("boom")</ID>
+  </CurrentIssues>
+</SmellBaseline>
