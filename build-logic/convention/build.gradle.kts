@@ -21,5 +21,9 @@ gradlePlugin {
             id = "agentic.android.library"
             implementationClass = "AndroidLibraryConventionPlugin"
         }
+        register("androidComposeLibrary") {
+            id = "agentic.android.library.compose"
+            implementationClass = "AndroidComposeLibraryConventionPlugin"
+        }
     }
 }
