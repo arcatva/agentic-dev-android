@@ -428,6 +428,33 @@ data class Provider(
 @Serializable
 data class ProviderList(val providers: List<Provider> = emptyList())
 
+// ── ChatGPT subscription sign-in (OAuth) ──
+// The user attaches their ChatGPT plan instead of an API key; the GPT model then joins the delegate
+// routing pool. Tokens live server-side (tightened store); the app only runs the browser flow.
+
+/** POST /api/providers/chatgpt/login/start — the authorize URL to open + the state to echo back. */
+@Serializable
+data class ChatGptAuthStart(
+    @SerialName("authorize_url") val authorizeUrl: String = "",
+    val state: String = "",
+)
+
+/** Body for POST /api/providers/chatgpt/login/complete. */
+@Serializable
+data class ChatGptCompleteReq(val code: String, val state: String)
+
+/** GET /api/providers/chatgpt/status — subscription connection state for the UI. */
+@Serializable
+data class ChatGptStatus(
+    val connected: Boolean = false,
+    val email: String = "",
+    @SerialName("account_id") val accountId: String = "",
+    /** unix seconds the access token expires (0 = unknown). */
+    @SerialName("expires_at") val expiresAt: Long = 0,
+    /** True once a refresh failed permanently — the user must sign in again. */
+    @SerialName("needs_relogin") val needsRelogin: Boolean = false,
+)
+
 // ── Native Claude per-family routing overrides ──
 
 /** One native Claude model as discovered by the Anthropic Models API. */
