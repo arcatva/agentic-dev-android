@@ -484,6 +484,29 @@ data class ModelEntry(
 @Serializable
 data class ModelsResponse(val models: List<ModelEntry> = emptyList())
 
+// ── ChatGPT subscription OAuth (connect a personal ChatGPT plan as a GPT provider) ──
+
+/** Response of POST /api/oauth/chatgpt/start — the authorize URL to open + the CSRF state. */
+@Serializable
+data class OauthStartResp(
+    @SerialName("authorize_url") val authorizeUrl: String = "",
+    val state: String = "",
+)
+
+/** Body of POST /api/oauth/chatgpt/complete. */
+@Serializable
+data class OauthCompleteReq(val state: String, val code: String)
+
+/** GET /api/oauth/chatgpt — connection state for the UI badge (never carries the token). */
+@Serializable
+data class OauthStatus(
+    val connected: Boolean = false,
+    @SerialName("account_id") val accountId: String = "",
+    @SerialName("expires_at") val expiresAt: Long = 0,
+    @SerialName("needs_relogin") val needsRelogin: Boolean = false,
+    val model: String = "",
+)
+
 // ── Provider registry (BYOK cheap models for delegate fan-out) ────────────────
 
 // ── Feature: Global Settings (S5a) ───────────────────────────────────────────

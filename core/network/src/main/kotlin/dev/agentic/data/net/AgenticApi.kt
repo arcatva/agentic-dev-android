@@ -67,6 +67,11 @@ interface AgenticApi {
     suspend fun providers(): List<Provider> = emptyList()
     suspend fun addProvider(req: NewProviderReq) {}
     suspend fun deleteProvider(name: String) {}
+    /** ChatGPT subscription OAuth: connect a personal ChatGPT plan as a routable GPT provider. */
+    suspend fun oauthChatgptStart(): OauthStartResp = OauthStartResp()
+    suspend fun oauthChatgptComplete(state: String, code: String) {}
+    suspend fun oauthChatgptStatus(): OauthStatus = OauthStatus()
+    suspend fun oauthChatgptLogout() {}
     suspend fun nativeModels(): List<NativeFamily> = emptyList()
     suspend fun putNativeOverride(family: String, req: NativeOverrideReq) {}
     suspend fun deleteNativeOverride(family: String) {}
