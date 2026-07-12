@@ -70,6 +70,8 @@ dependencies {
     implementation(project(":core:data"))
     implementation(project(":core:domain"))
     implementation(project(":core:di"))
+    implementation(project(":core:designsystem"))
+    implementation(project(":core:voice"))
 
     // Compose —— 版本经由 catalog 统一管理。material3 1.4.0-alpha18 公开 Expressive API 且
     // 依赖 compose 1.8.x（仍以 compileSdk 35 为目标）；compose 1.9.5 verified on AGP 8.7.3 (checkDebugAarMetadata + lintVitalRelease pass)
