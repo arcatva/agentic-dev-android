@@ -7,9 +7,11 @@ android {
 }
 
 dependencies {
-    implementation(project(":core:model"))
+    // api: repository public signatures expose network wire types (Session, Outcome, ...) and
+    // domain types (Node, ...) — consumers must see them without redeclaring the modules.
+    api(project(":core:model"))
+    api(project(":core:network"))
     implementation(project(":core:common"))
-    implementation(project(":core:network"))
 
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.serialization.json)
