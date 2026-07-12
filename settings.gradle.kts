@@ -24,3 +24,6 @@ rootProject.name = "agentic-dev-android"
 include(":app")
 include(":core:model")
 include(":core:common")
+include(":core:network")
+include(":core:data")
+include(":core:testing")
