@@ -132,6 +132,9 @@ fun FloatSliderField(
     value: () -> Float,
     onValueChange: (Float) -> Unit,
     valueRange: ClosedFloatingPointRange<Float> = 0f..1f,
+    // Optional: fires once when the drag gesture ENDS (thumb released). Callers that persist over the
+    // network use this to save on release instead of on every continuous tick. Null → no-op.
+    onValueChangeFinished: (() -> Unit)? = null,
 ) {
     val current = value()
     Column {
@@ -142,6 +145,7 @@ fun FloatSliderField(
         Slider(
             value = current.coerceIn(valueRange.start, valueRange.endInclusive),
             onValueChange = onValueChange,
+            onValueChangeFinished = onValueChangeFinished,
             valueRange = valueRange,
             steps = 0, // continuous — no notch snapping (无极调节)
         )

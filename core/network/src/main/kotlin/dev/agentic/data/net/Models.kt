@@ -420,6 +420,8 @@ data class Provider(
     val cost: Float = 0.5f,
     /** True if this provider MAKES the routing decisions (the LLM-as-router). */
     val router: Boolean = false,
+    /** Whether this model participates in routing at all. Off → excluded from the candidate pool. */
+    val enabled: Boolean = true,
     @SerialName("has_key") val hasKey: Boolean = false,
 )
 
@@ -445,6 +447,7 @@ data class NativeFamily(
     val priority: Float = 0.5f,
     val cost: Float = 0.5f,
     val description: String = "",
+    val enabled: Boolean = true,
     val customized: Boolean = false,
     val editable: Boolean = false,
 )
@@ -459,7 +462,12 @@ data class NativeOverrideReq(
     val priority: Float,
     val cost: Float,
     val description: String = "",
+    val enabled: Boolean = true,
 )
+
+/** Global cost⇄quality routing knob: 0 = cheapest, 1 = strongest. GET/POST /api/routing. */
+@Serializable
+data class RoutingConfig(val tradeoff: Float = 0.5f)
 
 // ── Model catalog ──
 
@@ -512,6 +520,7 @@ data class NewProviderReq(
     val priority: Float = 0.5f,
     val cost: Float = 0.5f,
     val router: Boolean = false,
+    val enabled: Boolean = true,
 )
 
 // ── Adopt a Claude Code CLI session into this server ──

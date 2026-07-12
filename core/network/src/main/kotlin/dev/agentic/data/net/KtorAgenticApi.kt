@@ -714,6 +714,29 @@ class KtorAgenticApi(
         }
     }
 
+    override suspend fun getRouting(): RoutingConfig {
+        return try {
+            val r: RoutingConfig = client.get("$baseUrl/api/routing") { auth() }.body()
+            AppLog.d("API", "GET routing -> OK (tradeoff=${r.tradeoff})")
+            r
+        } catch (e: Exception) {
+            AppLog.w("API", "GET routing -> FAILED: ${e.message}")
+            RoutingConfig()
+        }
+    }
+
+    override suspend fun setRouting(tradeoff: Float) {
+        try {
+            client.post("$baseUrl/api/routing") {
+                auth(); contentType(ContentType.Application.Json); setBody(RoutingConfig(tradeoff))
+            }
+            AppLog.d("API", "POST routing -> OK (tradeoff=$tradeoff)")
+        } catch (e: Exception) {
+            AppLog.w("API", "POST routing -> FAILED: ${e.message}")
+            throw e
+        }
+    }
+
     // ── Global Settings (S5a) ──
     override suspend fun getGlobalSettings(): List<ComponentInfo> {
         return try {

@@ -70,6 +70,9 @@ interface AgenticApi {
     suspend fun nativeModels(): List<NativeFamily> = emptyList()
     suspend fun putNativeOverride(family: String, req: NativeOverrideReq) {}
     suspend fun deleteNativeOverride(family: String) {}
+    /** Global cost⇄quality routing knob (0=cheapest..1=strongest). Default no-op for test fakes. */
+    suspend fun getRouting(): RoutingConfig = RoutingConfig()
+    suspend fun setRouting(tradeoff: Float) {}
     suspend fun getGlobalSettings(): List<ComponentInfo> = emptyList()
     suspend fun toggleGlobalComponent(kind: String, id: String, enabled: Boolean): List<ComponentInfo> = emptyList()
     /** External skill store aggregated across every configured source. [refresh] bypasses the server's per-source cache. Default no-op for test fakes. */
