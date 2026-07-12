@@ -7,6 +7,8 @@ agp = "8.7.3"
 kotlin = "2.0.21"
 # detekt 1.23.x supports Kotlin 2.0 (ships its own embedded compiler); used for static analysis (A2)
 detekt = "1.23.8"
+# Architecture conformance tests (layer rules enforced in CI)
+konsist = "0.17.3"
 
 # ── Compose ────────────────────────────────────────────────
 # 1.9.5 verified on AGP 8.7.3 / compileSdk 35 / Gradle 8.10.2 (assembleDebug+lintVitalRelease)
@@ -74,6 +76,7 @@ firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging
 kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlinxCoroutinesPlayServices" }
 kotlinx-coroutines-play-services = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-play-services", version.ref = "kotlinxCoroutinesPlayServices" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
+konsist = { group = "com.lemonappdev", name = "konsist", version.ref = "konsist" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "kotlinxCoroutinesTest" }
 
 [plugins]
