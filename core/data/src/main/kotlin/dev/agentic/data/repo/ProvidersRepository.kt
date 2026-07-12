@@ -20,4 +20,8 @@ class ProvidersRepository(private val api: AgenticApi) {
 
     suspend fun getRouting() = api.getRouting()
     suspend fun setRouting(tradeoff: Float) = api.setRouting(tradeoff)
+
+    suspend fun chatgptStatus() = api.chatgptStatus()
+    suspend fun chatgptStartLogin() = api.chatgptStartLogin()
+    suspend fun chatgptLogout() = api.chatgptLogout()
 }
