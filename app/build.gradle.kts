@@ -2,9 +2,7 @@ import java.io.FileInputStream
 import java.util.Properties
 
 plugins {
-    alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.kotlin.compose)
+    id("agentic.android.application")
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.detekt)
     // TODO: uncomment once google-services.json is placed in app/ (get it from Firebase Console,
@@ -33,12 +31,8 @@ val signingStoreFile = if (signingComplete) rootProject.file(signingValue("KEYST
 
 android {
     namespace = "dev.agentic"
-    compileSdk = 35
-
     defaultConfig {
         applicationId = "dev.agentic"
-        minSdk = 26
-        targetSdk = 35
         versionCode = 14
         versionName = "0.4.2"
     }
@@ -57,12 +51,6 @@ android {
             if (signingStoreFile != null) signingConfig = signingConfigs.getByName("release")
         }
     }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-    kotlinOptions { jvmTarget = "17" }
-    buildFeatures { compose = true }
     lint {
         // androidx.lifecycle 2.8.7 ships a `NullSafeMutableLiveData` lint check
         // (NonNullableMutableLiveDataDetector) that is binary-incompatible with the lint bundled in

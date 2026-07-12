@@ -1,5 +1,5 @@
+// Included build hosting the project's Gradle convention plugins (A-mod-0).
 pluginManagement {
-    includeBuild("build-logic")
     repositories {
         google {
             content {
@@ -13,12 +13,16 @@ pluginManagement {
     }
 }
 dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
         google()
         mavenCentral()
     }
+    versionCatalogs {
+        create("libs") {
+            from(files("../gradle/libs.versions.toml"))
+        }
+    }
 }
 
-rootProject.name = "agentic-dev-android"
-include(":app")
+rootProject.name = "build-logic"
+include(":convention")
