@@ -121,9 +121,26 @@ class TranscriptGroupingTest {
             TextNode("最终报告：已实现 specs/2026-07-11-enterprise-refactor-design.md 的全部条目"),
         )
         val file = AttachmentNode("outbox/2026-07-11-enterprise-refactor-design.md", at = 1_000)
-        val out = interleaveShared(display, listOf(file), truncatedStart = true)
+        val out = interleaveShared(display, listOf(file), truncatedStart = true, markerBacked = true)
         assertEquals("a coincidental late mention must not resurrect an old off-window card", 0, out.count { it is AttachmentNode })
         assertEquals("display otherwise untouched", display, out)
+    }
+
+    @Test fun legacy_session_without_markers_keeps_a_resident_delivery_with_backdated_mtime() {
+        // Codex edge: a marker-LESS (legacy) backend where the file's genuine delivery message IS resident,
+        // but its poll `at` (filesystem mtime) is backdated below the window start (e.g. copied with `cp -p`,
+        // or `touch`-ed). Without markerBacked, no resident marker could have deduped a real delivery, so a
+        // visible naming message must be trusted — the card anchors after it and is NOT hidden by the mtime
+        // gate. (On a marker-backed backend this can't arise: the delivery's marker would be resident and
+        // would have deduped the poll copy before the gate ran.)
+        val display = listOf<Node>(
+            PromptNode("build me the report", at = 5_000),
+            TextNode("delivered: outbox/report.md"),
+        )
+        val file = AttachmentNode("outbox/report.md", at = 1_000)   // backdated mtime, older than the window
+        val out = interleaveShared(display, listOf(file), truncatedStart = true, markerBacked = false)
+        assertEquals("legacy resident delivery is not hidden by a backdated mtime", 1, out.count { it is AttachmentNode })
+        assertEquals("anchored after its (resident) delivery message", 2, out.indexOfFirst { it is AttachmentNode })
     }
 
     @Test fun truncated_window_hides_only_the_old_file_when_pending_mixes_ages() {
@@ -138,7 +155,7 @@ class TranscriptGroupingTest {
             AttachmentNode("outbox/old.md", at = 1_000),   // older than the window → hidden
             AttachmentNode("outbox/new.md", at = 3_500),   // in-window + named by its delivery line → anchored
         )
-        val out = interleaveShared(display, shared, truncatedStart = true)
+        val out = interleaveShared(display, shared, truncatedStart = true, markerBacked = true)
         assertEquals("old off-window file hidden", 0, out.count { (it as? AttachmentNode)?.path == "outbox/old.md" })
         val newIdx = out.indexOfFirst { (it as? AttachmentNode)?.path == "outbox/new.md" }
         val deliverIdx = out.indexOfFirst { it is TextNode && (it as TextNode).text.contains("delivered: outbox/new.md") }
@@ -153,7 +170,7 @@ class TranscriptGroupingTest {
             TextNode("delivered: outbox/edge.md"),
         )
         val file = AttachmentNode("outbox/edge.md", at = 1_000)
-        val out = interleaveShared(display, listOf(file), truncatedStart = true)
+        val out = interleaveShared(display, listOf(file), truncatedStart = true, markerBacked = true)
         assertEquals("file at the exact window-start is kept, not hidden", 1, out.count { it is AttachmentNode })
         assertEquals("anchored after its delivery message", 2, out.indexOfFirst { it is AttachmentNode })
     }
@@ -167,7 +184,7 @@ class TranscriptGroupingTest {
             TextNode("回顾：见 outbox/old.md"),                                   // coincidental cite of the OLD file
         )
         val file = AttachmentNode("outbox/old.md", at = 1_000)
-        val out = interleaveShared(display, listOf(file), truncatedStart = true)
+        val out = interleaveShared(display, listOf(file), truncatedStart = true, markerBacked = true)
         assertEquals("only the resident inline marker remains; the old cited file is hidden", 1, out.count { it is AttachmentNode })
         assertEquals("the one remaining card is the resident marker", "outbox/earlier.md", (out.first { it is AttachmentNode } as AttachmentNode).path)
     }

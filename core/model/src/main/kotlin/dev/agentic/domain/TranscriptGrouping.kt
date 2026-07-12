@@ -21,8 +21,8 @@ fun groupTools(nodes: List<Node>): List<Node> {
  *  Primary anchor: FIRST agent message naming the file ("delivered: outbox/<name>").
  *  Fallback: after the prompt of the turn whose `at` most recently precedes the file's mtime (older than first prompt → top; none → append).
  *  Anchors are FIXED indices (not streamed-end/`display.size`) so a mid-turn file doesn't float below everything emitted after it ("APK sinks to the bottom").
- *  [truncatedStart] = window doesn't start at log beginning. When the window carries any timestamp (a prompt or an inline `agentic_file` marker), time-ordering gates the name heuristic: a poll file delivered BEFORE the window's earliest resident timestamp belongs to unloaded history above → HIDDEN, even if a later resident message coincidentally names it (a wrap-up report citing the spec it built must not drag that old card to the bottom). With no anchor at all it is likewise hidden. Paging back reveals it (inline `agentic_file` on current logs pages in & dedups the poll copy; on old logs the delivering turn's prompt pages in & its anchor matches). A window with NO timestamp at all can't run the time gate, so a genuinely-visible naming message still places the copy. */
-fun interleaveShared(display: List<Node>, shared: List<AttachmentNode>, truncatedStart: Boolean = false): List<Node> {
+ *  [truncatedStart] = window doesn't start at log beginning. [markerBacked] = this session's backend emits inline `agentic_file` delivery markers (sticky: known once any marker has been seen). Only THEN does time-ordering gate the name heuristic: a poll file delivered BEFORE the window's earliest resident timestamp belongs to unloaded history above → HIDDEN, even if a later resident message coincidentally names it (a wrap-up report citing the spec it built must not drag that old card to the bottom). The [markerBacked] guard is what makes this safe: on such a backend a genuine on-screen delivery ALWAYS carries its marker on-screen too, so its poll copy was already deduped above — an un-deduped resident mention is therefore provably a coincidental cite, never a real delivery whose file mtime merely looks old (e.g. a `cp -p`-preserved timestamp). On a marker-less/legacy session ([markerBacked] false) a visible naming message is trusted and places the copy, exactly as before. Hidden files reveal on paging back (inline marker pages in & dedups the copy; on old logs the delivering turn's prompt pages in & its anchor matches). */
+fun interleaveShared(display: List<Node>, shared: List<AttachmentNode>, truncatedStart: Boolean = false, markerBacked: Boolean = false): List<Node> {
     if (shared.isEmpty()) return display
     // `agentic_file` already positioned inline by the log — drop the poll-derived copy of the same path to avoid rendering twice. Old backends emit no such event → nothing is dropped → those files use the delivery-message heuristic below.
     val inlinePaths = display.mapNotNullTo(HashSet()) { (it as? AttachmentNode)?.path }
@@ -30,14 +30,7 @@ fun interleaveShared(display: List<Node>, shared: List<AttachmentNode>, truncate
     if (pending.isEmpty()) return display
     val turns = display.mapIndexedNotNull { i, n -> if (n is PromptNode && n.at > 0) i to n.at else null }
     // Earliest delivery time resident in the window — the min server `at` over the nodes that carry one
-    // (prompts + inline `agentic_file` markers). In a start-truncated window, a poll-derived file OLDER
-    // than this was delivered BEFORE the window began: its true position — and its inline marker — live
-    // in unloaded history above, so time-ordering (authoritative) says HIDE it. This must win over the
-    // name-`mention` heuristic below, which only string-matches a filename and cannot tell the message
-    // that DELIVERED a file from a much later one that merely CITES its name (e.g. a wrap-up report
-    // naming the spec it implemented) — letting that coincidental cite anchor an old card sinks it to the
-    // bottom. Paging back reveals the real inline card. Full transcripts never hit this: the marker is
-    // resident and already deduped the poll copy above. `null` = window carries no timestamp → gate off.
+    // (prompts + inline `agentic_file` markers). `null` = window carries no timestamp → gate off.
     val windowStart = display.minOfOrNull { n ->
         when (n) {
             is PromptNode -> if (n.at > 0) n.at else Long.MAX_VALUE
@@ -47,9 +40,13 @@ fun interleaveShared(display: List<Node>, shared: List<AttachmentNode>, truncate
     }?.takeIf { it != Long.MAX_VALUE }
     val inserts = HashMap<Int, MutableList<AttachmentNode>>()
     for (f in pending.sortedBy { it.at }) {
-        // Delivered before this truncated window → belongs to unloaded history above; hide (never let a
-        // later coincidental name mention pull it down). See `windowStart` note above.
-        if (truncatedStart && windowStart != null && f.at > 0 && f.at < windowStart) continue
+        // Marker-backed session + start-truncated window + this file delivered before the window began
+        // (by server `at`) → it lives in unloaded history above; hide it, never letting a later
+        // coincidental name mention pull it down to the bottom. The `markerBacked` guard is essential: it
+        // guarantees a genuine on-screen delivery would already have been deduped by its resident marker,
+        // so an un-deduped resident mention is a coincidental cite — not a real delivery whose file mtime
+        // merely looks old. See the KDoc for why this is safe (and why legacy sessions skip it).
+        if (truncatedStart && markerBacked && windowStart != null && f.at > 0 && f.at < windowStart) continue
         val name = f.path.substringAfterLast('/')
         // Actual delivery point: first agent message (text/answer) naming the file.
         val mention = if (name.isNotEmpty()) display.indexOfFirst { n ->
