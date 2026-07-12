@@ -1029,9 +1029,10 @@ private fun AttachmentCard(
                     LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                 }
                 // Live pace under the bar: a frozen bar reads as a hang; show the actual state instead.
+                val bytesPerSec = progress.bytesPerSec
                 val hint = when {
                     progress.stalled -> "Stalled — auto-resuming…"
-                    progress.bytesPerSec != null -> formatBytesPerSec(progress.bytesPerSec)
+                    bytesPerSec != null -> formatBytesPerSec(bytesPerSec)
                     else -> null
                 }
                 if (hint != null) {

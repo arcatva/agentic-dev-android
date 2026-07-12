@@ -47,7 +47,7 @@ fun AttachmentChip(att: PendingAttachment, onRemove: () -> Unit, modifier: Modif
                 modifier = Modifier.size(16.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                when (att.state) {
+                when (val st = att.state) {
                     UploadState.Pending, UploadState.Uploading -> CircularProgressIndicator(
                         modifier = Modifier.size(12.dp),
                         strokeWidth = 1.5.dp,
@@ -60,7 +60,7 @@ fun AttachmentChip(att: PendingAttachment, onRemove: () -> Unit, modifier: Modif
                     )
                     is UploadState.Failed -> Icon(
                         Icons.Rounded.ErrorOutline,
-                        contentDescription = att.state.reason,
+                        contentDescription = st.reason,
                         tint = MaterialTheme.colorScheme.error,
                         modifier = Modifier.size(14.dp),
                     )

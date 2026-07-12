@@ -334,7 +334,9 @@ class NewRequestViewModel(
             val finalAtts = _uiState.value.attachments
             val staged = finalAtts.mapNotNull { att ->
                 (att.state as? UploadState.Done)?.let { d ->
-                    if (d.token != null && d.name != null) StagedUpload(d.token, d.name, d.path) else null
+                    val token = d.token
+                    val name = d.name
+                    if (token != null && name != null) StagedUpload(token, name, d.path) else null
                 }
             }
             val req = NewSessionReq(
