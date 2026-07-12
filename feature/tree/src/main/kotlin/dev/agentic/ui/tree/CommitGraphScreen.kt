@@ -309,7 +309,7 @@ private fun RepoHeader(repo: String) {
 @Composable
 private fun UncommittedRow(
     unc: Uncommitted,
-    graphRow: GraphRow?,
+    graphRow: GraphRow<CommitNode>?,
     onClick: () -> Unit,
     onDiscard: () -> Unit,
 ) {
@@ -377,7 +377,7 @@ private fun UncommittedRow(
 @Composable
 private fun CommitRow(
     commit: CommitNode,
-    graphRow: GraphRow?,
+    graphRow: GraphRow<CommitNode>?,
     onClick: () -> Unit,
 ) {
     val accent = MaterialTheme.colorScheme.primary
@@ -584,7 +584,7 @@ private const val DOT_RADIUS = 9f
  * [sessionRing] rings session commits so emphasis is independent of lane hue.
  */
 private fun DrawScope.drawGraphRow(
-    row: GraphRow,
+    row: GraphRow<CommitNode>,
     trunk: Color,
     sessionRing: Color,
     tipColor: Color,

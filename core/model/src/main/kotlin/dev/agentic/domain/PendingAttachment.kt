@@ -1,17 +1,16 @@
 package dev.agentic.domain
 
-import android.net.Uri
 
 /** User-picked file held in the VM until `submit()` appends `[attached: ...]`. Lifecycle: Pending → Uploading → Done(path) (success) / Failed(reason) (terminal, retryable). [id] = URI string for stable equals/hashCode. */
 data class PendingAttachment(
     val id: String,
-    val localUri: Uri,
+    val localUri: String,
     val displayName: String,
     val sizeBytes: Long,
     val state: UploadState,
 ) {
     companion object {
-        fun of(uri: Uri, name: String, size: Long): PendingAttachment =
+        fun of(uri: String, name: String, size: Long): PendingAttachment =
             PendingAttachment(uri.toString(), uri, name, size, UploadState.Pending)
     }
 }

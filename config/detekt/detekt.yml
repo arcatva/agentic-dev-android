@@ -9,3 +9,6 @@ complexity:
     ignoreAnnotated: ['Composable']
   CyclomaticComplexMethod:
     ignoreAnnotated: ['Composable']
+naming:
+  FunctionNaming:
+    ignoreAnnotated: ['Composable']

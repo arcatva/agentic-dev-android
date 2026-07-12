@@ -1,11 +1,10 @@
 package dev.agentic.domain
 
-import dev.agentic.data.net.Session
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class SessionSearchTest {
-    private fun s(id: String, prompt: String) = Session(id = id, prompt = prompt)
+    private fun s(id: String, prompt: String) = TestSession(id = id, prompt = prompt)
 
     private val sessions = listOf(
         s("1", "Fix login bug"),

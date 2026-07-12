@@ -1,9 +1,12 @@
 package dev.agentic.domain
 
-import dev.agentic.data.net.CommitNode
 
 /**
- * Pure-Kotlin commit-graph layout engine (no Compose): newest-first [CommitNode]s → precomputed [GraphRow]s the renderer can draw row-by-row without cross-row state. Standard "active lanes" sweep (VCS Log / `git log --graph`): first parent keeps its lane (mainline straight), extra parents open lanes to the right, collapse at shared ancestors. Colors keyed by stable [GraphEdge.laneId] (per-branch) so a branch keeps its color when shifting columns.
+ * Pure-Kotlin commit-graph layout engine (no Compose): newest-first [CommitLike]s → precomputed
+ * [GraphRow]s the renderer can draw row-by-row without cross-row state. Standard "active lanes"
+ * sweep (VCS Log / `git log --graph`): first parent keeps its lane (mainline straight), extra
+ * parents open lanes to the right, collapse at shared ancestors. Colors keyed by stable
+ * [GraphEdge.laneId] (per-branch) so a branch keeps its color when shifting columns.
  */
 
 enum class GraphNodeKind { Uncommitted, Commit }
@@ -21,8 +24,8 @@ data class GraphEdge(
 )
 
 /** Everything one row needs to draw its gutter. [commit] null for the synthetic uncommitted node. */
-data class GraphRow(
-    val commit: CommitNode?,
+data class GraphRow<C : CommitLike>(
+    val commit: C?,
     val nodeColumn: Int,
     val nodeLaneId: Int,
     val isMerge: Boolean,
@@ -34,18 +37,18 @@ data class GraphRow(
 
 private class ActiveLane(val expectedSha: String, val laneId: Int)
 
-private class InputNode(
-    val commit: CommitNode?,
+private class InputNode<C : CommitLike>(
+    val commit: C?,
     val sha: String?,
     val parents: List<String>,
     val kind: GraphNodeKind,
 )
 
 /** Build renderable graph. [commits] must be newest-first (as backend returns); [hasUncommitted] places a synthetic working-tree node above HEAD. */
-fun buildCommitGraph(commits: List<CommitNode>, hasUncommitted: Boolean): List<GraphRow> {
+fun <C : CommitLike> buildCommitGraph(commits: List<C>, hasUncommitted: Boolean): List<GraphRow<C>> {
     if (commits.isEmpty() && !hasUncommitted) return emptyList()
 
-    val inputs = ArrayList<InputNode>(commits.size + 1)
+    val inputs = ArrayList<InputNode<C>>(commits.size + 1)
     if (hasUncommitted) {
         val headParents = if (commits.isNotEmpty()) listOf(commits[0].sha) else emptyList()
         inputs.add(InputNode(null, null, headParents, GraphNodeKind.Uncommitted))
@@ -69,7 +72,7 @@ fun buildCommitGraph(commits: List<CommitNode>, hasUncommitted: Boolean): List<G
         return if (hole >= 0) hole else { active.add(null); active.size - 1 }
     }
 
-    val rows = ArrayList<GraphRow>(inputs.size)
+    val rows = ArrayList<GraphRow<C>>(inputs.size)
 
     for (i in inputs.indices) {
         val node = inputs[i]

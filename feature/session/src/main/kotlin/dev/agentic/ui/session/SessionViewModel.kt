@@ -380,7 +380,7 @@ class SessionViewModel(
         AppLog.d("VM", "attachFiles id=${id.take(8)} count=${uris.size}")
         val newOnes = uris.map { uri ->
             val (name, size) = queryDisplayNameAndSize(resolver, uri)
-            PendingAttachment.of(uri, name, size)
+            PendingAttachment.of(uri.toString(), name, size)
         }
         local.update { it.copy(attachments = it.attachments + newOnes) }
         for (att in newOnes) launchUpload(att, resolver)
@@ -399,7 +399,7 @@ class SessionViewModel(
         }
         val job = viewModelScope.launch {
             val outcome = runCatching {
-                val bytes = readBytes(resolver, att.localUri)
+                val bytes = readBytes(resolver, android.net.Uri.parse(att.localUri))
                 filesRepo.upload(id, bytes, att.displayName)
             }
             // Any thrown exception → Failed chip (openInputStream null, OOM, IO error).

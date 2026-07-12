@@ -1,17 +1,11 @@
 plugins {
-    id("agentic.android.library")
-}
-
-android {
-    namespace = "dev.agentic.core.domain"
+    id("agentic.jvm.library")
 }
 
 dependencies {
-    implementation(project(":core:common"))
-    // Domain transforms over the wire model (Session, WorkflowRun, ...).
-    api(project(":core:network"))
-
+    // Domain is a LEAF: pure Kotlin, zero project dependencies. Ports in Ports.kt are
+    // implemented by outer layers (network DTOs); the arrow always points inward.
     testImplementation(libs.junit)
-    testImplementation(libs.kotlinx.serialization.json)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.kotlinx.serialization.json)
 }

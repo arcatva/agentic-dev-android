@@ -1,6 +1,5 @@
 package dev.agentic.domain
 
-import dev.agentic.data.net.CommitNode
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -8,16 +7,8 @@ import org.junit.Test
 
 class CommitGraphTest {
 
-    private fun c(sha: String, vararg parents: String, session: Boolean = false) =
-        CommitNode(
-            sha = sha,
-            shortSha = sha.take(7),
-            parents = parents.toList(),
-            subject = sha,
-            author = "t",
-            at = 0L,
-            isSession = session,
-        )
+    private fun c(sha: String, vararg parents: String) =
+        TestCommit(sha = sha, parents = parents.toList())
 
     /** Linear history stays a single straight lane (column 0, lane 0); the oldest row fades off-window. */
     @Test

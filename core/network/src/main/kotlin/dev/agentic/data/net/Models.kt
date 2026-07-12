@@ -5,18 +5,21 @@ import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import dev.agentic.domain.CommitLike
+import dev.agentic.domain.SessionSnapshot
+import dev.agentic.domain.WorkflowRunState
 import kotlinx.serialization.json.JsonElement
 
 @Immutable
 @Serializable
 data class Session(
-    val id: String,
-    val prompt: String = "",
-    val status: String = "pending",
+    override val id: String,
+    override val prompt: String = "",
+    override val status: String = "pending",
     val error: String? = null,
     // Structured stop reason (auth_error/usage_limit/wall_timeout/idle_timeout/crashed/interrupted/claude_error).
     // null = clean turn or older backend that predates the field; default keeps deserialization backward-compatible.
-    val errorKind: String? = null,
+    override val errorKind: String? = null,
     val repos: List<String> = emptyList(),
     val skills: List<String> = emptyList(),
     val model: String? = null,
@@ -33,9 +36,9 @@ data class Session(
     val worktreeState: String? = null,
     val activity: Activity? = null,
     // true = turn finished, idle accepting new message even if a background workflow runs; false = busy mid-turn; null = before first turn.
-    val awaitingInput: Boolean? = null,
+    override val awaitingInput: Boolean? = null,
     // true when turn is done/idle but a background workflow is still running (list shows it as running).
-    val workflowRunning: Boolean = false,
+    override val workflowRunning: Boolean = false,
     // Authoritative wire payload of the prompt session is PARKED on (AskUserQuestion/perm/plan awaiting user), else null. Lets the client render the awaiting card from source-of-truth instead of inferring from fragile log.
     val pendingPrompt: JsonElement? = null,
     /** Server-side: id of the session this one was forked from (SessionScreen "Forked from …" chip), or null. */
@@ -43,9 +46,9 @@ data class Session(
     /** Session group id (DB-backed folder); null = uncategorized. */
     val groupId: String? = null,
     /** Discord-style monotonic counter incremented server-side at each "your turn" point. Unread = unreadEventId > client's ackedEventId; eliminates timestamp comparison / clock-skew / client-side idle loops. */
-    val unreadEventId: Long = 0,
+    override val unreadEventId: Long = 0,
     /** Server-authoritative: highest unreadEventId the user has acknowledged (via PUT /api/sessions/:id/ack). */
-    val ackedEventId: Long = 0,
+    override val ackedEventId: Long = 0,
     /** When true, the server auto-resumes after a usage-limit stop (5h/7d). Defaults true so older backends default-on safely (a missed resume is worse than a retry). */
     val autoResume: Boolean = true,
     /** Epoch ms of scheduled auto-resume, or null. */
@@ -54,7 +57,7 @@ data class Session(
     val origin: String = "native",
     /** True when handed off to an external Claude Code CLI via POST /api/sessions/:id/detach; frozen stream watermark, no live follow-ups; detail screen shows the "handed off" banner with the `resumeCmd`. */
     val detached: Boolean = false,
-)
+) : SessionSnapshot
 
 @Immutable
 @Serializable
@@ -235,7 +238,7 @@ data class WorkflowPhase(val title: String = "", val detail: String? = null)
 data class WorkflowRun(
     val runId: String,
     val name: String = "workflow",
-    val status: String = "",
+    override val status: String = "",
     val summary: String? = null,
     val agentCount: Int? = null,
     /** Creation time (epoch ms); 0 if backend predates the field (degrades to insertion-order sort). */
@@ -243,7 +246,7 @@ data class WorkflowRun(
     val phases: List<WorkflowPhase> = emptyList(),
     val agents: List<WorkflowAgent> = emptyList(),
     val logs: List<String> = emptyList(),
-)
+) : WorkflowRunState
 
 @Serializable
 data class WorkflowList(val workflows: List<WorkflowRun> = emptyList())
@@ -283,16 +286,16 @@ data class TemplateList(val templates: List<Template> = emptyList())
 /** One commit in the session branch's recent history. `at` = epoch-ms (backend converts %at*1000); `isSession` marks commits in `baseSha..HEAD` (work done in this session). */
 @Serializable
 data class CommitNode(
-    val sha: String,
+    override val sha: String,
     val shortSha: String,
-    val parents: List<String> = emptyList(),
+    override val parents: List<String> = emptyList(),
     val subject: String = "",
     val author: String = "",
     val at: Long = 0,
     val isSession: Boolean = false,
     /** Branch/tag/HEAD labels pointing at this commit (from git %D). Empty for most commits. */
     val refs: List<GitRef> = emptyList(),
-)
+) : CommitLike
 
 /** A ref label on a commit ([kind]: "head" | "branch" | "tag" | "remote"). */
 @Serializable

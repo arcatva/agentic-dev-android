@@ -1,6 +1,5 @@
 package dev.agentic.domain
 
-import dev.agentic.data.net.Session
 import org.junit.Assert.*
 import org.junit.Test
 
@@ -8,7 +7,7 @@ class SessionIndicatorTest {
     private fun session(
         status: String = "done", errorKind: String? = null, awaitingInput: Boolean? = null,
         unreadEventId: Long = 0, ackedEventId: Long = 0, workflowRunning: Boolean = false,
-    ) = Session(id = "s", status = status, errorKind = errorKind, awaitingInput = awaitingInput,
+        ) = TestSession(status = status, errorKind = errorKind, awaitingInput = awaitingInput,
         unreadEventId = unreadEventId, ackedEventId = ackedEventId, workflowRunning = workflowRunning)
 
     @Test fun `workflow running shows running`() {
