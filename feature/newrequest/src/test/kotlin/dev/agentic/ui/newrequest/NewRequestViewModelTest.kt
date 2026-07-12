@@ -316,6 +316,11 @@ class NewRequestViewModelTest {
         assertNotNull("blank transport", McpDraft(name = "x", transport = "", command = "node", url = "https://x").validationError)
         assertNotNull("stdio needs command", McpDraft(name = "x", transport = "stdio", command = "").validationError)
         assertNotNull("http needs url", McpDraft(name = "x", transport = "http", url = "").validationError)
+        assertNotNull("non-http scheme", McpDraft(name = "x", transport = "http", url = "ftp://x.com").validationError)
+        assertNotNull("no scheme", McpDraft(name = "x", transport = "http", url = "x.com/mcp").validationError)
+        assertNotNull("empty host", McpDraft(name = "x", transport = "http", url = "https://").validationError)
+        assertNotNull("inner whitespace", McpDraft(name = "x", transport = "http", url = "https://x .com").validationError)
+        assertNull(McpDraft(name = "x", transport = "http", url = " https://x.com ").validationError)
     }
 
     // ── permissionMode ─────────────────────────────────────────────────────────
