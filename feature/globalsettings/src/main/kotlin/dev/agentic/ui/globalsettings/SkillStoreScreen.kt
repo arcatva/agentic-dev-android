@@ -336,8 +336,8 @@ private fun SourcesSheet(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    TextButton(onClick = { onRemoveSource(src) }, enabled = !busy) {
-                        Text("Remove")
+                    IconButton(onClick = { onRemoveSource(src) }, enabled = !busy) {
+                        Icon(Icons.Rounded.Close, contentDescription = "Remove $src")
                     }
                 }
             }
