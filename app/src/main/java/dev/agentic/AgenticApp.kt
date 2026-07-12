@@ -8,12 +8,13 @@ import dev.agentic.data.log.AppLog
 import dev.agentic.data.log.CrashHandler
 import dev.agentic.data.log.LogStore
 import dev.agentic.di.AppContainer
+import dev.agentic.di.AppContainerOwner
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 /** Process-level entry point. Owns the single [AppContainer] (manual DI). */
-class AgenticApp : Application() {
-    lateinit var container: AppContainer
+class AgenticApp : Application(), AppContainerOwner {
+    override lateinit var container: AppContainer
         private set
 
     override fun onCreate() {
