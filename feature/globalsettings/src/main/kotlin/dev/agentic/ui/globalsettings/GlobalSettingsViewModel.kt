@@ -6,6 +6,7 @@ import dev.agentic.data.net.AgenticApi
 import dev.agentic.data.net.CatalogSkill
 import dev.agentic.data.net.ComponentInfo
 import dev.agentic.data.net.McpServerDef
+import dev.agentic.data.net.serverError
 import dev.agentic.ui.newrequest.McpDraft
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
@@ -71,7 +72,7 @@ class GlobalSettingsViewModel(
                 val list = api.getGlobalSettings()
                 _uiState.update { it.copy(loading = false, components = list) }
             } catch (e: Exception) {
-                _uiState.update { it.copy(loading = false, error = "Failed to load settings: ${e.message}") }
+                _uiState.update { it.copy(loading = false, error = "Failed to load settings: ${e.serverError()}") }
             }
         }
     }
@@ -118,7 +119,7 @@ class GlobalSettingsViewModel(
                                     it.copy(globalEnabled = component.globalEnabled)
                                 else it
                             },
-                            error = "Failed to toggle ${component.name}: ${e.message}",
+                            error = "Failed to toggle ${component.name}: ${e.serverError()}",
                         )
                     }
                 }
@@ -166,7 +167,7 @@ class GlobalSettingsViewModel(
                     )
                 }
             } catch (e: Exception) {
-                _uiState.update { it.copy(catalogLoading = false, catalogError = "Couldn't load the store: ${e.message}") }
+                _uiState.update { it.copy(catalogLoading = false, catalogError = "Couldn't load the store: ${e.serverError()}") }
             }
         }
     }
@@ -180,7 +181,7 @@ class GlobalSettingsViewModel(
                 _uiState.update { it.copy(sources = sources, busy = false, error = null) }
                 loadCatalog(force = true)
             } catch (e: Exception) {
-                _uiState.update { it.copy(busy = false, error = "Failed to add source: ${e.message}") }
+                _uiState.update { it.copy(busy = false, error = "Failed to add source: ${e.serverError()}") }
             }
         }
     }
@@ -194,7 +195,7 @@ class GlobalSettingsViewModel(
                 _uiState.update { it.copy(sources = sources, busy = false, error = null) }
                 loadCatalog(force = true)
             } catch (e: Exception) {
-                _uiState.update { it.copy(busy = false, error = "Failed to remove source: ${e.message}") }
+                _uiState.update { it.copy(busy = false, error = "Failed to remove source: ${e.serverError()}") }
             }
         }
     }
@@ -215,7 +216,7 @@ class GlobalSettingsViewModel(
                     // Stale Update button until next manual refresh — not worth surfacing.
                 }
             } catch (e: Exception) {
-                _uiState.update { it.copy(busy = false, error = "Failed to install skill: ${e.message}") }
+                _uiState.update { it.copy(busy = false, error = "Failed to install skill: ${e.serverError()}") }
             }
         }
         return true
@@ -229,7 +230,7 @@ class GlobalSettingsViewModel(
                 val refreshed = api.deleteSkill(name)
                 _uiState.update { it.copy(components = refreshed, busy = false, error = null) }
             } catch (e: Exception) {
-                _uiState.update { it.copy(busy = false, error = "Failed to delete skill: ${e.message}") }
+                _uiState.update { it.copy(busy = false, error = "Failed to delete skill: ${e.serverError()}") }
             }
         }
     }
@@ -242,7 +243,7 @@ class GlobalSettingsViewModel(
                 val refreshed = api.installPlugin(id)
                 _uiState.update { it.copy(components = refreshed, busy = false, error = null) }
             } catch (e: Exception) {
-                _uiState.update { it.copy(busy = false, error = "Failed to install plugin: ${e.message}") }
+                _uiState.update { it.copy(busy = false, error = "Failed to install plugin: ${e.serverError()}") }
             }
         }
         return true
@@ -256,7 +257,7 @@ class GlobalSettingsViewModel(
                 val refreshed = api.uninstallPlugin(id)
                 _uiState.update { it.copy(busy = false, components = refreshed, error = null) }
             } catch (e: Exception) {
-                _uiState.update { it.copy(busy = false, error = "Failed to uninstall plugin: ${e.message}") }
+                _uiState.update { it.copy(busy = false, error = "Failed to uninstall plugin: ${e.serverError()}") }
             }
         }
     }
@@ -277,7 +278,7 @@ class GlobalSettingsViewModel(
                 val refreshed = api.addMcpServer(def)
                 _uiState.update { it.copy(components = refreshed, busy = false, error = null) }
             } catch (e: Exception) {
-                _uiState.update { it.copy(busy = false, error = "Failed to add MCP server: ${e.message}") }
+                _uiState.update { it.copy(busy = false, error = "Failed to add MCP server: ${e.serverError()}") }
             }
         }
         return null
@@ -291,7 +292,7 @@ class GlobalSettingsViewModel(
                 val refreshed = api.deleteMcpServer(name)
                 _uiState.update { it.copy(components = refreshed, busy = false, error = null) }
             } catch (e: Exception) {
-                _uiState.update { it.copy(busy = false, error = "Failed to delete MCP server: ${e.message}") }
+                _uiState.update { it.copy(busy = false, error = "Failed to delete MCP server: ${e.serverError()}") }
             }
         }
     }
