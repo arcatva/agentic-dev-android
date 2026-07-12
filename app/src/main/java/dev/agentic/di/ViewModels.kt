@@ -2,7 +2,6 @@ package dev.agentic.di
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
-import dev.agentic.AgenticApp
 
 /**
  * Composable helper: retrieves the process-level [AppContainer] from the [Application] context.
@@ -11,4 +10,4 @@ import dev.agentic.AgenticApp
  */
 @Composable
 fun appContainer(): AppContainer =
-    (LocalContext.current.applicationContext as AgenticApp).container
+    (LocalContext.current.applicationContext as AppContainerOwner).container

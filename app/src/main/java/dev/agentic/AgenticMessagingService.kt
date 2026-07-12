@@ -10,6 +10,7 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import dev.agentic.di.AppContainerOwner
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import dev.agentic.data.log.AppLog
@@ -32,7 +33,7 @@ class AgenticMessagingService : FirebaseMessagingService() {
     override fun onNewToken(token: String) {
         super.onNewToken(token)
         AppLog.i("FCM", "onNewToken")
-        val container = (applicationContext as AgenticApp).container
+        val container = (applicationContext as AppContainerOwner).container
         container.appScope.launch { runCatching { container.authRepo.registerFcm(token) } }
     }
 
