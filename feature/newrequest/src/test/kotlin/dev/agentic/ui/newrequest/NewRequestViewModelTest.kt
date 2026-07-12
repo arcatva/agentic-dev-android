@@ -319,6 +319,8 @@ class NewRequestViewModelTest {
         assertNotNull("non-http scheme", McpDraft(name = "x", transport = "http", url = "ftp://x.com").validationError)
         assertNotNull("no scheme", McpDraft(name = "x", transport = "http", url = "x.com/mcp").validationError)
         assertNotNull("empty host", McpDraft(name = "x", transport = "http", url = "https://").validationError)
+        assertNotNull("no host, path only", McpDraft(name = "x", transport = "http", url = "https:///mcp").validationError)
+        assertNotNull("no host, query only", McpDraft(name = "x", transport = "http", url = "http://?x=1").validationError)
         assertNotNull("inner whitespace", McpDraft(name = "x", transport = "http", url = "https://x .com").validationError)
         assertNull(McpDraft(name = "x", transport = "http", url = " https://x.com ").validationError)
     }

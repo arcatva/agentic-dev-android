@@ -62,8 +62,10 @@ data class McpDraft(
 
 /** Matches the backend's validate_mcp_def: http(s) scheme, non-empty host, no whitespace. */
 private fun isHttpUrl(u: String): Boolean {
-    val host = u.removePrefix("https://").removePrefix("http://")
-    return host != u && host.isNotEmpty() && u.none { it.isWhitespace() }
+    val rest = u.removePrefix("https://").removePrefix("http://")
+    if (rest == u) return false
+    val host = rest.takeWhile { it != '/' && it != '?' && it != '#' }
+    return host.isNotEmpty() && u.none { it.isWhitespace() }
 }
 
 /** Default session-CLAUDE.md text; tells each session how the agentic-dev worktree/PR workflow works. Branch-agnostic. */
