@@ -1,0 +1,11 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>FunctionNaming:AdoptPickerScreen.kt$@Composable private fun AdoptRow( item: Adoptable, now: Long, isAdopting: Boolean, onTap: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:AdoptPickerScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable fun AdoptPickerSheet( onDismiss: () -&gt; Unit, onAdopted: (String) -&gt; Unit, )</ID>
+    <ID>MagicNumber:AdoptPickerScreen.kt$150</ID>
+    <ID>MagicNumber:AdoptPickerScreen.kt$50</ID>
+    <ID>MaxLineLength:AdoptPickerViewModel.kt$AdoptPickerViewModel$it.copy(loading = false, items = emptyList(), error = "Couldn't load Claude Code sessions. Tap to retry.")</ID>
+  </CurrentIssues>
+</SmellBaseline>

@@ -1,0 +1,24 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>FunctionNaming:GlobalSettingsScreen.kt$@Composable private fun AddHeaderButton(label: String, onAdd: () -&gt; Unit)</ID>
+    <ID>FunctionNaming:GlobalSettingsScreen.kt$@Composable private fun AddPluginForm( busy: Boolean, onInstall: (id: String) -&gt; Unit, )</ID>
+    <ID>FunctionNaming:GlobalSettingsScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable fun GlobalSettingsScreen( onBack: () -&gt; Unit, onOpenSkillStore: () -&gt; Unit = {}, vm: GlobalSettingsViewModel? = null, )</ID>
+    <ID>FunctionNaming:GlobalSettingsScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable private fun AddMcpForm( busy: Boolean, onAdd: (McpDraft) -&gt; String?, )</ID>
+    <ID>FunctionNaming:GlobalSettingsScreen.kt$@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class) @Composable private fun PluginsSection( plugins: List&lt;ComponentInfo&gt;, toggling: Set&lt;String&gt;, busy: Boolean, error: String?, onToggle: (ComponentInfo) -&gt; Unit, onInstallPlugin: (id: String) -&gt; Boolean, onUninstallPlugin: (id: String) -&gt; Unit, )</ID>
+    <ID>FunctionNaming:GlobalSettingsScreen.kt$@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class) @Composable private fun SkillsSection( skills: List&lt;ComponentInfo&gt;, toggling: Set&lt;String&gt;, busy: Boolean, error: String?, onOpenStore: () -&gt; Unit, onToggle: (ComponentInfo) -&gt; Unit, onDeleteSkill: (name: String) -&gt; Unit, )</ID>
+    <ID>FunctionNaming:GlobalSettingsScreen.kt$@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable private fun McpSection( mcps: List&lt;ComponentInfo&gt;, toggling: Set&lt;String&gt;, busy: Boolean, error: String?, onToggle: (ComponentInfo) -&gt; Unit, onAddMcpServer: (McpDraft) -&gt; String?, onDeleteMcpServer: (name: String) -&gt; Unit, )</ID>
+    <ID>FunctionNaming:SkillStoreScreen.kt$@Composable private fun StoreRow( entry: CatalogSkill, installed: Boolean, showSource: Boolean, busy: Boolean, onInstall: (update: Boolean) -&gt; Unit, onRemove: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:SkillStoreScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable private fun SourcesSheet( sources: List&lt;String&gt;?, busy: Boolean, onAddSource: (String) -&gt; Unit, onRemoveSource: (String) -&gt; Unit, onDismiss: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:SkillStoreScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable fun SkillStoreScreen( onBack: () -&gt; Unit, vm: GlobalSettingsViewModel? = null, )</ID>
+    <ID>MaxLineLength:GlobalSettingsViewModel.kt$GlobalSettingsViewModel$_uiState.update { it.copy(catalogLoading = false, catalogError = "Couldn't load the store: ${e.message}") }</ID>
+    <ID>MaxLineLength:GlobalSettingsViewModelTest.kt$GlobalSettingsViewModelTest$dev.agentic.data.net.CatalogSkill(name = "pdf", description = "PDF toolkit", source = "anthropics/skills/skills/pdf")</ID>
+    <ID>MaxLineLength:SkillStoreScreen.kt$val isExplicitUrl = q.startsWith("https://") || q.startsWith("http://") || q.startsWith("github.com/")</ID>
+    <ID>ReturnCount:GlobalSettingsViewModel.kt$GlobalSettingsViewModel$fun addMcpServer(draft: McpDraft): String?</ID>
+    <ID>ReturnCount:SkillStoreScreen.kt$internal fun githubRefQuery(q: String): String?</ID>
+    <ID>TooGenericExceptionCaught:GlobalSettingsViewModel.kt$GlobalSettingsViewModel$e: Exception</ID>
+    <ID>TooManyFunctions:GlobalSettingsViewModel.kt$GlobalSettingsViewModel : ViewModel</ID>
+    <ID>UnusedParameter:GlobalSettingsScreen.kt$error: String?</ID>
+  </CurrentIssues>
+</SmellBaseline>

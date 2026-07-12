@@ -1,0 +1,137 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>ComplexCondition:WideThreePaneHome.kt$!homeState.loading &amp;&amp; selectedId != null &amp;&amp; selectedId != pendingSelect &amp;&amp; homeState.sessions.none { it.id == selectedId }</ID>
+    <ID>CyclomaticComplexMethod:SessionSearchBar.kt$private fun SearchField.snippetLabel(): String</ID>
+    <ID>FunctionNaming:HomeAdaptive.kt$@Composable fun HomeAdaptive( onNewRequest: () -&gt; Unit, onOpenHistory: (String, Boolean) -&gt; Unit, onOpenSettings: (String) -&gt; Unit, onOpenDiagnostics: () -&gt; Unit, onOpenAdoptPicker: () -&gt; Unit = {}, onOpenGlobalSettings: () -&gt; Unit = {}, initialSelectedId: String? = null, // Non-null when hosted by the SESSION route: invoked once the selection this route was opened for has been shown and then cleared — the host pops the duplicate nav entry (narrow leg of "two-layer Home"). onDeselected: (() -&gt; Unit)? = null, )</ID>
+    <ID>FunctionNaming:HomeAdaptive.kt$@Composable private fun PanePlaceholder(text: String)</ID>
+    <ID>FunctionNaming:HomeAdaptive.kt$@OptIn(ExperimentalMaterial3AdaptiveApi::class) @Composable private fun NarrowScaffoldHome( onNewRequest: () -&gt; Unit, onOpenHistory: (String, Boolean) -&gt; Unit, onOpenSettings: (String) -&gt; Unit, onOpenDiagnostics: () -&gt; Unit, onOpenAdoptPicker: () -&gt; Unit, onOpenGlobalSettings: () -&gt; Unit = {}, initialSelectedId: String?, onDeselected: (() -&gt; Unit)? = null, )</ID>
+    <ID>FunctionNaming:HomeScreen.kt$@Composable private fun Meter(label: String, window: UsageWindow, onToggle: () -&gt; Unit, modifier: Modifier = Modifier)</ID>
+    <ID>FunctionNaming:HomeScreen.kt$@Composable private fun UsageMeters(u: Usage, modifier: Modifier = Modifier)</ID>
+    <ID>FunctionNaming:HomeScreen.kt$@OptIn(ExperimentalFoundationApi::class) @Composable fun SessionRow( session: Session, now: Long, openHighlight: Boolean, inSelectionMode: Boolean, checked: Boolean, unread: Boolean = false, onClick: () -&gt; Unit, onLongClick: () -&gt; Unit, modifier: Modifier = Modifier, )</ID>
+    <ID>FunctionNaming:HomeScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable internal fun GroupPickerSheet( groups: List&lt;Group&gt;, onDismiss: () -&gt; Unit, onGroupPicked: (String?) -&gt; Unit, )</ID>
+    <ID>FunctionNaming:HomeScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable internal fun HomeTopBar( selectionMode: Boolean, selectedCount: Int, totalCount: Int, onCloseSelection: () -&gt; Unit, onSelectAll: () -&gt; Unit, onDeleteSelected: () -&gt; Unit, onForkSelected: () -&gt; Unit, onMoveSelected: () -&gt; Unit = {}, onLogout: () -&gt; Unit, searchQuery: String, searching: Boolean, searchResults: List&lt;dev.agentic.data.net.SearchHit&gt;, onSearchQueryChange: (String) -&gt; Unit, onOpenSession: (String) -&gt; Unit, onSearchExpandedChange: (Boolean) -&gt; Unit = {}, onOpenDiagnostics: () -&gt; Unit = {}, onOpenAdoptPicker: () -&gt; Unit = {}, onOpenGlobalSettings: () -&gt; Unit = {}, )</ID>
+    <ID>FunctionNaming:HomeScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable fun HomeScreen( onOpenSession: (String) -&gt; Unit, onNewRequest: () -&gt; Unit, onOpenDiagnostics: () -&gt; Unit = {}, onOpenAdoptPicker: () -&gt; Unit = {}, onOpenGlobalSettings: () -&gt; Unit = {}, vm: HomeViewModel? = null, )</ID>
+    <ID>FunctionNaming:HomeScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable internal fun GroupFilterRow( groups: List&lt;Group&gt;, selectedFilter: String?, onSelectFilter: (String?) -&gt; Unit, onRenameGroup: (String, String) -&gt; Unit, onDeleteGroup: (String) -&gt; Unit, onCreateGroup: (String) -&gt; Unit, )</ID>
+    <ID>FunctionNaming:HomeScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable internal fun SessionItem( session: Session, now: Long, state: HomeUiState, selectedId: String?, onOpen: (String) -&gt; Unit, onDelete: (String) -&gt; Unit, onToggleSelect: (String) -&gt; Unit, onLongPress: (String) -&gt; Unit, modifier: Modifier = Modifier, )</ID>
+    <ID>FunctionNaming:HomeScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable internal fun SessionListPane( state: HomeUiState, selectedId: String?, onOpen: (String) -&gt; Unit, onDelete: (String) -&gt; Unit, onRefresh: () -&gt; Unit, onToggleSelect: (String) -&gt; Unit, onLongPress: (String) -&gt; Unit, onClearSearch: () -&gt; Unit, onSelectGroupFilter: (String?) -&gt; Unit = {}, onRenameGroup: (String, String) -&gt; Unit = { _, _ -&gt; }, onDeleteGroup: (String) -&gt; Unit = {}, onCreateGroup: (String) -&gt; Unit = {}, modifier: Modifier = Modifier, listState: androidx.compose.foundation.lazy.LazyListState = rememberLazyListState(), )</ID>
+    <ID>FunctionNaming:SessionSearchBar.kt$@Composable internal fun SearchResultsPanel( results: List&lt;SearchHit&gt;, query: String, onOpen: (String) -&gt; Unit, onClearQuery: () -&gt; Unit, modifier: Modifier = Modifier, lastSearchedQuery: String = "", )</ID>
+    <ID>FunctionNaming:SessionSearchBar.kt$@Composable internal fun SessionSearchBar( query: String, onQueryChange: (String) -&gt; Unit, searching: Boolean, @Suppress("UNUSED_PARAMETER") results: List&lt;SearchHit&gt;, selectionMode: Boolean, @Suppress("UNUSED_PARAMETER") onOpen: (String) -&gt; Unit, onExpandedChange: (Boolean) -&gt; Unit = {}, modifier: Modifier = Modifier, )</ID>
+    <ID>FunctionNaming:SessionSearchBar.kt$@Composable private fun SearchSnippet( label: String, snippet: String, query: String, modifier: Modifier = Modifier, )</ID>
+    <ID>FunctionNaming:WideThreePaneHome.kt$@Composable private fun PaneSplitter(onDelta: (Float) -&gt; Unit, modifier: Modifier = Modifier)</ID>
+    <ID>FunctionNaming:WideThreePaneHome.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun WideThreePaneHome( onNewRequest: () -&gt; Unit, onOpenHistory: (String, Boolean) -&gt; Unit, onOpenSettings: (String) -&gt; Unit, onOpenDiagnostics: () -&gt; Unit, onOpenAdoptPicker: () -&gt; Unit = {}, onOpenGlobalSettings: () -&gt; Unit = {}, initialSelectedId: String? = null, )</ID>
+    <ID>MagicNumber:HomeScreen.kt$30_000L</ID>
+    <ID>MagicNumber:HomeScreen.kt$50</ID>
+    <ID>MagicNumber:HomeScreen.kt$70.0</ID>
+    <ID>MagicNumber:HomeScreen.kt$8</ID>
+    <ID>MagicNumber:HomeScreen.kt$90.0</ID>
+    <ID>MagicNumber:HomeViewModel.kt$HomeViewModel$5_000L</ID>
+    <ID>MagicNumber:HomeViewModel.kt$HomeViewModel$60_000L</ID>
+    <ID>MagicNumber:WideThreePaneHome.kt$140f</ID>
+    <ID>MagicNumber:WideThreePaneHome.kt$200f</ID>
+    <ID>MagicNumber:WideThreePaneHome.kt$300f</ID>
+    <ID>MagicNumber:WideThreePaneHome.kt$340f</ID>
+    <ID>MagicNumber:WideThreePaneHome.kt$50</ID>
+    <ID>MagicNumber:WideThreePaneHome.kt$500</ID>
+    <ID>MagicNumber:WideThreePaneHome.kt$8</ID>
+    <ID>MaxLineLength:HomeAdaptive.kt$/** Adaptive home entry point: picks the arrangement by window size. Both arrangements render the same SessionScreen/HomeScreen/WorkflowScreen so the detail UI never drifts. */</ID>
+    <ID>MaxLineLength:HomeAdaptive.kt$/** Pane bounds animation with NO overshoot — critical damping replaces the adaptive library's default (dampingRatio 0.8) which visibly rebounds on session open. IntRect(1,1,1,1) is the value the IntRect.VisibilityThreshold extension would return. */</ID>
+    <ID>MaxLineLength:HomeAdaptive.kt$/** Pane enter/exit with NO slide overshoot — a single directional slide can't be right for both list and detail, so it's a cross-fade. */</ID>
+    <ID>MaxLineLength:HomeAdaptive.kt$/** Phone / medium-width: single pane on phone, 2-pane with native draggable handle on tablet/folded. Detail = SessionScreen; its workflow button opens WorkflowScreen as the scaffold's extra pane. */</ID>
+    <ID>MaxLineLength:HomeAdaptive.kt$/** True when [config] should use the wide 3-pane home. Single source of truth, shared with AppNav so nav can avoid stacking a duplicate Home. */</ID>
+    <ID>MaxLineLength:HomeAdaptive.kt$/** Window width (dp) at/above which we use the classic 3-pane home (list │ rail │ session); below, the Material3 list-detail pane scaffold. */</ID>
+    <ID>MaxLineLength:HomeAdaptive.kt$// Non-null when hosted by the SESSION route: invoked once the selection this route was opened for has been shown and then cleared — the host pops the duplicate nav entry (narrow leg of "two-layer Home").</ID>
+    <ID>MaxLineLength:HomeAdaptive.kt$// Session-route host only (onDeselected != null): once a selection is shown and then cleared (scaffold back / predictive back), this scaffold renders exactly what the Home route's does — the host pops the duplicate nav entry so backing out of a pushed Session doesn't show its list THEN the real Home's list.</ID>
+    <ID>MaxLineLength:HomeAdaptive.kt$// Wide never needs [onDeselected]: AppNav normalizes the Session route away at render time regardless of selection.</ID>
+    <ID>MaxLineLength:HomeAdaptive.kt$// hadSelection guards the first composition (selectedSid starts null since the effect above applies it) and is rememberSaveable so a process-restored, already-deselected duplicate normalizes immediately.</ID>
+    <ID>MaxLineLength:HomeAdaptive.kt$// rememberUpdatedState so the effect (keyed only on selectedSid) invokes the LATEST host lambda even if recreated since launch.</ID>
+    <ID>MaxLineLength:HomeAdaptive.kt$onForked = { id -&gt; scope.launch { homeVm.refresh(); navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, id) } }</ID>
+    <ID>MaxLineLength:HomeAdaptive.kt$onOpenParent = { id -&gt; scope.launch { navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, id) } }</ID>
+    <ID>MaxLineLength:HomeAdaptive.kt$onOpenSession = { id -&gt; scope.launch { navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, id) } }</ID>
+    <ID>MaxLineLength:HomeAdaptive.kt$onOpenWorkflows = { scope.launch { navigator.navigateTo(ListDetailPaneScaffoldRole.Extra, selectedSid) } }</ID>
+    <ID>MaxLineLength:HomeScreen.kt$/** Home screen — stateless; reads HomeUiState, calls VM handlers. Single-pane session list (no list+detail split — detail opens via onOpenSession). [vm] is nullable for test injection. */</ID>
+    <ID>MaxLineLength:HomeScreen.kt$/** M3 Button Groups filter row: horizontally scrollable connected ButtonGroup with ToggleButton per group + an "All" button + trailing ⋮ menu. Dropdown offers rename/delete per group + create-new. */</ID>
+    <ID>MaxLineLength:HomeScreen.kt$/** One session card. Shared by the normal list (wrapped in swipe-to-delete) and the multi-select list. [openHighlight] tints the open-session row in the wide layout; [checked] tints a ticked row. */</ID>
+    <ID>MaxLineLength:HomeScreen.kt$/** Scaffold-free list body: unreachable banner, usage meters, LazyColumn of cards with swipe-to-delete + confirm. Stateless; reusable in both single-pane HomeScreen and the wide 3-pane (where [selectedId] highlights the matching row). Search surface lives in HomeTopBar; when length ≥ 2 the list renders searchResults. */</ID>
+    <ID>MaxLineLength:HomeScreen.kt$/** Top bar: non-selection = app title + logout; multi-select = contextual bar (close, "N selected", select-all, delete). Owns both confirm dialogs + the BackHandler that makes system-back exit selection first. */</ID>
+    <ID>MaxLineLength:HomeScreen.kt$// Compact widths (portrait phone / folded) can't fit title + search + 3 icons — collapse into a single ⋮ overflow menu so the search field has the width.</ID>
+    <ID>MaxLineLength:HomeScreen.kt$// Dropdown: rename/delete/create. Placed OUTSIDE ButtonGroup so the popup positions relative to the Row, not the scrollable group.</ID>
+    <ID>MaxLineLength:HomeScreen.kt$// Image (not Icon): brand mark is multi-color gradient art; Icon would tint it to a single color.</ID>
+    <ID>MaxLineLength:HomeScreen.kt$// In selection mode, highlight = "ticked" (open-session tint would otherwise look identical); outside, "open session".</ID>
+    <ID>MaxLineLength:HomeScreen.kt$// Keyed on selectionMode so the confirm flag can't survive leaving selection mode and re-open the dialog unprompted on re-entry.</ID>
+    <ID>MaxLineLength:HomeScreen.kt$// MD3E: brand title gracefully yields its width to the search field while typing (spatial expand/shrink).</ID>
+    <ID>MaxLineLength:HomeScreen.kt$// Reserve the indicator slot (fixed footprint) so the title + repo never shift when it clears. Watchdog cap (wall/idle timeout) isn't a failure — render like done, not the red error icon.</ID>
+    <ID>MaxLineLength:HomeScreen.kt$// Same 8-char/labelSmall/onSurfaceVariant pair as the session page top bar, so a session can be identified (@-mentioned) by id from the list.</ID>
+    <ID>MaxLineLength:HomeScreen.kt$// Same gate as the steady dot: only flash the transient completion check for a completion the user has NOT read yet — otherwise the resume catch-up replays an old running→idle flip and flashes a check for a session already acked.</ID>
+    <ID>MaxLineLength:HomeScreen.kt$// Search mode: replace list body with a results panel — list region IS the results region (no push-down, no overlay-occlusion).</ID>
+    <ID>MaxLineLength:HomeScreen.kt$// Single-pane: when the top session changes (server re-sort after a reply), scroll to the top so the freshly-bumped one is visible. Only fires when the user is already near the top (index 1-2) — never hijacks a deep-browse scroll.</ID>
+    <ID>MaxLineLength:HomeScreen.kt$// Smaller start inset so the title + indicator sit further left; the indicator reads as roughly centred in the gap.</ID>
+    <ID>MaxLineLength:HomeScreen.kt$// Tap anywhere (empty rows, gaps, "no match") blurs the search field + drops the keyboard. Row taps/scroll/swipe still win.</ID>
+    <ID>MaxLineLength:HomeScreen.kt$// Tap either meter to flip BOTH labels between the window name (5h/7d) and the time left until reset (3h29m / 3d21h).</ID>
+    <ID>MaxLineLength:HomeScreen.kt$// combinedClickable on the INNER row clips the tap indication to the card's rounded shape while the Card keeps its elevation shadow.</ID>
+    <ID>MaxLineLength:HomeScreen.kt$// end gap so the pill never touches the action buttons (their tonal circles extend left of their icons).</ID>
+    <ID>MaxLineLength:HomeScreen.kt$Icon(Icons.Rounded.Folder, null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)</ID>
+    <ID>MaxLineLength:HomeScreen.kt$TextButton(onClick = { renameTarget = null; if (text.isNotBlank()) onRenameGroup(rt.id, text.trim()) }) { Text("Rename") }</ID>
+    <ID>MaxLineLength:HomeScreen.kt$enter = expandHorizontally(appSpatialSpec(), expandFrom = Alignment.Start) + fadeIn(appEffectsSpec())</ID>
+    <ID>MaxLineLength:HomeScreen.kt$exit = shrinkHorizontally(appSpatialSpec(), shrinkTowards = Alignment.Start) + fadeOut(appEffectsSpec())</ID>
+    <ID>MaxLineLength:HomeViewModel.kt$HomeUiState$/** Last query that COMPLETED (success or failure). `searchQuery != lastSearchedQuery` ⇒ in flight — spinner beats "No match". */</ID>
+    <ID>MaxLineLength:HomeViewModel.kt$HomeUiState$/** True only on the FIRST sessionsStream failure; cleared on first success, so a later blip keeps last-good and does not re-flag. */</ID>
+    <ID>MaxLineLength:HomeViewModel.kt$HomeViewModel$/** Cancelled on every new query so the prior mapLatest block is cancelled (last-write-wins) and no stale `searching=true` leaks past a fresh hit. */</ID>
+    <ID>MaxLineLength:HomeViewModel.kt$HomeViewModel$private</ID>
+    <ID>MaxLineLength:HomeViewModel.kt$HomeViewModel$private val manualUsage = MutableSharedFlow&lt;Usage&gt;(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)</ID>
+    <ID>MaxLineLength:HomeViewModelTest.kt$HomeViewModelTest$@Test</ID>
+    <ID>MaxLineLength:HomeViewModelTest.kt$HomeViewModelTest$assertEquals("live poll reached 52% before backgrounding", 52, vm.uiState.value.usage?.five_hour?.utilization?.toInt())</ID>
+    <ID>MaxLineLength:SearchSnippetTest.kt$SearchSnippetTest$assertEquals(SearchField.Branch, hit(match(SearchField.Repo), match(SearchField.Branch)).bestSnippetMatch("x")?.field)</ID>
+    <ID>MaxLineLength:SearchSnippetTest.kt$SearchSnippetTest$assertNull(hit(match(SearchField.Prompt, "...fix login bug..."), prompt = "fix login bug").bestSnippetMatch("login"))</ID>
+    <ID>MaxLineLength:SessionSearchBar.kt$*</ID>
+    <ID>MaxLineLength:SessionSearchBar.kt$/** Matched-content line under a SessionRow: field label + snippet with the query painted via highlightQuery. Max 2 lines. */</ID>
+    <ID>MaxLineLength:SessionSearchBar.kt$/** Replaces SessionListPane's body when the query has length ≥ 2. Occupies the full list region so clearing the box flips back to the regular list immediately. */</ID>
+    <ID>MaxLineLength:SessionSearchBar.kt$/** Stateless search surface; hosts the shared SearchBar. Results render in SearchResultsPanel inside the host's SessionListPane (replaces, not overlays). */</ID>
+    <ID>MaxLineLength:SessionSearchBar.kt$// Re-window so the match is near the front (the 2-line clamp would otherwise hide a centred backend window), then highlight.</ID>
+    <ID>MaxLineLength:SessionSearchBar.kt$// Surface content the row doesn't show (answer, tool detail, notes) with the match painted — otherwise an unexplained result row.</ID>
+    <ID>MaxLineLength:WideThreePaneHome.kt$.</ID>
+    <ID>MaxLineLength:WideThreePaneHome.kt$/** MD3-expressive pane separator: draggable gutter with a short rounded grip. Slim visually ([SplitterWidthDp]) but grabs wide ([SplitterTouchTargetDp]) — layout reports slim width to the parent Row while the draggable area is measured at the larger touch width, centred so it overflows symmetrically into neighbours. */</ID>
+    <ID>MaxLineLength:WideThreePaneHome.kt$/** Touch width of each PaneSplitter (dp) — draggable area measured this wide, centred over the slim lane, overflowing into each neighbour. 48dp = Material's min interactive size. */</ID>
+    <ID>MaxLineLength:WideThreePaneHome.kt$/** Visual width of each PaneSplitter lane (dp). The *touch* target is the larger SplitterTouchTargetDp (lane overflows symmetrically into neighbours as an invisible grab zone). */</ID>
+    <ID>MaxLineLength:WideThreePaneHome.kt$/** Wide 3-pane home: LEFT = session list, MIDDLE = collapsible workflow rail (when selected session has runs), RIGHT = chat or picked agent's transcript. Two draggable splitters; rail auto-hides below ~140dp. */</ID>
+    <ID>MaxLineLength:WideThreePaneHome.kt$// Body: picked agent's transcript when one is selected in the rail, else chat. No inner per-session animation — the whole detail row already lives inside the session Crossfade.</ID>
+    <ID>MaxLineLength:WideThreePaneHome.kt$// CRITICAL: everything inside derives from the lambda's [currentSid], NEVER from [selectedId]. Per-session VMs/state used to live OUTSIDE this Crossfade — both fade layers then rendered the NEW session's data, degrading the dissolve into a hard cut (old title + new id, old rail remeasured at the new session's width — visible text rewrap).</ID>
+    <ID>MaxLineLength:WideThreePaneHome.kt$// Coerce persisted widths up to [minRail] — older installs may have saved a narrower rail (the minimum used to be lower), and a raw value below min diverges from the rendered effectiveRailWidth (drag would then hide the rail on a visually-expanding drag).</ID>
+    <ID>MaxLineLength:WideThreePaneHome.kt$// Debounce persists: every change restarts the effect, so the put fires once values settle, not on every drag frame. Dispose flush below covers the tail case (a change made &lt;500ms before this layer leaves composition would otherwise never be saved).</ID>
+    <ID>MaxLineLength:WideThreePaneHome.kt$// Discord-style: selecting this session acks the current "your turn" point. Keyed on session.unreadEventId so it fires AFTER the session loads.</ID>
+    <ID>MaxLineLength:WideThreePaneHome.kt$// Drop the selection if the open session leaves the list (deleted / pruned). Guard on !loading so a deep-linked initialSelectedId isn't cleared during the first (empty) load tick.</ID>
+    <ID>MaxLineLength:WideThreePaneHome.kt$// Everything right of the list splitter — header, chat/agent body, workflow rail — cross-fades as ONE unit on session switch (emphasized 250ms dissolve).</ID>
+    <ID>MaxLineLength:WideThreePaneHome.kt$// FadingText (parity with phone titles): overflow dissolves at the right edge instead of ellipsis. Full prompt, no take(40).</ID>
+    <ID>MaxLineLength:WideThreePaneHome.kt$// Guard a programmatically-selected id (just-forked, handed over from AppNav) from the clear-on-vanish effect until it surfaces in the polled list.</ID>
+    <ID>MaxLineLength:WideThreePaneHome.kt$// MIDDLE = chat (chrome parity with phone: history, fork, workflow toggle) + RIGHT workflow rail, in one per-session row so both fade together.</ID>
+    <ID>MaxLineLength:WideThreePaneHome.kt$// Mirror the live rail footprint out for the list splitter's budget. Keyed on railHidden (NOT showRail): hasRuns arrives async from the VM, gating on it would leave a too-loose clamp window until the session loads.</ID>
+    <ID>MaxLineLength:WideThreePaneHome.kt$// Once the rail is exiting (drag crossed auto-hide, or session's runs vanished) the gesture is DONE: ignore the rest. Letting it keep writing railWidth retargeted the exit spring's slide distance every frame — the spring never settled, the rail's (invisible) layout box squatted on the vacated space until the finger lifted, and dragging back left "revived" a zombie rail. (!showRail, not railHidden: also covers hasRuns-driven exit.)</ID>
+    <ID>MaxLineLength:WideThreePaneHome.kt$// Pane-width budget. List and rail gutters drag independently — without a shared reserve they could combine to starve the weight(1f) chat column to zero width (drag both gutters fully out at ~840dp).</ID>
+    <ID>MaxLineLength:WideThreePaneHome.kt$// Per-layer rail geometry, seeded from store once per layer; drag frames touch plain MutableState only.</ID>
+    <ID>MaxLineLength:WideThreePaneHome.kt$// RIGHT = workflow rail (only when session has runs and not hidden). Lives INSIDE the session's crossfade layer: on session switch it fades with the rest of the layer instead of playing this slide against the incoming session's geometry. Slide still animates hide/show and the drag-below-minimum dismissal within a session.</ID>
+    <ID>MaxLineLength:WideThreePaneHome.kt$// Rail geometry lives INSIDE each session's crossfade layer, keyed on that layer's id. Hoisting it here keyed on selectedId remeasured the OUTGOING layer with the INCOMING session's geometry the instant selection changed (a visible one-frame rewrap of the old rail). Only the live layer's rail footprint is mirrored out so the LIST splitter's budget can read it without reaching into per-layer state.</ID>
+    <ID>MaxLineLength:WideThreePaneHome.kt$// Rail is on the far RIGHT now (not adjacent to list), so the list splitter resizes list vs chat directly — no redistribution with rail.</ID>
+    <ID>MaxLineLength:WideThreePaneHome.kt$// Rewind confirm trigger (set from transcript long-press; shown by shared SessionDetailOverlays).</ID>
+    <ID>MaxLineLength:WideThreePaneHome.kt$// Shared chrome: rewind dialog + rewind toast — same wiring as the phone SessionScreen (single source of truth in SessionDetailOverlays).</ID>
+    <ID>MaxLineLength:WideThreePaneHome.kt$// Splitter on the LEFT side of the rail (between chat and rail). Drag right (d&gt;0) → rail shrinks, so negate delta.</ID>
+    <ID>MaxLineLength:WideThreePaneHome.kt$// Toasts + shared chrome only for the live layer (an outgoing layer must not keep toasting or stack a second dialog host while it fades out).</ID>
+    <ID>MaxLineLength:WideThreePaneHome.kt$// Wide-mode "open this session" handoff from AppNav. In wide mode AppNav does NOT push a separate Session route (which would render a duplicate full-screen Home on the back stack — the "two-layer Home" bug); it writes the id here and reveals this single Home.</ID>
+    <ID>MaxLineLength:WideThreePaneHome.kt$// expand/shrink ride with the slide so the CHAT column grows/shrinks in lockstep with the rail's motion. Without them AnimatedVisibility holds the rail's full layout width until exit finishes (vacated space sat empty, then chat snapped wider) and claims it instantly on enter (chat snapped narrower before the rail slid in). Shrink/expand CLIP the content (stays measured at full width) so rail text never rewraps mid-animation.</ID>
+    <ID>MaxLineLength:WideThreePaneHome.kt$// rememberUpdatedState keeps onDelta fresh across recompositions so DraggableState always calls the latest (with current listWidth/railWidth captures) — otherwise a stale lambda fights the finger ("sticky" splitter).</ID>
+    <ID>MaxLineLength:WideThreePaneHome.kt$Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, top = 8.dp, bottom = 4.dp)</ID>
+    <ID>MaxLineLength:WideThreePaneHome.kt$Toast.makeText(context, "Couldn't fork: ${st.message}", Toast.LENGTH_LONG).show()</ID>
+    <ID>MaxLineLength:WideThreePaneHome.kt$Toast.makeText(context, "Download failed: ${eff.message}", Toast.LENGTH_LONG).show()</ID>
+    <ID>MaxLineLength:WideThreePaneHome.kt$Toast.makeText(context, "Downloading ${eff.name}…", Toast.LENGTH_SHORT).show()</ID>
+    <ID>MaxLineLength:WideThreePaneHome.kt$expandedRuns = if (rid in expandedRuns) expandedRuns - rid else expandedRuns + rid</ID>
+    <ID>MaxLineLength:WideThreePaneHome.kt$if (ok) "Saved to Downloads: ${eff.name}" else "Couldn't save ${eff.name}"</ID>
+    <ID>MaxLineLength:WideThreePaneHome.kt$if (rid != null) { railHidden = false; expandedRuns = expandedRuns + rid }</ID>
+    <ID>MaxLineLength:WideThreePaneHome.kt$railWidth = nw.coerceIn(minRail, (maxW - listWidth - minChat - splittersReserve).coerceAtLeast(minRail))</ID>
+    <ID>MaxLineLength:WideThreePaneHome.kt$try { saveToDownloads(context, eff.name, eff.file) } finally { eff.file.delete() }</ID>
+    <ID>MaxLineLength:WideThreePaneHome.kt$var railWidth by remember(currentSid) { mutableStateOf(store.get(currentSid).railWidth.coerceAtLeast(minRail)) }</ID>
+    <ID>NewLineAtEndOfFile:SessionSearchBar.kt$dev.agentic.ui.home.SessionSearchBar.kt</ID>
+    <ID>TooManyFunctions:HomeViewModel.kt$HomeViewModel : ViewModel</ID>
+    <ID>TopLevelPropertyNaming:WideThreePaneHome.kt$/** Touch width of each PaneSplitter (dp) — draggable area measured this wide, centred over the slim lane, overflowing into each neighbour. 48dp = Material's min interactive size. */ private const val SplitterTouchTargetDp = 48f</ID>
+    <ID>TopLevelPropertyNaming:WideThreePaneHome.kt$/** Visual width of each PaneSplitter lane (dp). The *touch* target is the larger SplitterTouchTargetDp (lane overflows symmetrically into neighbours as an invisible grab zone). */ private const val SplitterWidthDp = 24f</ID>
+  </CurrentIssues>
+</SmellBaseline>

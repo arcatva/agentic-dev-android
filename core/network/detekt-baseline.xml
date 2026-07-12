@@ -1,0 +1,134 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>ConstructorParameterNaming:Models.kt$Usage$val five_hour: UsageWindow? = null</ID>
+    <ID>ConstructorParameterNaming:Models.kt$Usage$val seven_day: UsageWindow? = null</ID>
+    <ID>ConstructorParameterNaming:Models.kt$UsageWindow$val resets_at: String? = null</ID>
+    <ID>CyclomaticComplexMethod:KtorAgenticApi.kt$KtorAgenticApi$override suspend fun stream(id: String, since: Int?, onLine: suspend (String) -&gt; Unit)</ID>
+    <ID>CyclomaticComplexMethod:ResumableDownloader.kt$ResumableDownloader$suspend fun download( url: String, dest: File, configure: HttpRequestBuilder.() -&gt; Unit = {}, onProgress: ((received: Long, total: Long?) -&gt; Unit)? = null, )</ID>
+    <ID>EmptyElseBlock:KtorAgenticApi.kt$KtorAgenticApi$if (after != null) parameter("after", after)</ID>
+    <ID>EmptyElseBlock:KtorAgenticApi.kt$KtorAgenticApi$if (before != null) parameter("before", before)</ID>
+    <ID>EmptyElseBlock:KtorAgenticApi.kt$KtorAgenticApi$if (limit != null) parameter("limit", limit)</ID>
+    <ID>EmptyFunctionBlock:CertPinning.kt$TofuTrustManager${}</ID>
+    <ID>EmptyFunctionBlock:LanDiscoveryImpl.kt$&lt;no name provided&gt;${}</ID>
+    <ID>InstanceOfCheckForException:ResumableDownloader.kt$ResumableDownloader$e is DownloadHttpException</ID>
+    <ID>InstanceOfCheckForException:ResumableDownloader.kt$ResumableDownloader$e is HttpRequestTimeoutException</ID>
+    <ID>InstanceOfCheckForException:ResumableDownloader.kt$ResumableDownloader$e is IOException</ID>
+    <ID>InvalidPackageDeclaration:OutcomeTest.kt$package dev.agentic.data</ID>
+    <ID>LargeClass:KtorAgenticApi.kt$KtorAgenticApi : AgenticApi</ID>
+    <ID>LongMethod:ResumableDownloader.kt$ResumableDownloader$suspend fun download( url: String, dest: File, configure: HttpRequestBuilder.() -&gt; Unit = {}, onProgress: ((received: Long, total: Long?) -&gt; Unit)? = null, )</ID>
+    <ID>LongParameterList:AgenticApi.kt$AgenticApi$(id: String, prompt: String, setTitle: Boolean = true, model: String? = null, effort: String? = null, permissionMode: String? = null)</ID>
+    <ID>LoopWithTooManyJumpStatements:KtorAgenticApi.kt$KtorAgenticApi$while</ID>
+    <ID>MagicNumber:CertPinning.kt$443</ID>
+    <ID>MagicNumber:CertPinning.kt$80</ID>
+    <ID>MagicNumber:KtorAgenticApi.kt$KtorAgenticApi$15_000</ID>
+    <ID>MagicNumber:KtorAgenticApi.kt$KtorAgenticApi$180_000</ID>
+    <ID>MagicNumber:KtorAgenticApi.kt$KtorAgenticApi$20</ID>
+    <ID>MagicNumber:KtorAgenticApi.kt$KtorAgenticApi$20_000</ID>
+    <ID>MagicNumber:KtorAgenticApi.kt$KtorAgenticApi$20_000L</ID>
+    <ID>MagicNumber:KtorAgenticApi.kt$KtorAgenticApi$30_000L</ID>
+    <ID>MagicNumber:KtorAgenticApi.kt$KtorAgenticApi$5</ID>
+    <ID>MagicNumber:KtorAgenticApi.kt$KtorAgenticApi$5_000</ID>
+    <ID>MagicNumber:KtorAgenticApi.kt$KtorAgenticApi$5_000L</ID>
+    <ID>MagicNumber:KtorAgenticApi.kt$KtorAgenticApi$600_000</ID>
+    <ID>MagicNumber:KtorAgenticApi.kt$KtorAgenticApi$60_000</ID>
+    <ID>MagicNumber:KtorAgenticApi.kt$KtorAgenticApi$6_000</ID>
+    <ID>MagicNumber:KtorAgenticApi.kt$KtorAgenticApi$8</ID>
+    <ID>MagicNumber:LanDiscoveryImpl.kt$HealthzServerProbe$1_000_000</ID>
+    <ID>MagicNumber:LanScanner.kt$254</ID>
+    <ID>MagicNumber:LanScanner.kt$255</ID>
+    <ID>MagicNumber:LanScanner.kt$3</ID>
+    <ID>MagicNumber:LanScanner.kt$4</ID>
+    <ID>MagicNumber:Outcome.kt$200</ID>
+    <ID>MagicNumber:ResumableDownloader.kt$ResumableDownloader$1024</ID>
+    <ID>MagicNumber:ResumableDownloader.kt$ResumableDownloader$3</ID>
+    <ID>MagicNumber:ResumableDownloader.kt$ResumableDownloader$500</ID>
+    <ID>MagicNumber:ResumableDownloader.kt$ResumableDownloader$500L</ID>
+    <ID>MagicNumber:ResumableDownloader.kt$ResumableDownloader$64</ID>
+    <ID>MaxLineLength:AgenticApi.kt$AgenticApi$/** Adopt (import) a Claude Code session as native (POST /api/sessions/adopt). Picker navigates to the returned id. */</ID>
+    <ID>MaxLineLength:AgenticApi.kt$AgenticApi$/** Contract for the agentic-dev backend client (REST + WebSocket stream). Implementations can swap transport or inject fakes for testing. */</ID>
+    <ID>MaxLineLength:AgenticApi.kt$AgenticApi$/** Discord-style cursor-paginated structured events from GET /api/sessions/{id}/events (events = typed ClaudeEvent::to_wire() output, not raw JSONL — prevents OOM on long sessions). */</ID>
+    <ID>MaxLineLength:AgenticApi.kt$AgenticApi$/** Drop idle pooled connections so the next request opens a fresh socket (app-foreground heal — a half-open backgrounded socket must not be reused). Default no-op for test fakes. */</ID>
+    <ID>MaxLineLength:AgenticApi.kt$AgenticApi$/** External skill store aggregated across every configured source. [refresh] bypasses the server's per-source cache. Default no-op for test fakes. */</ID>
+    <ID>MaxLineLength:AgenticApi.kt$AgenticApi$/** Fork — returns the new session id; new session sits idle (status="pending") until the user opens and follows up. */</ID>
+    <ID>MaxLineLength:AgenticApi.kt$AgenticApi$/** Hand off a native session back to a local Claude Code CLI (POST /api/sessions/:id/detach). Returns the exact `resumeCmd` for the user to paste plus cwd/claudeSessionId; on success the server sets `Session.detached = true`. */</ID>
+    <ID>MaxLineLength:AgenticApi.kt$AgenticApi$/** Installed Claude Code plugins (`&lt;plugin&gt;@&lt;marketplace&gt;` ids) from GET /api/plugins. Default no-op for test fakes. */</ID>
+    <ID>MaxLineLength:AgenticApi.kt$AgenticApi$/** List Claude Code CLI sessions on disk that this server could adopt (GET /api/adoptable). Empty list when server predates the feature or local scan finds nothing — both non-error for the picker. */</ID>
+    <ID>MaxLineLength:AgenticApi.kt$AgenticApi$/** Model catalog for session-start pickers (GET /api/models?scope=session_start) — Claude/native only; BYOK never appears here. Default no-op for test fakes. */</ID>
+    <ID>MaxLineLength:AgenticApi.kt$AgenticApi$/** Open the session stream; [onLine] is invoked per event frame (JSON ClaudeEvent). If the WS upgrade is 401, fires [onUnauthorized] (matches HTTP 401 signal) then rethrows. */</ID>
+    <ID>MaxLineLength:AgenticApi.kt$AgenticApi$/** Stage a file BEFORE a session exists (New-request attachments) via POST /api/uploads. Returns token + sanitized name + uploads/&lt;name&gt; path for the prompt marker. */</ID>
+    <ID>MaxLineLength:AgenticApi.kt$AgenticApi$/** Streams into [dest] (no whole-file buffering), automatically RESUMING over transient mid-transfer failures via HTTP Range. Throws when unrecoverable. */</ID>
+    <ID>MaxLineLength:AgenticApi.kt$AgenticApi$// `limit` null = legacy full log; set to request the server's windowed path (returns { log, start, total }) so a huge transcript isn't shipped whole.</ID>
+    <ID>MaxLineLength:AgenticApi.kt$AgenticApi$suspend</ID>
+    <ID>MaxLineLength:AgenticApi.kt$AgenticApi$suspend fun followUp(id: String, prompt: String, setTitle: Boolean = true, model: String? = null, effort: String? = null, permissionMode: String? = null): Int</ID>
+    <ID>MaxLineLength:CertPinning.kt$/** Normalise to "host:port" pin key; scheme-less input ("10.0.0.5:7420") is assumed https so the explicit port is preserved over the default. */</ID>
+    <ID>MaxLineLength:CertPinning.kt$TofuTls$/** OkHttp-facing TLS bundle (SSLSocketFactory + X509TrustManager + pin-aware HostnameVerifier), shared by REST and WS clients. */</ID>
+    <ID>MaxLineLength:CertPinning.kt$TofuTrustManager$/** Accepts when the presented leaf matches the pin — so a pinned self-signed cert works even if the URL host isn't in the cert's SANs (e.g. a changed IP). Falls back to SAN matching otherwise. */</ID>
+    <ID>MaxLineLength:CertPinning.kt$TofuTrustManager$fun</ID>
+    <ID>MaxLineLength:KtorAgenticApi.kt$KtorAgenticApi$/** Decoded via the shared `json` instance (lenient + matches ContentNegotiation plugin) rather than a fresh Json{}, to stay consistent with the rest of the API surface. */</ID>
+    <ID>MaxLineLength:KtorAgenticApi.kt$KtorAgenticApi$/** Decodes the flat JSON array straight into `List&lt;Adoptable&gt;` (the global `json` already handles missing fields leniently). 404 (server predates the feature) is the only exception swallowed, degraded to "nothing to adopt". */</ID>
+    <ID>MaxLineLength:KtorAgenticApi.kt$KtorAgenticApi$/** Derive the watchdog idle cap from HELLO's heartbeatMs (~2.5x + slack). null when not a HELLO so the caller keeps its current cap. */</ID>
+    <ID>MaxLineLength:KtorAgenticApi.kt$KtorAgenticApi$/** Line-level diff for one file. sha = path segment; repo + path go in the query (URL-encoded by [parameter], so paths with slashes are safe). */</ID>
+    <ID>MaxLineLength:KtorAgenticApi.kt$KtorAgenticApi$/** Look up the pinned server-cert fingerprint for a host key (see [certHostKey]); default never pins (tests / callers that don't need TOFU). */</ID>
+    <ID>MaxLineLength:KtorAgenticApi.kt$KtorAgenticApi$/** Open the session stream; [onLine] per event frame. Token goes in the query only when non-null ("token=null" would be rejected). A WS upgrade rejected with 401 fires [onUnauthorized] (matches HTTP 401) before rethrow. */</ID>
+    <ID>MaxLineLength:KtorAgenticApi.kt$KtorAgenticApi$/** POST /api/sessions/:id/detach. Throws on non-2xx (VM surfaces server body as user error). After success the server sets `Session.detached = true`; the detail screen keeps the "handed off" banner up without an extra round-trip. */</ID>
+    <ID>MaxLineLength:KtorAgenticApi.kt$KtorAgenticApi$/** Raw bytes of a file in the session worktree (inline image previews — small). Dispatchers.IO so body accumulation never competes with UI on Main. */</ID>
+    <ID>MaxLineLength:KtorAgenticApi.kt$KtorAgenticApi$/** Stage a file before a session exists (New-request attachments). Returns token + sanitized name + uploads/&lt;name&gt; path the client embeds in `[attached: ...]`. */</ID>
+    <ID>MaxLineLength:KtorAgenticApi.kt$KtorAgenticApi$/** Stream download with automatic Range/If-Range resume (outbox save path). Bytes go straight to [dest] (never a whole-file ByteArray), on Dispatchers.IO. */</ID>
+    <ID>MaxLineLength:KtorAgenticApi.kt$KtorAgenticApi$AppLog.d("API", "GET sessions/${id.take(8)}/events -&gt; OK (${r.events.size} events, latestEventId=${r.latestEventId})")</ID>
+    <ID>MaxLineLength:KtorAgenticApi.kt$KtorAgenticApi$AppLog.w("API", "GET sessions/${id.take(8)}/workflows/${runId.take(8)}/agents/${agentId.take(8)} -&gt; FAILED: ${e.message}")</ID>
+    <ID>MaxLineLength:KtorAgenticApi.kt$KtorAgenticApi$auth(); if (limit != null) parameter("limit", limit); if (before != null) parameter("before", before); if (after != null) parameter("after", after); if (around != null) parameter("around", around)</ID>
+    <ID>MaxLineLength:KtorAgenticApi.kt$KtorAgenticApi$heartbeatCapFrom(text)?.let { idleCapMs = it; watchdogConfigured = true; AppLog.v("WS", "hello id=$id cap=${idleCapMs}ms") }</ID>
+    <ID>MaxLineLength:KtorAgenticApi.kt$KtorAgenticApi$if (received == null) { AppLog.w("WS", "watchdog FIRED id=$id idle=${idleCapMs}ms frames=$nFrames"); break }</ID>
+    <ID>MaxLineLength:KtorAgenticApi.kt$KtorAgenticApi$override suspend</ID>
+    <ID>MaxLineLength:KtorAgenticApi.kt$KtorAgenticApi$val r: Int = client.post("$baseUrl/api/sessions/$id/messages") { auth(); contentType(ContentType.Application.Json); setBody(PromptReq(prompt, setTitle, model, effort, permissionMode)) }.body&lt;FollowUpResp&gt;().since</ID>
+    <ID>MaxLineLength:KtorAgenticApi.kt$KtorAgenticApi$val r: List&lt;ComponentInfo&gt; = client.delete("$baseUrl/api/mcp-servers/${name.encodeURLPathPart()}") { auth() }.body()</ID>
+    <ID>MaxLineLength:KtorAgenticApi.kt$KtorAgenticApi$val r: List&lt;ComponentInfo&gt; = client.delete("$baseUrl/api/skills/${name.encodeURLPathPart()}") { auth() }.body()</ID>
+    <ID>MaxLineLength:KtorAgenticApi.kt$KtorAgenticApi$val r: List&lt;RepoCommits&gt; = client.get("$baseUrl/api/sessions/$id/commits") { auth() }.body&lt;CommitsResp&gt;().repos</ID>
+    <ID>MaxLineLength:KtorAgenticApi.kt$KtorAgenticApi$val r: List&lt;WorkflowRun&gt; = client.get("$baseUrl/api/sessions/$id/workflows") { auth() }.body&lt;WorkflowList&gt;().workflows</ID>
+    <ID>MaxLineLength:KtorAgenticApi.kt$KtorAgenticApi$val r: Session = client.get("$baseUrl/api/sessions/$id") { auth(); parameter("limit", 0) }.body&lt;SessionDetail&gt;().session</ID>
+    <ID>MaxLineLength:KtorAgenticApi.kt$KtorAgenticApi$val r: SessionDetail = client.get("$baseUrl/api/sessions/$id") { auth(); if (limit != null) parameter("limit", limit) }.body()</ID>
+    <ID>MaxLineLength:KtorAgenticApi.kt$KtorAgenticApi$val r: String = client.get("$baseUrl/api/sessions/$id/workflows/$runId/agents/$agentId") { auth() }.body&lt;AgentTranscript&gt;().transcript</ID>
+    <ID>MaxLineLength:KtorAgenticApi.kt$KtorAgenticApi$val r: String = client.post("$baseUrl/api/sessions") { auth(); contentType(ContentType.Application.Json); setBody(req) }.body&lt;IdResp&gt;().id</ID>
+    <ID>MaxLineLength:LanDiscoveryImpl.kt$/** Trust-all TLS factory used ONLY for LAN discovery liveness probes (never for credentialed traffic — login pins via [TofuTls]). */</ID>
+    <ID>MaxLineLength:LanDiscoveryImpl.kt$HealthzServerProbe$AppLog.v("Scan", "discovered server at $ip (${if (found.https) "https" else "http"}), latency=${found.latencyMs}ms")</ID>
+    <ID>MaxLineLength:LanScanner.kt$/** Probe candidates for the /24 containing [localNet].ip (excluding .0, .255, and own address). Capped at /24 regardless of the real prefix so a wide subnet never blows up into thousands of probes. */</ID>
+    <ID>MaxLineLength:Models.kt$AdoptSessionReq$/** Body for POST /api/sessions/adopt — pick which Claude Code session (by sessionId) + which cwd to import it under. The cwd MUST match what the discoverable was scanned under (server pins to scan root). */</ID>
+    <ID>MaxLineLength:Models.kt$Adoptable$/** One candidate in GET /api/adoptable — discoverable Claude Code session log on disk. [resumable]=false means the JSONL ended without terminal status (read-only import only). mtimeMs is fractional ms from statSync(2); Double to avoid dropping when server sends integer. */</ID>
+    <ID>MaxLineLength:Models.kt$CatalogSkill$/** [source] is the ready-to-install reference to POST to /api/skills/install; [sourceRepo] is the configured store source it came from (display/grouping). */</ID>
+    <ID>MaxLineLength:Models.kt$CommitFile$/** One changed file for a commit (or working tree); `status` = full word ("added"/"modified"/"deleted"/"renamed"/"unknown"). */</ID>
+    <ID>MaxLineLength:Models.kt$CommitNode$/** One commit in the session branch's recent history. `at` = epoch-ms (backend converts %at*1000); `isSession` marks commits in `baseSha..HEAD` (work done in this session). */</ID>
+    <ID>MaxLineLength:Models.kt$DetachResp$/** Server hands the session back to a local Claude Code CLI and returns the exact resumeCmd the user pastes in a terminal. [cwd] is where the terminal must be before running resume; detail screen shows resumeCmd copyable when `Session.detached == true`. */</ID>
+    <ID>MaxLineLength:Models.kt$DiffLine$/** [kind]: "context" | "add" | "del". [oldLine]/[newLine] are 1-based and present only on the side(s) the line exists in (context = both, add = new only, del = old only). */</ID>
+    <ID>MaxLineLength:Models.kt$InstallSkillReq$/** [source] = `owner/repo[/path]` or github.com URL; [update] replaces an existing install of the same name (atomic swap). */</ID>
+    <ID>MaxLineLength:Models.kt$McpServerDef$/** Exactly one transport must be supplied: stdio (set [command], optionally [args]/[env]) or http/sse (set [url], [type], optionally [headers]). [name] non-empty and != "agentic". Null fields omitted from JSON. */</ID>
+    <ID>MaxLineLength:Models.kt$NewSessionReq$/** Files staged via POST /api/uploads before this session existed; backend moves each into the new session's uploads/ dir before the prompt runs. Empty = none. */</ID>
+    <ID>MaxLineLength:Models.kt$NewSessionReq$/** Session-scoped CLAUDE.md content — backend writes it into the session dir so Claude Code loads it as project memory, layered on top of each repo's own CLAUDE.md. null/blank = no extra guidance. */</ID>
+    <ID>MaxLineLength:Models.kt$PermDecisionReq$/** Body for POST /api/sessions/:id/permission — feedback is the deny reason or plan-revision note (ignored on allow). */</ID>
+    <ID>MaxLineLength:Models.kt$PluginInfo$/** [name] is the full `&lt;plugin&gt;@&lt;marketplace&gt;` id (the exact key claude's `enabledPlugins` map expects, echoed verbatim in [NewSessionReq.hiddenPlugins]). */</ID>
+    <ID>MaxLineLength:Models.kt$PromptReq$data</ID>
+    <ID>MaxLineLength:Models.kt$Provider$/** API key is masked (never returned); [hasKey] reflects whether one is stored. Field names map to backend snake_case JSON. */</ID>
+    <ID>MaxLineLength:Models.kt$SearchResponse$/** Response shape for `GET /api/sessions/search?q=&lt;text&gt;&amp;limit=&lt;n&gt;`; `query` echoes the trimmed query the server actually searched for. */</ID>
+    <ID>MaxLineLength:Models.kt$Session$/** Discord-style monotonic counter incremented server-side at each "your turn" point. Unread = unreadEventId &gt; client's ackedEventId; eliminates timestamp comparison / clock-skew / client-side idle loops. */</ID>
+    <ID>MaxLineLength:Models.kt$Session$/** True when handed off to an external Claude Code CLI via POST /api/sessions/:id/detach; frozen stream watermark, no live follow-ups; detail screen shows the "handed off" banner with the `resumeCmd`. */</ID>
+    <ID>MaxLineLength:Models.kt$Session$/** When true, the server auto-resumes after a usage-limit stop (5h/7d). Defaults true so older backends default-on safely (a missed resume is worse than a retry). */</ID>
+    <ID>MaxLineLength:Models.kt$Session$// Authoritative wire payload of the prompt session is PARKED on (AskUserQuestion/perm/plan awaiting user), else null. Lets the client render the awaiting card from source-of-truth instead of inferring from fragile log.</ID>
+    <ID>MaxLineLength:Models.kt$Session$// true = turn finished, idle accepting new message even if a background workflow runs; false = busy mid-turn; null = before first turn.</ID>
+    <ID>MaxLineLength:Models.kt$SessionEventsResponse$/** Discord-style cursor-paginated structured events (pre-parsed ClaudeEvent::to_wire() — no raw JSONL re-parsing on the client). */</ID>
+    <ID>MaxLineLength:Models.kt$StagedUpload$/** Response from POST /api/uploads (pre-session staging) + per-attachment payload echoed in [NewSessionReq.stagedUploads]. [path] is `uploads/&lt;name&gt;` — what the `[attached: ...]` marker references once the backend adopts the file. */</ID>
+    <ID>MaxLineLength:NetworkMonitor.kt$NetworkMonitor$private</ID>
+    <ID>MaxLineLength:Outcome.kt$// makes a normally-cancelled coroutine run its failure tail (queueError, optimistic rollback) as if the request had really failed.</ID>
+    <ID>MaxLineLength:Outcome.kt$AppError.CertUntrusted$/** Server presented a TLS cert we don't trust yet (self-signed, not pinned). UI shows [fingerprint] and lets the user pin it for [hostKey] (TOFU), then retry. */</ID>
+    <ID>ReturnCount:ResumableDownloader.kt$internal fun contentRangeStart(header: String?): Long?</ID>
+    <ID>ReturnCount:ResumableDownloader.kt$internal fun contentRangeTotal(header: String?): Long?</ID>
+    <ID>SwallowedException:Outcome.kt$e: UnauthorizedException</ID>
+    <ID>SwallowedException:OutcomeTest.kt$OutcomeTest$e: kotlinx.coroutines.CancellationException</ID>
+    <ID>ThrowsCount:ResumableDownloader.kt$ResumableDownloader$suspend fun download( url: String, dest: File, configure: HttpRequestBuilder.() -&gt; Unit = {}, onProgress: ((received: Long, total: Long?) -&gt; Unit)? = null, )</ID>
+    <ID>TooGenericExceptionCaught:KtorAgenticApi.kt$KtorAgenticApi$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:Outcome.kt$e: Throwable</ID>
+    <ID>TooGenericExceptionCaught:ResumableDownloader.kt$ResumableDownloader$e: Exception</ID>
+    <ID>TooManyFunctions:AgenticApi.kt$AgenticApi</ID>
+    <ID>TooManyFunctions:KtorAgenticApi.kt$KtorAgenticApi : AgenticApi</ID>
+  </CurrentIssues>
+</SmellBaseline>

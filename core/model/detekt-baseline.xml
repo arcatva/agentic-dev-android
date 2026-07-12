@@ -1,0 +1,152 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>CyclomaticComplexMethod:ToolDisplay.kt$fun toolSummary(name: String, input: JsonObject?): String</ID>
+    <ID>CyclomaticComplexMethod:Transcript.kt$fun applyEvent(nodes: List&lt;Node&gt;, o: JsonObject): Pair&lt;List&lt;Node&gt;, Boolean&gt;</ID>
+    <ID>CyclomaticComplexMethod:Transcript.kt$fun buildFromLog(log: List&lt;String&gt;): List&lt;Node&gt;</ID>
+    <ID>CyclomaticComplexMethod:TranscriptGrouping.kt$fun interleaveShared(display: List&lt;Node&gt;, shared: List&lt;AttachmentNode&gt;, truncatedStart: Boolean = false): List&lt;Node&gt;</ID>
+    <ID>CyclomaticComplexMethod:TranscriptReducer.kt$TranscriptReducer$@Synchronized fun applyFrameWithBusy(frame: String): FrameResult</ID>
+    <ID>LongMethod:Transcript.kt$fun applyEvent(nodes: List&lt;Node&gt;, o: JsonObject): Pair&lt;List&lt;Node&gt;, Boolean&gt;</ID>
+    <ID>LongMethod:Transcript.kt$fun buildFromLog(log: List&lt;String&gt;): List&lt;Node&gt;</ID>
+    <ID>LoopWithTooManyJumpStatements:TranscriptGrouping.kt$for</ID>
+    <ID>MagicNumber:DownloadPace.kt$1024</ID>
+    <ID>MagicNumber:DownloadPace.kt$1024.0</ID>
+    <ID>MagicNumber:DownloadPace.kt$DownloadPace$1000.0</ID>
+    <ID>MagicNumber:RelativeTime.kt$1000</ID>
+    <ID>MagicNumber:RelativeTime.kt$2_629_800</ID>
+    <ID>MagicNumber:RelativeTime.kt$31_557_600</ID>
+    <ID>MagicNumber:RelativeTime.kt$3_600</ID>
+    <ID>MagicNumber:RelativeTime.kt$60</ID>
+    <ID>MagicNumber:RelativeTime.kt$604_800</ID>
+    <ID>MagicNumber:RelativeTime.kt$86_400</ID>
+    <ID>MagicNumber:ToolDisplay.kt$4000</ID>
+    <ID>MagicNumber:ToolDisplay.kt$64</ID>
+    <ID>MagicNumber:ToolDisplay.kt$800</ID>
+    <ID>MagicNumber:Usage.kt$1000L</ID>
+    <ID>MagicNumber:Usage.kt$1440</ID>
+    <ID>MagicNumber:Usage.kt$1_000_000_000_000L</ID>
+    <ID>MagicNumber:Usage.kt$60</ID>
+    <ID>MagicNumber:Usage.kt$60_000L</ID>
+    <ID>MatchingDeclarationName:Ask.kt$AskQuestion</ID>
+    <ID>MaxLineLength:AskParsing.kt$/** Parse AskUserQuestion `questions` tolerating new (`question`/`header`/object-options/`multiSelect`) and old (`text`/string-options) schemas; options accept bare strings or `{label}`; drop questions with neither text nor options. */</ID>
+    <ID>MaxLineLength:DownloadPace.kt$DownloadPace$/** Sliding-window speed + stall detection from (cumulativeBytes, timestamp) events. Caller supplies timestamps → unit-tests without clocks. @Synchronized: IO thread onProgress races VM-Main ticker sampler; calls are few/sec (uncontended noise). */</ID>
+    <ID>MaxLineLength:Node.kt$AskNode$/** AskUserQuestion event from the server. One node per call (not per question) so a single [answer] can't be misattributed. */</ID>
+    <ID>MaxLineLength:Node.kt$PermNode$data</ID>
+    <ID>MaxLineLength:Node.kt$PrNode$/** PR created by the session (backend emits from `gh pr create`, enriched via `gh pr view`). One node per PR; [repo] = "owner/repo". */</ID>
+    <ID>MaxLineLength:Node.kt$SpawnNode$/** Spawned subagent (Task/Agent tool_use). [id] routes the `agentResult`/[children] back under this card; [children] = events whose `parentToolUseId == id` (nested under the agent, not main). */</ID>
+    <ID>MaxLineLength:Node.kt$ToolGroupNode : Node</ID>
+    <ID>MaxLineLength:Node.kt$WorkflowNode$/** Inline workflow card. [delegate] true = `delegate` fan-out; [name] = FALLBACK to correlate; [runId] = exact run (filled by `workflowRun` link keyed by [id], avoids guessing from a duplicated name). */</ID>
+    <ID>MaxLineLength:Node.kt$WorkflowNode$data</ID>
+    <ID>MaxLineLength:NodeLabels.kt$/** "Agent · {Name}[ #N][ — desc]": untyped/orphan subagents → "Subagent"; [ordinal] = 1-based "#N" (friendlier than tool_use id); desc follows em dash. */</ID>
+    <ID>MaxLineLength:NodeLabels.kt$// Inline-chip label builders (pure/unit-testable) for SpawnNode/WorkflowNode/SkillNode — "{kind} · {name}" with U+00B7 separator; opaque tool_use id deliberately omitted.</ID>
+    <ID>MaxLineLength:PendingAttachment.kt$PendingAttachment$/** User-picked file held in the VM until `submit()` appends `[attached: ...]`. Lifecycle: Pending → Uploading → Done(path) (success) / Failed(reason) (terminal, retryable). [id] = URI string for stable equals/hashCode. */</ID>
+    <ID>MaxLineLength:PendingAttachment.kt$UploadState.Done$/** Server confirmed. [path] = relative path embedded in next prompt's `[attached: ...]` marker. [token]/[name] only for PRE-SESSION staging uploads (identify file to `stagedUploads`); null for in-session (writes straight into worktree). */</ID>
+    <ID>MaxLineLength:PrIngestTest.kt$PrIngestTest$"""{"kind":"pr","url":"https://github.com/arcatva/agentic-dev/pull/26","number":26,"repo":"arcatva/agentic-dev","title":"Add PR cards","body":"Backend-driven.\n\n- detail","state":"OPEN"}"""</ID>
+    <ID>MaxLineLength:PrIngestTest.kt$PrIngestTest$"""{"type":"pr","url":"https://github.com/arcatva/agentic-dev/pull/26","number":26,"repo":"arcatva/agentic-dev","title":"Add PR cards","body":"Backend-driven.\n\n- detail","state":"OPEN"}"""</ID>
+    <ID>MaxLineLength:ToolDisplay.kt$/** Read [k] as a primitive string. `as? JsonPrimitive` avoids `?.jsonPrimitive` throwing on object/array inputs (e.g. Write with object payload), which would have force-closed the app. */</ID>
+    <ID>MaxLineLength:Transcript.kt$"Skill" -&gt; input?.get("skill")?.jsonPrimitive?.contentOrNull?.let { sk -&gt; nodes = route(nodes, parent) { it + SkillNode(sk) } }</ID>
+    <ID>MaxLineLength:Transcript.kt$"text" -&gt; if (!streamedThisTurn) nodes = route(nodes, parent) { appendText(it, b["text"]?.jsonPrimitive?.contentOrNull ?: "") }</ID>
+    <ID>MaxLineLength:Transcript.kt$"text_delta" -&gt; { nodes = route(nodes, parent) { appendText(it, d["text"]?.jsonPrimitive?.contentOrNull ?: "") }; streamedThisTurn = true }</ID>
+    <ID>MaxLineLength:Transcript.kt$"thinking" -&gt; route(nodes, parent) { appendThinking(it, o["text"]?.jsonPrimitive?.contentOrNull ?: "") } to false</ID>
+    <ID>MaxLineLength:Transcript.kt$"thinking_delta" -&gt; { nodes = route(nodes, parent) { appendThinking(it, d["thinking"]?.jsonPrimitive?.contentOrNull ?: "") }; streamedThisTurn = true }</ID>
+    <ID>MaxLineLength:Transcript.kt$.</ID>
+    <ID>MaxLineLength:Transcript.kt$/** Attach subagent result to the [SpawnNode] whose tool_use id matches [toolUseId]; fallback to a standalone SpawnNode (never silently drop). Live-only — `agentResult` absent from backfilled log, reseed flattens it back out. */</ID>
+    <ID>MaxLineLength:Transcript.kt$/** Build a [PrNode] from a parsed `pr` frame/marker — identical field names on live wire and persisted log, so [applyEvent]/[buildFromLog] decode a PR the same way. */</ID>
+    <ID>MaxLineLength:Transcript.kt$/** Busy signal from a live frame (true generating/false done/null N/A). Production reads this off [applyEvent]'s parsed frame (the third Triple element) so the stream parses once; retained for direct unit tests. */</ID>
+    <ID>MaxLineLength:Transcript.kt$/** Dispatch a structured ClaudeEvent (kind-tagged JSON, from [ClaudeEvent.to_wire]) onto a node list. Used by both the REST events endpoint and the live WebSocket stream. Returns (nextNodes, ended). */</ID>
+    <ID>MaxLineLength:Transcript.kt$/** Extract an ultracode workflow's real name from its inline script's `export const meta = { name: '…' }` so a reseed matches the live `kind:workflow` chip. */</ID>
+    <ID>MaxLineLength:Transcript.kt$/** Fill [WorkflowNode.runId] of the card whose tool_use [id] matches (`workflowRun` link event/marker) so a click opens the exact run. Updates top-level, else one level of spawn children; idempotent; no-op when blank/missing. */</ID>
+    <ID>MaxLineLength:Transcript.kt$/** Fold a live WS event frame (parsed ClaudeEvent). `busy` = turn-state signal (true generating/false done/null N/A) derived from the JsonObject parsed HERE so the caller never re-parses to read top-level kind. */</ID>
+    <ID>MaxLineLength:Transcript.kt$/** Fold a live WS event frame string (parses JSON then delegates to [applyEvent]); also extracts the `busy` turn-state signal. */</ID>
+    <ID>MaxLineLength:Transcript.kt$/** Mark the most recent Perm/Plan node with [id] as decided (permResolved event / log marker); no-op if none matches (line may be filtered out of a partial log). */</ID>
+    <ID>MaxLineLength:Transcript.kt$/** Materialise terminal `result` as [AnswerNode], dropping the trailing top-level TextNode that duplicates it (SDK repeats final assistant message in `result`; streamed prose + [text] are the same bytes — without this, the answer renders twice). Keep [AnswerNode] (also carries error text which has no matching TextNode); only drop the duplicate streamed copy after the last [PromptNode]. Trailing text ≠ [text] (genuinely different prose) is left intact. */</ID>
+    <ID>MaxLineLength:Transcript.kt$/** Route a child produced by [op] under the [SpawnNode] whose tool_use id == [parentId] (the agent that emitted this event, via `parentToolUseId`). Null/blank/no-match → run on top-level (never drop). [op] receives the appropriate list (top or children) so coalesce helpers merge in the right scope. One level only: nested spawn's grandchildren fall back. */</ID>
+    <ID>MaxLineLength:Transcript.kt$// Bridge runs includePartialMessages=OFF: text/thinking arrive ONLY in this complete assistant block (no stream_event deltas in log). Without rendering, a turn parked mid-stream on an AskUserQuestion/perm/plan (no `result` line) loses preceding prose on every reseed (background return/reconnect). Completed turn's final prose duplicates `result`; appendAnswer drops that single trailing TextNode. Skip when this turn already streamed deltas (sealed block is redundant).</ID>
+    <ID>MaxLineLength:Transcript.kt$// Delivered outbox file (backend marks at delivery moment) — lands INLINE at real position (no client-side mtime/content guessing); interleaveShared dedups the poll-derived copy.</ID>
+    <ID>MaxLineLength:Transcript.kt$// Engine-synthesized marker for a spawned subagent's returned text (raw `user` tool_result it derives from isn't persisted in the rendered log). Re-attach so body survives reopen/reconnect — mirrors live `kind:agentResult`.</ID>
+    <ID>MaxLineLength:Transcript.kt$// Single list allocation (copy + replace tail) instead of `dropLast(1) + plus` (two lists per token). Text concat remains a String (changing TextNode.text to StringBuilder would alter the node model).</ID>
+    <ID>MaxLineLength:Transcript.kt$// Streaming dedup (partials ON): a turn's text/thinking arrives as `stream_event` token deltas AND restated in complete `assistant`. Once any delta produced this turn, the sealed block is redundant — skip. A no-delta turn (old logs / parked before streaming) renders the block normally. Reset per user turn.</ID>
+    <ID>MaxLineLength:Transcript.kt$// Subagent lines carry parent_tool_use_id (the spawning Agent tool_use); route under that SpawnNode. null = main agent.</ID>
+    <ID>MaxLineLength:Transcript.kt$// `delegate` fan-out is surfaced live as a workflow card by backend; on RELOAD parse raw tool_use directly — mirror that (title = run name) rather than falling through to raw tool chip.</ID>
+    <ID>MaxLineLength:Transcript.kt$// null/absent = main agent; else the id of the Agent tool_use that spawned this subagent — nest under that SpawnNode (see [route]).</ID>
+    <ID>MaxLineLength:Transcript.kt$b["thinking"]?.jsonPrimitive?.contentOrNull ?: b["text"]?.jsonPrimitive?.contentOrNull ?: ""</ID>
+    <ID>MaxLineLength:Transcript.kt$else -&gt; nodes = route(nodes, parent) { it + ToolNode(name, toolSummary(name, input), toolDetail(name, input)) }</ID>
+    <ID>MaxLineLength:Transcript.kt$input?.get("title")?.jsonPrimitive?.contentOrNull?.takeIf { t -&gt; t.isNotBlank() } ?: "delegate"</ID>
+    <ID>MaxLineLength:TranscriptGrouping.kt$*</ID>
+    <ID>MaxLineLength:TranscriptGrouping.kt$/** Collapse PromptNodes that are the SAME logical user turn re-materialized through multiple paths (live `kind:prompt` + persisted `agentic_prompt`, or reseed/backfill). Identity = (server `at` &gt; 0, normalized text); both channels share one `at` (one `now` in engine.ts) so distinct turns at different times never collapse. `at == 0` (optimistic overlays / missing timestamp) is fail-open (ViewModel overlay layer reconciles). Keeps FIRST occurrence + drops twins + their trailing user-attachment nodes. Idempotent (no-op over already-deduped). This is the correct-by-construction dedup — ViewModel's optimistic-overlay reconciliation structurally cannot see two real PromptNodes in the reducer. */</ID>
+    <ID>MaxLineLength:TranscriptGrouping.kt$/** Collapse consecutive same-name tool calls (e.g. several Edit/Bash) into one [ToolGroupNode] ("name · N+", expandable). Lone tools stay plain [ToolNode]; non-tools pass through and break the run. Pure view transform — same live and terminal. */</ID>
+    <ID>MaxLineLength:TranscriptGrouping.kt$/** Pair unanswered [AskNode]s with the next [PromptNode] ONE-TO-ONE (FIFO, each prompt consumed once) so two asks + one answer marks only the first. */</ID>
+    <ID>MaxLineLength:TranscriptGrouping.kt$// Every visible turn is NEWER than the file → delivering turn lives above a truncated window: hidden until paged in. Full transcript keeps legacy top.</ID>
+    <ID>MaxLineLength:TranscriptGrouping.kt$// No timestamped turn in TRUNCATED window → file's region unloaded; hide like any out-of-window card. Untruncated (full transcript) keeps legacy append.</ID>
+    <ID>MaxLineLength:TranscriptGrouping.kt$// `agentic_file` already positioned inline by the log — drop the poll-derived copy of the same path to avoid rendering twice. Old backends emit no such event → nothing is dropped → those files use the delivery-message heuristic below.</ID>
+    <ID>MaxLineLength:TranscriptGroupingTest.kt$TranscriptGroupingTest$assertEquals("anchored after the delivering message despite truncation", 2, out.indexOfFirst { it is AttachmentNode })</ID>
+    <ID>MaxLineLength:TranscriptReducer.kt$TranscriptReducer$*</ID>
+    <ID>MaxLineLength:TranscriptReducer.kt$TranscriptReducer$/**</ID>
+    <ID>MaxLineLength:TranscriptReducer.kt$TranscriptReducer$/** After applyEvent folds a frame, if it was a `text`/`thinking` delta that started a fresh run, open the builder seeded from the just-created trailing node's text. */</ID>
+    <ID>MaxLineLength:TranscriptReducer.kt$TranscriptReducer$/** Apply one live WS frame; returns true when session ended (engineExit). Thin wrapper over [applyFrameWithBusy] for callers that only need the ended flag. */</ID>
+    <ID>MaxLineLength:TranscriptReducer.kt$TranscriptReducer$/** If [frame] is a `text`/`thinking` delta that continues the OPEN run (same kind + same routing scope), append delta text to builder and return the FrameResult applyEvent would have produced (ended=false, busy=true). Null if no open run or frame doesn't continue it (caller flushes + delegates to applyEvent). */</ID>
+    <ID>MaxLineLength:TranscriptReducer.kt$TranscriptReducer$/** One-shot build from structured events (Discord-style REST). Each = pre-parsed ClaudeEvent::to_wire() JSON; no raw JSONL re-parse. Re-attaches live-only subagent results. */</ID>
+    <ID>MaxLineLength:TranscriptReducer.kt$TranscriptReducer$/** Raw node list before view transforms (ungrouped; persistence/debugging). Materialises any open streaming run first so the parked node carries its real accumulated text. */</ID>
+    <ID>MaxLineLength:TranscriptReducer.kt$TranscriptReducer$/** Re-attach remembered live-only subagent results onto matching SpawnNodes the log rebuilt without one. Only fills a NULL result on an EXISTING card (keyed by tool_use id) — never injects nodes. */</ID>
+    <ID>MaxLineLength:TranscriptReducer.kt$TranscriptReducer$/** Replace the parked streaming node in [nodes] with one carrying `streamBuf.toString()` (O(L), run once per snapshot — not per token). Keeps builder open so streaming can continue after a snapshot. No-op when no run is open or node hasn't changed. */</ID>
+    <ID>MaxLineLength:TranscriptReducer.kt$TranscriptReducer$/** Subagent results (toolUseId → returned text) seen on LIVE `agentResult` frames — absent from persisted log; remember to re-attach after every seedFromLog so the card stays stable across reseeds ("appear then disappear" fix). */</ID>
+    <ID>MaxLineLength:TranscriptReducer.kt$TranscriptReducer$/** Tail node of routing scope [parent] (null/blank = top level; else children of last SpawnNode with that id). Null if scope empty/missing. */</ID>
+    <ID>MaxLineLength:TranscriptReducer.kt$TranscriptReducer$/** View-ready list: dedupePrompts ∘ markAnsweredAsks ∘ groupTools ∘ interleaveShared. dedupePrompts FIRST (innermost) so every fold (applyFrame append + seedFromLog replace) converges to one node per logical user turn, regardless of which ingestion path (live/log replay/reseed/backfill) re-materialized it. Materialises any open streaming run BEFORE the pipeline so displayed text = full delta concatenation. */</ID>
+    <ID>MaxLineLength:TranscriptReducer.kt$TranscriptReducer$/** Write open run's accumulated text back into its parked node and drop the builder — making the materialised String node source of truth again. Called before any non-streaming fold. */</ID>
+    <ID>MaxLineLength:TranscriptReducer.kt$TranscriptReducer$// Any other frame ends the run first (builder text must be source of truth again before applyEvent reads/copies these nodes), then folds normally.</ID>
+    <ID>MaxLineLength:TranscriptReducer.kt$TranscriptReducer$// Carry last turn's streamed state forward so a live SEALED frame arriving right after this reseed (mid-stream reconnect) is still recognised as redundant: true iff tail turn (since last user prompt) had any `stream_event` delta line.</ID>
+    <ID>MaxLineLength:TranscriptReducer.kt$TranscriptReducer$// Fast path: a `text`/`thinking` delta that CONTINUES the open run is appended to the builder in O(1) amortised, never touched by applyEvent (no `oldText + delta` allocation). Returns same (ended=false, busy=true) FrameResult applyEvent would have for that kind.</ID>
+    <ID>MaxLineLength:TranscriptReducer.kt$TranscriptReducer$// Identity guard: parked node must still be the tail of its scope. Any structural change would have flushed first, so this normally holds; if it doesn't, bail to safe path.</ID>
+    <ID>MaxLineLength:TranscriptReducer.kt$TranscriptReducer$// Only `delta:true` continues the run; SEALED (delta absent/false) text/thinking falls through to applyFrameWithBusy, which drops it when this turn already streamed.</ID>
+    <ID>MaxLineLength:TranscriptReducer.kt$TranscriptReducer$// Start (or restart) a streaming run on the FIRST delta of a run: applyEvent just created the trailing Text/ThinkingNode; seed the builder from its text so subsequent deltas of the same run accumulate cheaply. Only when the frame really produced a streaming node at the routed tail.</ID>
+    <ID>MaxLineLength:TranscriptReducer.kt$TranscriptReducer$// Streaming dedup + turn tracking (partials ON): track whether this turn streamed token deltas; DROP a SEALED (delta:false) text/thinking frame that merely restates an already-streamed block. First delta of a run (no open run yet) → mark streamed, fall through to applyEvent which creates the node. Non-streamed turn (old log / parked before any token) renders its sealed block normally.</ID>
+    <ID>MaxLineLength:TranscriptReducer.kt$TranscriptReducer$// True once this turn emitted a text/thinking token delta (partials ON). While set, SEALED complete-message text/thinking = redundant reassembly (deltas already built the node) → dropped. Reset per user `prompt`. Mirrors [buildFromLog]'s flag.</ID>
+    <ID>MaxLineLength:TranscriptReducer.kt$TranscriptReducer$// [streamNode] = exact parked instance in [nodes], tracked by identity for [materialize] (always tail of its scope; any structural change flushes first).</ID>
+    <ID>MaxLineLength:TranscriptReducer.kt$TranscriptReducer$// [streamParent] = routing scope (null/blank=top level, else SpawnNode.id whose children hold it — different scope ends run);</ID>
+    <ID>MaxLineLength:TranscriptReducer.kt$TranscriptReducer$// applyEvent only coalesces into a Text/ThinkingNode at the routed tail; if delta was empty (no node change) or routing fell back elsewhere, no run to track.</ID>
+    <ID>MaxLineLength:TranscriptReducer.kt$TranscriptReducer.FrameResult$/** Result of folding one live frame: [ended] (engineExit?) and [busy] turn-state signal — both derived from a SINGLE parse of the frame inside [applyEvent], so the caller need not re-parse. */</ID>
+    <ID>MaxLineLength:TranscriptReducerTest.kt$TranscriptReducerTest$"""{"type":"assistant","message":{"content":[{"type":"tool_use","id":"tu_1","name":"Task","input":{"subagent_type":"Explore","description":"search"}}]}}"""</ID>
+    <ID>MaxLineLength:TranscriptReducerTest.kt$TranscriptReducerTest$"""{"type":"assistant","message":{"content":[{"type":"tool_use","name":"AskUserQuestion","input":{"questions":[{"question":"Q1","options":["A"]},{"question":"Q2","options":["B"]}]}}]}}"""</ID>
+    <ID>MaxLineLength:TranscriptTest.kt$TranscriptTest$"""{"type":"assistant","message":{"content":[{"type":"tool_use","id":"tu_1","name":"Agent","input":{"subagent_type":"Explore","description":"search"}}]}}"""</ID>
+    <ID>MaxLineLength:TranscriptTest.kt$TranscriptTest$"""{"type":"assistant","parent_tool_use_id":"tu_1","message":{"content":[{"type":"tool_use","id":"tu_2","name":"Bash","input":{"command":"echo h"}}]}}"""</ID>
+    <ID>MaxLineLength:TranscriptTest.kt$TranscriptTest$"""{"type":"stream_event","parent_tool_use_id":"tu_1","event":{"delta":{"type":"text_delta","text":"Hel"}}}"""</ID>
+    <ID>MaxLineLength:TranscriptTest.kt$TranscriptTest$"""{"type":"stream_event","parent_tool_use_id":"tu_1","event":{"delta":{"type":"text_delta","text":"lo"}}}"""</ID>
+    <ID>MaxLineLength:TranscriptTest.kt$TranscriptTest$"""{"type":"tool_use","id":"tu_1","name":"AskUserQuestion","input":{"questions":[{"question":"Pick one","options":[{"label":"A"},{"label":"B"}]}]}}"""</ID>
+    <ID>MaxLineLength:TranscriptTest.kt$TranscriptTest$n = applyEvent(n, """{"kind":"tool","name":"Bash","input":{"command":"echo h"},"parentToolUseId":"tu_1"}""").first</ID>
+    <ID>MaxLineLength:TranscriptTest.kt$TranscriptTest$n = applyEvent(n, """{"kind":"tool","name":"Read","input":{"file_path":"/x/Y.kt"},"parentToolUseId":"tu_2"}""").first</ID>
+    <ID>MaxLineLength:TranscriptTest.kt$TranscriptTest$val (a, _) = applyEvent(emptyList(), """{"kind":"agent","agents":[{"id":"tu_1","agentType":"Explore","description":"search"}]}""")</ID>
+    <ID>MaxLineLength:TranscriptTest.kt$TranscriptTest$val (a, _) = applyEvent(emptyList(), """{"kind":"agent","agents":[{"id":"tu_1","agentType":"Explore","description":"x"}]}""")</ID>
+    <ID>MaxLineLength:TranscriptTest.kt$TranscriptTest$val (a, _) = applyEvent(main, """{"kind":"agent","agents":[{"id":"tu_1","agentType":"Explore","description":"x"}]}""")</ID>
+    <ID>MaxLineLength:TranscriptTest.kt$TranscriptTest$val (b, _) = applyEvent(a, """{"kind":"tool","name":"Bash","input":{"command":"echo h"},"parentToolUseId":"tu_1"}""")</ID>
+    <ID>MaxLineLength:TranscriptTest.kt$TranscriptTest$val (b, _) = applyEvent(a, """{"kind":"tool","name":"Read","input":{"file_path":"/x/Y.kt"}}""") // no parentToolUseId</ID>
+    <ID>MaxLineLength:TranscriptTest.kt$TranscriptTest$val (n, _) = applyEvent(emptyList(), """{"kind":"tool","name":"Bash","input":{"command":"echo h"},"parentToolUseId":"tu_missing"}""")</ID>
+    <ID>MaxLineLength:TranscriptTest.kt$TranscriptTest$var n = applyEvent(emptyList(), """{"kind":"agent","agents":[{"id":"tu_1","agentType":"Explore","description":"a"}]}""").first</ID>
+    <ID>MaxLineLength:WorkflowRunLinkTest.kt$WorkflowRunLinkTest$"""{"type":"tool_use","id":"toolu_D","name":"mcp__agentic__delegate","input":{"title":"audit","tasks":[{"prompt":"x"}]}}]}}"""</ID>
+    <ID>NestedBlockDepth:Transcript.kt$fun buildFromLog(log: List&lt;String&gt;): List&lt;Node&gt;</ID>
+    <ID>NewLineAtEndOfFile:PendingAttachment.kt$dev.agentic.domain.PendingAttachment.kt</ID>
+    <ID>ReturnCount:Transcript.kt$fun setWorkflowRunId(nodes: List&lt;Node&gt;, id: String, runId: String): List&lt;Node&gt;</ID>
+    <ID>ReturnCount:Transcript.kt$private fun route(nodes: List&lt;Node&gt;, parentId: String?, op: (List&lt;Node&gt;) -&gt; List&lt;Node&gt;): List&lt;Node&gt;</ID>
+    <ID>ReturnCount:TranscriptGrouping.kt$fun interleaveShared(display: List&lt;Node&gt;, shared: List&lt;AttachmentNode&gt;, truncatedStart: Boolean = false): List&lt;Node&gt;</ID>
+    <ID>ReturnCount:TranscriptReducer.kt$TranscriptReducer$@Synchronized fun applyFrameWithBusy(frame: String): FrameResult</ID>
+    <ID>ReturnCount:TranscriptReducer.kt$TranscriptReducer$private fun beginStreamIfDelta(frame: String)</ID>
+    <ID>ReturnCount:TranscriptReducer.kt$TranscriptReducer$private fun materialize()</ID>
+    <ID>ReturnCount:TranscriptReducer.kt$TranscriptReducer$private fun replaceInScope(ns: List&lt;Node&gt;, parent: String?, old: Node, new: Node): List&lt;Node&gt;</ID>
+    <ID>ReturnCount:TranscriptReducer.kt$TranscriptReducer$private fun scopeList(ns: List&lt;Node&gt;, parent: String?): List&lt;Node&gt;?</ID>
+    <ID>ReturnCount:TranscriptReducer.kt$TranscriptReducer$private fun streamDelta(frame: String): FrameResult?</ID>
+    <ID>ReturnCount:Usage.kt$fun parseResetAt(resetsAt: String?): Long?</ID>
+    <ID>SwallowedException:Transcript.kt$e: Exception</ID>
+    <ID>SwallowedException:TranscriptReducer.kt$TranscriptReducer$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:Transcript.kt$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:TranscriptReducer.kt$TranscriptReducer$e: Exception</ID>
+    <ID>TooManyFunctions:Transcript.kt$dev.agentic.domain.Transcript.kt</ID>
+    <ID>TooManyFunctions:TranscriptReducer.kt$TranscriptReducer</ID>
+    <ID>WildcardImport:AskParsingTest.kt$import kotlinx.serialization.json.*</ID>
+    <ID>WildcardImport:AskParsingTest.kt$import org.junit.Assert.*</ID>
+    <ID>WildcardImport:ToolDisplayTest.kt$import kotlinx.serialization.json.*</ID>
+    <ID>WildcardImport:TranscriptGroupingTest.kt$import org.junit.Assert.*</ID>
+    <ID>WildcardImport:TranscriptReducerStreamingTest.kt$import org.junit.Assert.*</ID>
+    <ID>WildcardImport:TranscriptReducerTest.kt$import org.junit.Assert.*</ID>
+    <ID>WildcardImport:TranscriptTest.kt$import org.junit.Assert.*</ID>
+  </CurrentIssues>
+</SmellBaseline>

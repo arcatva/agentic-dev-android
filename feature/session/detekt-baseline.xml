@@ -1,0 +1,194 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>ComplexCondition:SessionViewModel.kt$SessionViewModel$qs.isNotEmpty() &amp;&amp; nodes.none { it is AskNode &amp;&amp; !it.answered &amp;&amp; it.questions == qs }</ID>
+    <ID>CyclomaticComplexMethod:SessionViewModel.kt$SessionViewModel$private fun buildUiState( t: TranscriptState, runs: List&lt;WorkflowRun&gt;, shared: List&lt;AttachmentNode&gt;, l: Local, ): SessionUiState</ID>
+    <ID>CyclomaticComplexMethod:Transcript.kt$private fun nodeFingerprint(node: Node): String</ID>
+    <ID>FunctionNaming:PullRequestCard.kt$@Composable fun PrCard(node: PrNode, modifier: Modifier = Modifier)</ID>
+    <ID>FunctionNaming:SessionChrome.kt$@Composable fun SessionDetailOverlays( vm: SessionViewModel, pendingRewindTurn: Int?, onDismissRewind: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:SessionMention.kt$@Composable internal fun MentionCandidatesPanel( candidates: List&lt;Session&gt;, onPick: (Session) -&gt; Unit, modifier: Modifier = Modifier, )</ID>
+    <ID>FunctionNaming:SessionScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable fun SessionScreen( onBack: () -&gt; Unit, onOpenWorkflows: () -&gt; Unit, onOpenHistory: (live: Boolean) -&gt; Unit, onFork: () -&gt; Unit, onForked: (newId: String) -&gt; Unit, onOpenParent: (String) -&gt; Unit, onOpenSettings: () -&gt; Unit = {}, onMoveToGroup: () -&gt; Unit = {}, vm: SessionViewModel? = null, )</ID>
+    <ID>FunctionNaming:SessionScreen.kt$@OptIn(ExperimentalMaterial3ExpressiveApi::class) @Composable fun SessionContent( s: SessionUiState, realVm: SessionViewModel, onOpenWorkflow: (dev.agentic.domain.WorkflowNode) -&gt; Unit = {}, onOpenParent: (String) -&gt; Unit = {}, onOpenSettings: () -&gt; Unit = {}, /** Long-press a prompt bubble → rewind code to before that turn. Default no-op (wide layout). */ onRewind: (turnIndex: Int) -&gt; Unit = {}, applyImePadding: Boolean = true, modifier: Modifier = Modifier, )</ID>
+    <ID>FunctionNaming:SessionScreen.kt$@OptIn(ExperimentalMaterial3ExpressiveApi::class) @Composable private fun ForkedHistoryCard(preview: ForkParentPreview, onOpenParent: (String) -&gt; Unit)</ID>
+    <ID>FunctionNaming:SessionScreen.kt$@OptIn(ExperimentalMaterial3ExpressiveApi::class) @Composable private fun InputBar( input: String, onInput: (String) -&gt; Unit, onSubmit: () -&gt; Unit, onStop: () -&gt; Unit, busy: Boolean, composable: Boolean, canSend: Boolean, streaming: Boolean, workflowActive: Boolean, queueError: String? = null, onOpenSettings: () -&gt; Unit = {}, attachments: List&lt;PendingAttachment&gt; = emptyList(), onAttachFiles: (List&lt;Uri&gt;) -&gt; Unit = {}, onRemovePending: (String) -&gt; Unit = {}, mentionCandidates: List&lt;Session&gt; = emptyList(), onMentionActive: () -&gt; Unit = {}, )</ID>
+    <ID>FunctionNaming:SessionSettingsScreen.kt$@Composable private fun SettingsSwitchRow( label: String, supporting: String, checked: Boolean, onCheckedChange: (Boolean) -&gt; Unit, )</ID>
+    <ID>FunctionNaming:SessionSettingsScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable fun SessionSettingsScreen( sessionId: String, onBack: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:SessionTags.kt$@Composable fun DisplayChip( label: String, icon: ImageVector?, accent: Color, contentDescription: String, onClick: (() -&gt; Unit)? = null, )</ID>
+    <ID>FunctionNaming:SessionTags.kt$@Composable internal fun SessionTagRow( session: Session, modifier: Modifier = Modifier, onOpenParent: (String) -&gt; Unit = {}, )</ID>
+    <ID>FunctionNaming:SessionTags.kt$@Composable internal fun UltracodeChip(modifier: Modifier = Modifier)</ID>
+    <ID>FunctionNaming:SessionTags.kt$@Composable private fun SessionTagChip(tag: SessionTag, onClick: (() -&gt; Unit)? = null)</ID>
+    <ID>FunctionNaming:Transcript.kt$@Composable private fun AgentChildCard(n: Node, onOpenWorkflow: (WorkflowNode) -&gt; Unit)</ID>
+    <ID>FunctionNaming:Transcript.kt$@Composable private fun AttachmentCard( node: AttachmentNode, onPrimary: () -&gt; Unit, onDownload: () -&gt; Unit, /** Non-null while this file is downloading — fraction + live speed + stall flag. */ progress: DownloadUi?, loadImageBytes: suspend (AttachmentNode) -&gt; ByteArray? = { null }, )</ID>
+    <ID>FunctionNaming:Transcript.kt$@Composable private fun EventChip( icon: ImageVector, label: String, container: Color, onColor: Color, onClick: (() -&gt; Unit)? = null, )</ID>
+    <ID>FunctionNaming:Transcript.kt$@Composable private fun ImagePreviewDialog( node: AttachmentNode, loadImageBytes: suspend (AttachmentNode) -&gt; ByteArray?, onDownload: () -&gt; Unit, onDismiss: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:Transcript.kt$@Composable private fun SpawnCard( label: String, result: String?, children: List&lt;Node&gt; = emptyList(), onOpenWorkflow: (WorkflowNode) -&gt; Unit = {}, )</ID>
+    <ID>FunctionNaming:Transcript.kt$@Composable private fun StepCard(n: Node)</ID>
+    <ID>FunctionNaming:Transcript.kt$@OptIn(ExperimentalFoundationApi::class) @Composable fun Transcript( nodes: List&lt;Node&gt;, onAnswerAsk: (AskNode, String) -&gt; Unit, onRespondPermission: (id: String, decision: String, feedback: String?) -&gt; Unit, onDownloadAttachment: (AttachmentNode) -&gt; Unit, downloadProgress: Map&lt;String, DownloadUi&gt;, canAnswer: Boolean, onOpenWorkflow: (WorkflowNode) -&gt; Unit = {}, loadImageBytes: suspend (AttachmentNode) -&gt; ByteArray? = { null }, /** Long-press a prompt bubble → rewind to just before that turn (0-based); default no-op. */ onRewind: (turnIndex: Int) -&gt; Unit = {}, hasMore: Boolean = false, loadingEarlier: Boolean = false, onLoadEarlier: () -&gt; Unit = {}, /** Bounded-window (ended sessions): newer pages evicted off the newest end, paged back in on scroll down. */ hasNewer: Boolean = false, loadingNewer: Boolean = false, onLoadNewer: () -&gt; Unit = {}, latestEventId: Long = 0, firstEventLine: Long = 0, modifier: Modifier = Modifier, )</ID>
+    <ID>FunctionNaming:Transcript.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable private fun Collapsible( icon: ImageVector, label: String, container: Color, onColor: Color, expandedDefault: Boolean = false, content: @Composable () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:Transcript.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable private fun PermCardView( node: PermNode, canAnswer: Boolean, onRespond: (decision: String, feedback: String?) -&gt; Unit, )</ID>
+    <ID>FunctionNaming:Transcript.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable private fun PlanCardView( node: PlanNode, canAnswer: Boolean, onRespond: (decision: String, feedback: String?) -&gt; Unit, )</ID>
+    <ID>FunctionNaming:Transcript.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class) @Composable private fun AskCardView( node: AskNode, collapsedDefault: Boolean, canAnswer: Boolean, onAnswer: (String) -&gt; Unit, )</ID>
+    <ID>FunctionNaming:TranscriptScrollbar.kt$@Composable fun MessageFastScrollbar( state: LazyListState, anchors: List&lt;MsgAnchor&gt;, modifier: Modifier = Modifier, )</ID>
+    <ID>LongMethod:SessionViewModel.kt$SessionViewModel$private fun buildUiState( t: TranscriptState, runs: List&lt;WorkflowRun&gt;, shared: List&lt;AttachmentNode&gt;, l: Local, ): SessionUiState</ID>
+    <ID>LongParameterList:SessionViewModel.kt$SessionViewModel$( private val sessionsRepo: SessionsRepository, private val workflowsRepo: WorkflowsRepository, private val filesRepo: FilesRepository, private val api: AgenticApi, private val id: String, private val initialPrompt: String? = null, // Dispatcher for the O(n) buildUiState combine (moved off Main via flowOn below). Injectable so unit // tests can pass their TestDispatcher — Dispatchers.Default escapes the test scheduler and would make // uiState emissions non-deterministic under runTest. private val computeDispatcher: CoroutineDispatcher = Dispatchers.Default, /** SavedStateHandle backing this VM when constructed via the nav ctor; null in wide-layout (AdaptiveHome has no per-session nav entry). */ private val savedStateHandle: SavedStateHandle? = null, )</ID>
+    <ID>MagicNumber:SessionScreen.kt$1024</ID>
+    <ID>MagicNumber:SessionScreen.kt$150</ID>
+    <ID>MagicNumber:SessionScreen.kt$64</ID>
+    <ID>MagicNumber:SessionScreen.kt$8</ID>
+    <ID>MagicNumber:SessionViewModel.kt$400</ID>
+    <ID>MagicNumber:SessionViewModel.kt$SessionViewModel$500</ID>
+    <ID>MagicNumber:SessionViewModel.kt$SessionViewModel$5_000L</ID>
+    <ID>MagicNumber:SessionViewModel.kt$SessionViewModel$8</ID>
+    <ID>MagicNumber:SessionViewModel.kt$SessionViewModel$80</ID>
+    <ID>MagicNumber:Transcript.kt$100</ID>
+    <ID>MagicNumber:Transcript.kt$1280</ID>
+    <ID>MagicNumber:Transcript.kt$20</ID>
+    <ID>MagicNumber:Transcript.kt$2560</ID>
+    <ID>MagicNumber:Transcript.kt$30</ID>
+    <ID>MagicNumber:Transcript.kt$40</ID>
+    <ID>MagicNumber:Transcript.kt$6f</ID>
+    <ID>MagicNumber:Transcript.kt$8</ID>
+    <ID>MagicNumber:TranscriptScrollbar.kt$0.02f</ID>
+    <ID>MagicNumber:TranscriptScrollbar.kt$50</ID>
+    <ID>MaxLineLength:PullRequestCard.kt$Icon(Icons.Rounded.OpenInNew, "Open pull request", tint = onContainer, modifier = Modifier.size(20.dp))</ID>
+    <ID>MaxLineLength:SessionMention.kt$/** Active mention at [caret]: scans back from caret, stops at `@` (only when `@` starts a word so `name@host` never triggers). */</ID>
+    <ID>MaxLineLength:SessionScreen.kt$/** Chat column (Scaffold-free) hostable by narrow [SessionScreen] or the 3-pane AdaptiveHome right pane. Set [applyImePadding]=false to apply IME inset at the pane row instead. */</ID>
+    <ID>MaxLineLength:SessionScreen.kt$/** Chat/transcript screen. Stateless; all state from [SessionViewModel]. Transcript uses `reverseLayout` (see Transcript.kt). */</ID>
+    <ID>MaxLineLength:SessionScreen.kt$/** Streamed 64 KB-chunk copy to device Downloads (MediaStore on API 29+, app-external dir on older). Caller owns [file]'s lifetime; call off the main thread. */</ID>
+    <ID>MaxLineLength:SessionScreen.kt$/** Two-row composer surface: pending chips + full-width text field stack above, action bar (attach/settings/mic/send-stop) below. Flag-driven from VM state. */</ID>
+    <ID>MaxLineLength:SessionScreen.kt$// Attach gated on `composable` (same gate as Send) — VM keeps attachments alive across composable flips.</ID>
+    <ID>MaxLineLength:SessionScreen.kt$// Block @-mention picking while the recognizer streams — each partial result rewrites the field through the sync bridge and would clobber a just-picked token.</ID>
+    <ID>MaxLineLength:SessionScreen.kt$// ContentResolver from the SAME context that produced the URIs — read grant is in scope for the upload stream.</ID>
+    <ID>MaxLineLength:SessionScreen.kt$// Keyed on unreadEventId (not session.id) so ack fires AFTER session loads; VM LaunchedEffect keyed on id races the uiState emit.</ID>
+    <ID>MaxLineLength:SessionScreen.kt$// TextFieldState owns text + caret + composing together, so unrelated VM re-emits (poll ticks, dictation writes) don't rebuild a stale caret behind the user's typing.</ID>
+    <ID>MaxLineLength:SessionScreen.kt$// Warm-return self-heal: reseed from authoritative log on ON_RESUME (back-nav too, NavBackStackEntry is the LifecycleOwner).</ID>
+    <ID>MaxLineLength:SessionScreen.kt$// Without this, a parked AskUserQuestion picker lost on a background-time reconnect reseed stays gone until app kill.</ID>
+    <ID>MaxLineLength:SessionScreen.kt$// domain.hasError surfaces streaming errors too (status="running" + errorKind set); watchdog caps and manual Stop are not errors.</ID>
+    <ID>MaxLineLength:SessionScreen.kt$// forkedTo is a StateFlow (not a plain var) so collection fires reliably even when the outer body doesn't recompose.</ID>
+    <ID>MaxLineLength:SessionScreen.kt$SessionViewModel(container.sessionsRepo, container.workflowsRepo, container.filesRepo, container.api, createSavedStateHandle())</ID>
+    <ID>MaxLineLength:SessionScreen.kt$Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)</ID>
+    <ID>MaxLineLength:SessionScreen.kt$onRespondPermission = { id, decision, feedback -&gt; realVm.respondPermission(id, decision, feedback) }</ID>
+    <ID>MaxLineLength:SessionScreen.kt$tint = if (dict.listening) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant</ID>
+    <ID>MaxLineLength:SessionSettingsScreen.kt$/** Mirrors NewRequestScreen.PERMISSION_MODES; null session reads as the Dangerous notch (bypassPermissions on backend). */</ID>
+    <ID>MaxLineLength:SessionSettingsScreen.kt$/** Per-session settings subpage (session-persistent). MD3 Expressive layout matching NewRequestScreen/GlobalSettingsScreen. */</ID>
+    <ID>MaxLineLength:SessionSettingsScreen.kt$/** Switch row for use inside a [SectionCard]; whole row toggles for touch target + a11y; Switch is display-only (onCheckedChange=null). */</ID>
+    <ID>MaxLineLength:SessionSettingsViewModel.kt$SessionSettingsViewModel$/** Hand this session off to a terminal `claude --resume` (POST /api/sessions/:id/detach). Server hard-stops the live process (single-writer). */</ID>
+    <ID>MaxLineLength:SessionSettingsViewModel.kt$SessionSettingsViewModel$// Best-effort: warm the session-start catalog so the Model slider has real options if this is the first consumer.</ID>
+    <ID>MaxLineLength:SessionTags.kt$/** Annotation chip row under the title (scrolls horizontally with edge fades). Outlined chips are display-only with the 48dp touch target dropped to stay compact. */</ID>
+    <ID>MaxLineLength:SessionTags.kt$/** Annotation tags in display order. Effort suppressed on ultracode (xhigh is implied); model/effort use the slider-friendly labels. */</ID>
+    <ID>MaxLineLength:SessionTags.kt$/** `enabled=false` keeps the chip border + look of a normal AssistChip without ripple/role; pass [onClick] to make it tappable. */</ID>
+    <ID>MaxLineLength:SessionTags.kt${ Icon(icon, contentDescription = contentDescription, modifier = Modifier.size(AssistChipDefaults.IconSize)) }</ID>
+    <ID>MaxLineLength:SessionTagsTest.kt$SessionTagsTest$ModelEntry(key = "claude-haiku-4-5-20251001", label = "Haiku 4.5", native = true, default = false, capability = 0.60f)</ID>
+    <ID>MaxLineLength:SessionTagsTest.kt$SessionTagsTest$ModelEntry(key = "claude-sonnet-4-6", label = "Sonnet 4.6", native = true, default = false, capability = 0.85f)</ID>
+    <ID>MaxLineLength:SessionTagsTest.kt$SessionTagsTest$val tags = sessionTags(Session(id = "s", repos = listOf("webapp", "infra-tools"), skills = listOf("deep-research")))</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$/** Map a follow-up error to user copy. EngineError::Busy → HTTP 400 reads as "busy", not transport failure (orphaned "running" sessions can still enable Send but the server rejects). */</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionUiState$/** Files the user picked from the device that haven't been sent; submit() awaits in-flight uploads and appends `[attached: …]` with successful paths. */</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionUiState$/** Immutable UI state for one chat session. All input-state-machine flags computed in [SessionViewModel.buildUiState]. */</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionUiState$/** Initial transcript load failed (server unreachable on open) — show error + retry calling [SessionViewModel.reload]. */</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionUiState$/** True while any pending attachment's upload is in flight; gates Send so submit can read the final set deterministically. */</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$/** @-mention candidates: every session EXCEPT this one, most-recently-active first. Refreshed on demand; last fetched list stays so dropdown opens instantly. */</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$/** Append `[attached: paths…]` marker only when at least one attachment is Done; matches `splitAttachments` so the optimistic echo and server echo normalize to the same text. */</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$/** Best-effort display name + size for a picker URI; falls back to last path segment + size=-1 when the provider doesn't expose OpenableColumns. */</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$/** Builds UI state in one place: merges shared files, applies optimistic overlays, derives all input-state flags. Only side effect is [clearMatchedPending]. */</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$/** Core session ViewModel: chat-input state machine + transcript aggregation. Events read the repo's hot transcript directly (not [uiState]) so they work without a UI subscriber. */</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$/** Discord-style: set lastAckedEventId to the session's current unreadEventId (monotonic server counter). Takes [eventId] from caller to avoid a race where the LaunchedEffect fires before uiState emits the session. */</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$/** Drain the channel on clear and delete any buffered Ready temps (disk leak if the VM tears down before the View re-attaches). */</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$/** Drop from [local] every pending sent-echo text now matched by a real prompt. Recomputes against CURRENT local value (not the builder's snapshot). */</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$/** Fetch attachment bytes for an INLINE preview (e.g. image thumbnail). Best-effort: null on failure so the card falls back to its icon. */</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$/** Force a fresh transcript reseed on screen resume (ON_RESUME in SessionScreen). Fixes warm-return staleness — most visibly a parked AskUserQuestion whose picker card vanished on a background-time reconnect reseed. */</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$/** Fork this session into a new (idle, pending) one. On success [forkedTo] holds the new id for navigation; on failure [forkState] surfaces the message. InFlight guard mirrors downloadAttachment. */</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$/** In-flight uploads keyed by URI string; held so a user removal mid-upload can cancel the network call. Synchronized: attachFiles spawns N independent coroutines. */</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$/** On Failure: drop the one pendingSent overlay, put un-sent text back in the input (unless user typed something new), surface an error. Always clears `sending`. `full` is the prompt sent; `pendingText` is the marker-free overlay text so rollback targets the right entry. */</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$/** One-shot download effects; VM owns the network fetch, View owns the platform save. BUFFERED so emits before the View collects are kept. */</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$/** One-shot fork navigation signal. MUST be a StateFlow (not a plain var): the consuming LaunchedEffect lives in a scope the outer body doesn't otherwise recompose on fork success. */</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$/** Optimistically mark [node] answered, send as a (non-title) follow-up. Guarded: surfaces an error if the session can't take a turn. */</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$/** Optimistically mark a parked permission/plan prompt decided and POST it. feedback = deny reason / plan-revision note (null on plain allow). */</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$/** Pending sent-echo texts not yet matched by a real prompt. One real echo of a text cancels exactly one pending overlay of that text. */</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$/** Per-attachment download progress keyed by [AttachmentNode.path]. Keys also serve as the set of in-flight paths: repeat taps ignored, two different files can download with independent bars (a single shared slot used to flicker as coroutines nulled each other). */</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$/** Pick [uris] and start parallel uploads; each becomes [Local.attachments] (Pending → Uploading → Done/Failed). Reads each URI once into a ByteArray (no URI persistence past process death). */</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$/** Re-run the session's original [prompt] as a FRESH turn (no `--resume`); used when Claude died before initializing. setTitle=false: prompt is already the session title. */</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$/** Read a SAF/document URI to bytes (handles both `content://` and `file://`). Throws if the stream can't be opened (only on truly broken inputs). */</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$/** Read-only parent (forked-from) preview for the collapsible card a fork shows. Reuses shared `transcript(pid)` flow — no new API surface. */</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$/** Reset [forkState] to Idle after the UI has shown a fork error; no-op unless currently Failed (can't clobber InFlight/Success). */</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$/** SavedStateHandle backing this VM when constructed via the nav ctor; null in wide-layout (AdaptiveHome has no per-session nav entry). */</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$/** Send typed input as the next turn. Awaits in-flight uploads and composes trailing `[attached: …]` marker matching `splitAttachments`. */</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$/** Single-flight guard for [refreshMentionCandidates] (typing fires the effect repeatedly; one GET at a time is plenty). */</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$/** Stable transcript reference reused when content is unchanged so poll ticks don't hand [Transcript] a fresh list instance every ~2s (periodic hitch). */</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$/** Stream [node] to a temp file with automatic mid-transfer resume; hand the file to the View to save. 500ms [DownloadPace] ticker samples speed and stall. */</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$// 1. Merge outbox files at the turn that produced them. hasMore (start-truncated window) hides anchorless files instead of gluing them to the streamed bottom — paging back reveals them at their true position.</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$// 2b. Optimistic SENT echo: each just-sent FOLLOW-UP stays at the END until matched by a real PromptNode; one real echo cancels one overlay.</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$// 4. Authoritative awaiting-prompt (server's `pendingPrompt` is the source of truth): restore an unanswered AskNode lost to a warm reseed. Deduped by question content.</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$// Compare-and-set inside update() — atomic against double-submit races so two identical answer bubbles never POST as separate turns.</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$// Conflation lets the StateFlow naturally skip intermediate per-token states when buildUiState can't keep up.</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$// Disable Send while `uploading` so chip-row progress is stable and Send doesn't appear enabled then immediately jump disabled.</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$// Match against t.nodes (not overlaid `nodes`) so the prepended optimistic initial can't count as a follow-up echo.</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$// NonCancellable: a fast back-out clears the VM and would cancel an in-flight ack PUT — the session would come back as unread.</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$// Normalize both sides: the reducer strips a trailing "[attached: …]" marker + trims; matching raw strings would miss when uploads finish mid-submit.</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$// O(n) buildUiState off the main thread — per-token deltas used to rebuild the whole transcript on Main (streaming jank).</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$// Optimistic echo stores marker-FREE text so it matches the server echo after the reducer strips the marker (see normalizePrompt).</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$// Polls the authoritative session row every 2s so session-derived UI (error banner, tags, title) doesn't stay frozen at the last reseed.</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$// Pre-clear stale queueError from a previous failed Resume click: only cleared today by next submit(), which Resume doesn't touch.</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$// Reuse the PREVIOUS list instance when content is unchanged (List is an unstable Compose type): metadata-only ticks would otherwise hand Transcript a fresh instance each ~2s, recomputing spawnOrdinals/userMessageAnchors.</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$// Same pre-clear as resume() — stale "Couldn't retry" must not survive a successful retry on the same gesture.</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$// Terminal session can follow up if it has a claudeSessionId to --resume, OR is a fork awaiting first turn (parentSessionId set, no claudeSessionId).</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$// composable follows non-terminal status (not awaitingInput alone): an orphaned running row or a turn reaped before registering has awaitingInput=null but is still actionable.</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$// joinAll does not propagate failure; removePending cancellation propagates as CancellationException → abort send.</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$// setTitle=false: server owns the title (auto-retitled every 5 messages); setTitle=true would overwrite with raw text on every send.</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$// withTimeoutOrNull bounds it; the timeout still fires inside NonCancellable (it cancels its own child job).</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$AppLog.w("VM", "downloadAttachment id=${id.take(8)} path=${node.path} =&gt; FAILED: ${e.message ?: "download failed"}")</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$AppLog.w("VM", "launchUpload id=${id.take(8)} uri=${att.localUri} =&gt; FAILED: ${e.message ?: "unknown"}", e)</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$AppLog.w("VM", "launchUpload id=${id.take(8)} uri=${att.localUri} =&gt; FAILED: ${r.error.userMessage()}")</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$AppLog.w("VM", "respondPermission sessionId=${id.take(8)} =&gt; FAILED: ${(r as Outcome.Failure).error.userMessage()}")</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$AppLog.w("VM", "rewind id=${id.take(8)} turnIndex=$turnIndex =&gt; FAILED: ${r.error.userMessage()}")</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$if (n is AskNode) l.answeredOverrides[askKey(n)]?.let { n.copy(answered = true, answer = it) } ?: n else n</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$l.copy(attachments = l.attachments.map { if (it.id == att.id) it.copy(state = UploadState.Uploading) else it })</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel$resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE), null, null, null)</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel.Local$/** Files the user attached but hasn't sent. Done entries feed the next prompt's `[attached: …]` marker; failed ones stay for retry/remove. */</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel.Local$/** Follow-up texts shown optimistically at the END of the transcript until a matching real PromptNode echoes back. */</ID>
+    <ID>MaxLineLength:SessionViewModel.kt$SessionViewModel.Local$// Keyed by stable question-string (NOT the mutable AskNode) so the override survives markAnsweredAsks flipping answered/answer.</ID>
+    <ID>MaxLineLength:SessionViewModelTest.kt$SessionViewModelTest$private val seedLog = listOf("""{"type":"agentic_prompt","text":"go","at":1}""", """{"type":"result","result":"ok"}""")</ID>
+    <ID>MaxLineLength:SessionViewModelTest.kt$SessionViewModelTest$val session = Session(id = "s1", prompt = "go", status = "done", claudeSessionId = "claude-1", unreadEventId = 7)</ID>
+    <ID>MaxLineLength:Transcript.kt$.</ID>
+    <ID>MaxLineLength:Transcript.kt$FadingText(label, style = MaterialTheme.typography.labelMedium, color = OnAccentVioletContainer, modifier = Modifier.weight(1f))</ID>
+    <ID>MaxLineLength:Transcript.kt$FadingText(label, style = MaterialTheme.typography.labelMedium, color = onColor, modifier = Modifier.weight(1f))</ID>
+    <ID>MaxLineLength:Transcript.kt$Icon(Icons.Rounded.Code, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))</ID>
+    <ID>MaxLineLength:Transcript.kt$Row</ID>
+    <ID>MaxLineLength:Transcript.kt$color = if (answered) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface</ID>
+    <ID>MaxLineLength:Transcript.kt$is SkillNode -&gt; EventChip(Icons.Rounded.AutoAwesome, skillChipLabel(n), AccentCyanContainer, OnAccentCyanContainer)</ID>
+    <ID>MaxLineLength:Transcript.kt$is WorkflowNode -&gt; EventChip(Icons.Rounded.AccountTree, workflowChipLabel(n), AccentVioletContainer, OnAccentVioletContainer, onClick = { onOpenWorkflow(n) })</ID>
+    <ID>MaxLineLength:Transcript.kt$runCatching { loadImageBytes(node)?.let { decodeSampledImage(it, 1280)?.asImageBitmap() } }.getOrNull()</ID>
+    <ID>MaxLineLength:TranscriptScrollbar.kt$*</ID>
+    <ID>MaxLineLength:TranscriptScrollbar.kt$/** Grab-and-drag fast-scroll slider that snaps to [dev.agentic.domain.PromptNode]s. Fixed-length thumb, single from-top axis shared by resting + snap positions. */</ID>
+    <ID>MaxLineLength:TranscriptScrollbar.kt$// Mirror the offset with layout direction so RTL pushes the bubble the other way; cap width to what fits beside the lane (foldables/split-screen).</ID>
+    <ID>MaxLineLength:TranscriptScrollbar.kt$// Resting fraction uses leading-edge index + intra-item offset (continuous), NOT visible item count (which swings wildly as mixed-size cards scroll past).</ID>
+    <ID>MaxLineLength:TranscriptScrollbarMath.kt$*</ID>
+    <ID>MaxLineLength:TranscriptScrollbarMath.kt$/** Fast-scroll anchors: every non-blank [PromptNode] oldest-first. The `isNotBlank()` filter mirrors the renderer (no invisible anchors). */</ID>
+    <ID>MaxLineLength:TranscriptScrollbarMath.kt$/** Nearest anchor to [fraction] on the from-top axis; dragging to the top reliably hits the first message. Returns 0 for empty list. */</ID>
+    <ID>MaxLineLength:TranscriptScrollbarMath.kt$/** Pure math for the message fast-scroll slider (no Compose/Android types — JVM unit-testable). Track axis: top=oldest, bottom=newest, single from-top fraction `chronoIndex/(size-1)`. */</ID>
+    <ID>NestedBlockDepth:SessionScreen.kt$fun saveToDownloads(context: Context, name: String, file: File): Boolean</ID>
+    <ID>NewLineAtEndOfFile:SessionSettingsViewModel.kt$dev.agentic.ui.session.SessionSettingsViewModel.kt</ID>
+    <ID>RethrowCaughtException:SessionViewModel.kt$SessionViewModel$throw e</ID>
+    <ID>ReturnCount:SessionMention.kt$fun activeMentionQuery(text: String, caret: Int): MentionQuery?</ID>
+    <ID>ReturnCount:SessionScreen.kt$fun saveToDownloads(context: Context, name: String, file: File): Boolean</ID>
+    <ID>SwallowedException:SessionScreen.kt$e: Exception</ID>
+    <ID>SwallowedException:SessionSettingsScreen.kt$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:SessionScreen.kt$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:SessionSettingsScreen.kt$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:SessionSettingsViewModel.kt$SessionSettingsViewModel$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:SessionViewModel.kt$SessionViewModel$e: Exception</ID>
+    <ID>TooManyFunctions:SessionViewModel.kt$SessionViewModel : ViewModel</ID>
+    <ID>TooManyFunctions:Transcript.kt$dev.agentic.ui.session.Transcript.kt</ID>
+    <ID>UnusedParameter:SessionScreen.kt$streaming: Boolean</ID>
+    <ID>UnusedParameter:SessionScreen.kt$workflowActive: Boolean</ID>
+    <ID>UnusedParameter:Transcript.kt$firstEventLine: Long = 0</ID>
+    <ID>UnusedParameter:Transcript.kt$latestEventId: Long = 0</ID>
+    <ID>UnusedPrivateProperty:SessionViewModel.kt$SessionViewModel$/** SavedStateHandle backing this VM when constructed via the nav ctor; null in wide-layout (AdaptiveHome has no per-session nav entry). */ private val savedStateHandle: SavedStateHandle? = null</ID>
+    <ID>UnusedPrivateProperty:SessionViewModelPermTest.kt$SessionViewModelPermTest$// A log entry that produces a PlanNode (agentic_perm with permKind=plan). private val planLog = listOf( """{"type":"agentic_prompt","text":"go","at":1}""", """{"type":"result","result":"ok"}""", """{"type":"agentic_perm","id":"plan-1","permKind":"plan","plan":"Step 1: do the thing"}""", )</ID>
+    <ID>UnusedPrivateProperty:SessionViewModelPermTest.kt$SessionViewModelPermTest$// A terminal session (claudeSessionId set) whose log contains an agentic_perm event. // The JSON format matches the reducer in Transcript.kt: type=agentic_perm, id, tool, input={}. private val permLog = listOf( """{"type":"agentic_prompt","text":"go","at":1}""", """{"type":"result","result":"ok"}""", """{"type":"agentic_perm","id":"perm-1","tool":"Bash","input":{"command":"rm -rf /tmp/x"}}""", )</ID>
+    <ID>UnusedPrivateProperty:SessionViewModelTest.kt$SessionViewModelTest$private val seedLog = listOf("""{"type":"agentic_prompt","text":"go","at":1}""", """{"type":"result","result":"ok"}""")</ID>
+    <ID>WildcardImport:SessionViewModelTest.kt$import kotlinx.coroutines.*</ID>
+    <ID>WildcardImport:SessionViewModelTest.kt$import kotlinx.coroutines.test.*</ID>
+    <ID>WildcardImport:SessionViewModelTest.kt$import org.junit.*</ID>
+  </CurrentIssues>
+</SmellBaseline>

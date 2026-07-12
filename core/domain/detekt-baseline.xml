@@ -1,0 +1,41 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>CyclomaticComplexMethod:CommitGraph.kt$fun buildCommitGraph(commits: List&lt;CommitNode&gt;, hasUncommitted: Boolean): List&lt;GraphRow&gt;</ID>
+    <ID>LongMethod:CommitGraph.kt$fun buildCommitGraph(commits: List&lt;CommitNode&gt;, hasUncommitted: Boolean): List&lt;GraphRow&gt;</ID>
+    <ID>LongParameterList:SessionIndicatorTest.kt$SessionIndicatorTest$( status: String = "done", errorKind: String? = null, awaitingInput: Boolean? = null, unreadEventId: Long = 0, ackedEventId: Long = 0, workflowRunning: Boolean = false, )</ID>
+    <ID>MagicNumber:SessionIndicator.kt$8</ID>
+    <ID>MatchingDeclarationName:Status.kt$StatusVisual</ID>
+    <ID>MaxLineLength:CommitGraph.kt$/** Build renderable graph. [commits] must be newest-first (as backend returns); [hasUncommitted] places a synthetic working-tree node above HEAD. */</ID>
+    <ID>MaxLineLength:CommitGraph.kt$// 1) My column = leftmost active lane waiting for my SHA; other lanes waiting for same SHA (multiple children) collapse onto it.</ID>
+    <ID>MaxLineLength:CommitGraph.kt$// 3) Route parents: first parent keeps myCol/myLaneId (mainline straight); extra parents reuse a waiting lane or open one to the right.</ID>
+    <ID>MaxLineLength:CommitGraph.kt$// git log is date-ordered not strictly topological — a parent can appear at/above its child; never open a lane waiting for one that won't resolve below.</ID>
+    <ID>MaxLineLength:CommitGraph.kt$GraphEdge$* One drawable edge crossing a single row's vertical band. [fromTop]/[toBottom] = start/end at row's top/bottom boundary vs. node centre; pass-through = both true. [fromColumn] != [toColumn] → drawn as curve (lane shift). [fadeBottom] = edge runs off the bottom of the window (ancestor we don't have), fade instead of hard end.</ID>
+    <ID>MaxLineLength:CommitGraph.kt$GraphNodeKind$* Pure-Kotlin commit-graph layout engine (no Compose): newest-first [CommitNode]s → precomputed [GraphRow]s the renderer can draw row-by-row without cross-row state. Standard "active lanes" sweep (VCS Log / `git log --graph`): first parent keeps its lane (mainline straight), extra parents open lanes to the right, collapse at shared ancestors. Colors keyed by stable [GraphEdge.laneId] (per-branch) so a branch keeps its color when shifting columns.</ID>
+    <ID>MaxLineLength:CommitGraph.kt$edges.add(GraphEdge(topCols.getValue(id), botCols.getValue(id), id, fromTop = true, toBottom = true, fadeBottom = isLast))</ID>
+    <ID>MaxLineLength:SessionIndicator.kt$/** Unread iff [Session.unreadEventId] &gt; [Session.ackedEventId] (server-side cursor; no clock/fallback; ack via `PUT /api/sessions/:id/ack`). */</ID>
+    <ID>MaxLineLength:SessionIndicator.kt$AppLog.v("Read", "unreadCheck id=${session.id.take(8)} unreadEventId=${session.unreadEventId} acked=${session.ackedEventId}")</ID>
+    <ID>MaxLineLength:SessionIndicatorTest.kt$SessionIndicatorTest$@Test</ID>
+    <ID>MaxLineLength:SessionIndicatorTest.kt$SessionIndicatorTest$@Test fun `benign cap renders like done`()</ID>
+    <ID>MaxLineLength:SessionIndicatorTest.kt$SessionIndicatorTest$@Test fun `unreadEventId equal to acked is read`()</ID>
+    <ID>MaxLineLength:SessionIndicatorTest.kt$SessionIndicatorTest$@Test fun `unreadEventId less than acked is read`()</ID>
+    <ID>MaxLineLength:SessionIndicatorTest.kt$SessionIndicatorTest$@Test fun `unreadEventId zero with ack nonzero is read`()</ID>
+    <ID>MaxLineLength:SessionSearch.kt$/** Case-insensitive substring filter on [Session.prompt]; blank query returns input unchanged; blank prompt never matches a non-empty query. */</ID>
+    <ID>MaxLineLength:Status.kt$/** Map raw [status] (+ optional awaitingInput) to a visual; accepts session+workflow synonyms so a session/run/agent in the same state render identical. */</ID>
+    <ID>MaxLineLength:Status.kt$// Status synonyms (trim+lowercase) shared by sessions AND workflow runs/agents — workflow journal uses "complete/completed/cancelled" where sessions use "done/killed".</ID>
+    <ID>MaxLineLength:Status.kt$StatusVisual$/** Distinct visuals a session status can map to (enum so AnimatedContent only re-animates on meaningful transitions). */</ID>
+    <ID>MaxLineLength:StopReason.kt$/** Banner title for a stopped session. Driven by [errorKind] (structured); falls back to legacy regex on [error] when [errorKind] null/unknown. [status] used only by fallback. */</ID>
+    <ID>MaxLineLength:StopReason.kt$/** Forked session waiting for its FIRST turn ([parentSessionId] set, [claudeSessionId] null). `fork_session` creates it idle ("done") so the user opens it to send the first message — but with no claudeSessionId, generic stuck/canFollowUp misclassifies as un-continuable (input bar hidden, bogus Retry card). It IS continuable — server accepts first follow-up (idle, not busy). */</ID>
+    <ID>MaxLineLength:StopReason.kt$/** RESUME = `--resume` ([claudeSessionId] exists); RETRY = no claude session, re-run prompt; NONE = nothing to recover. "running" included because an errored-turn leaves session running+idle (awaitingInput=true) — without this, an idle-streaming error showed banner but NO Resume/Retry button. A user-Stop ("killed") stays recoverable here but its list-row dot stays muted (only genuine errors paint red). */</ID>
+    <ID>MaxLineLength:StopReason.kt$/** Show error (red dot + banner) iff there's a classified error. Streaming subtlety: a usage/rate/claude error leaves session idle (running+awaitingInput) — backend only sets "failed" if process dies — so we surface from [errorKind], not just [status], else an idle-but-errored session looks normal. Excludes [isBenignCap] and user-Stop (errorKind=null). */</ID>
+    <ID>MaxLineLength:StopReason.kt$/** Terminal session with no [claudeSessionId] to `--resume` and no live process to type into — "stuck", only Retry recovers. (Watchdog reaps a stalled turn as "done" with no error/claudeSessionId — even less obvious.) Terminal + claudeSessionId → resumable via input bar (canFollowUp), never stuck. */</ID>
+    <ID>MaxLineLength:StopReason.kt$/** Watchdog "cap" (wall/idle timeout) — NOT a failure; turn just stopped, session resumes on next prompt. UI renders capped session like a finished one (no red/error banner). */</ID>
+    <ID>MaxLineLength:StopReason.kt$// Legacy heuristic: backend used to send only free-text error — fallback for null/unknown errorKind (old sessions / version skew).</ID>
+    <ID>MaxLineLength:StopReason.kt$RecoverAction$// RecoverAction: errorKind only drives *title* ([stopReason]); recovery depends solely on whether a claude conversation exists to continue.</ID>
+    <ID>MaxLineLength:StopReasonTest.kt$StopReasonTest$assertEquals("Interrupted — crashed or killed", stopReason("crashed", "turn ended without completing", "failed"))</ID>
+    <ID>MaxLineLength:StopReasonTest.kt$StopReasonTest$assertEquals("Interrupted — server restart", stopReason("interrupted", "interrupted by server restart", "failed"))</ID>
+    <ID>NestedBlockDepth:CommitGraph.kt$fun buildCommitGraph(commits: List&lt;CommitNode&gt;, hasUncommitted: Boolean): List&lt;GraphRow&gt;</ID>
+    <ID>WildcardImport:SessionIndicatorTest.kt$import org.junit.Assert.*</ID>
+  </CurrentIssues>
+</SmellBaseline>

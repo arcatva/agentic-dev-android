@@ -1,0 +1,19 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>FunctionNaming:AgentTranscriptPane.kt$@Composable private fun TaskDisclosure(task: String, transcriptKey: String)</ID>
+    <ID>FunctionNaming:AgentTranscriptPane.kt$@OptIn(ExperimentalMaterial3ExpressiveApi::class) @Composable fun AgentTranscriptPane( transcript: String?, loading: Boolean, modifier: Modifier = Modifier, )</ID>
+    <ID>FunctionNaming:WorkflowScreen.kt$@Composable private fun AgentCard( agent: WorkflowAgent, selected: Boolean, onClick: () -&gt; Unit, )</ID>
+    <ID>FunctionNaming:WorkflowScreen.kt$@Composable private fun AgentSubtitle( agentId: String, model: String, idColor: Color, modifier: Modifier = Modifier, style: TextStyle = MaterialTheme.typography.labelSmall, )</ID>
+    <ID>FunctionNaming:WorkflowScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable fun WorkflowScreen( onBack: () -&gt; Unit, vm: WorkflowViewModel? = null, )</ID>
+    <ID>FunctionNaming:WorkflowScreen.kt$@OptIn(ExperimentalMaterial3ExpressiveApi::class) @Composable fun AgentRail( runs: List&lt;WorkflowRun&gt;, selected: Pair&lt;String, WorkflowAgent&gt;?, onSelect: (Pair&lt;String, WorkflowAgent&gt;) -&gt; Unit, modifier: Modifier = Modifier, onSelectMain: (() -&gt; Unit)? = null, expandedRuns: Set&lt;String&gt;? = null, onToggleRun: ((String) -&gt; Unit)? = null, )</ID>
+    <ID>FunctionNaming:WorkflowScreen.kt$@OptIn(ExperimentalMaterial3ExpressiveApi::class) @Composable fun AgentTranscriptContent( agent: WorkflowAgent, transcript: String?, loading: Boolean, modifier: Modifier = Modifier, effort: String? = null, )</ID>
+    <ID>MagicNumber:WorkflowViewModel.kt$WorkflowViewModel$5_000L</ID>
+    <ID>MatchingDeclarationName:AgentTranscriptPane.kt$AgentTranscriptParts</ID>
+    <ID>MaxLineLength:WorkflowViewModel.kt$WorkflowViewModel$selectionState.update { it.copy(selectedAgent = runId to agent, loadingTranscript = true, agentTranscript = null) }</ID>
+    <ID>MaxLineLength:WorkflowViewModel.kt$state.trim().lowercase() !in setOf("done", "complete", "completed", "failed", "error", "cancelled", "canceled", "killed")</ID>
+    <ID>ReturnCount:AgentTranscriptPane.kt$fun splitAgentTranscript(raw: String): AgentTranscriptParts</ID>
+    <ID>UnusedPrivateProperty:WorkflowViewModelTest.kt$WorkflowViewModelTest$var callCount = 0</ID>
+  </CurrentIssues>
+</SmellBaseline>

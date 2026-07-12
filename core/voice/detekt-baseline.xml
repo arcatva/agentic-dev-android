@@ -1,0 +1,82 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>CyclomaticComplexMethod:OnlineRecognizer.kt$fun getModelConfig(type: Int): OnlineModelConfig?</ID>
+    <ID>CyclomaticComplexMethod:SherpaDictation.kt$SherpaDictation$fun downloadModel(quality: Quality, onProgress: (downloaded: Long, total: Long) -&gt; Unit): Boolean</ID>
+    <ID>CyclomaticComplexMethod:SherpaDictation.kt$SherpaDictation$fun start(quality: Quality, onText: (String) -&gt; Unit, onError: (String) -&gt; Unit)</ID>
+    <ID>LongMethod:OnlineRecognizer.kt$fun getModelConfig(type: Int): OnlineModelConfig?</ID>
+    <ID>LongMethod:SherpaDictation.kt$SherpaDictation$fun start(quality: Quality, onText: (String) -&gt; Unit, onError: (String) -&gt; Unit)</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$1.4f</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$10</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$1000</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$1001</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$11</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$12</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$13</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$14</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$15</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$16</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$17</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$18</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$19</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$2.4f</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$20</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$20.0f</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$21</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$22</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$23</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$24</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$25</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$26</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$27</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$28</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$29</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$3</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$30</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$31</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$32</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$33</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$4</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$5</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$6</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$7</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$8</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$9</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$9025</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$9026</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$9027</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$9028</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$9029</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$9030</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$EndpointConfig$1.4f</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$EndpointConfig$2.4f</ID>
+    <ID>MagicNumber:OnlineRecognizer.kt$EndpointConfig$20.0f</ID>
+    <ID>MagicNumber:SherpaDictation.kt$SherpaDictation$10</ID>
+    <ID>MagicNumber:SherpaDictation.kt$SherpaDictation$1500</ID>
+    <ID>MagicNumber:SherpaDictation.kt$SherpaDictation$16</ID>
+    <ID>MagicNumber:SherpaDictation.kt$SherpaDictation$16000</ID>
+    <ID>MagicNumber:SherpaDictation.kt$SherpaDictation$2000</ID>
+    <ID>MagicNumber:SherpaDictation.kt$SherpaDictation$30_000</ID>
+    <ID>MagicNumber:SherpaDictation.kt$SherpaDictation$32768.0f</ID>
+    <ID>MagicNumber:SherpaDictation.kt$SherpaDictation.Quality.HIGH$12_833_618L</ID>
+    <ID>MagicNumber:SherpaDictation.kt$SherpaDictation.Quality.HIGH$13_876_452L</ID>
+    <ID>MagicNumber:SherpaDictation.kt$SherpaDictation.Quality.HIGH$330_083_505L</ID>
+    <ID>MagicNumber:SherpaDictation.kt$SherpaDictation.Quality.HIGH$56_317L</ID>
+    <ID>MagicNumber:SherpaDictation.kt$SherpaDictation.Quality.STANDARD$13_091_040L</ID>
+    <ID>MagicNumber:SherpaDictation.kt$SherpaDictation.Quality.STANDARD$181_895_032L</ID>
+    <ID>MagicNumber:SherpaDictation.kt$SherpaDictation.Quality.STANDARD$3_228_404L</ID>
+    <ID>MagicNumber:SherpaDictation.kt$SherpaDictation.Quality.STANDARD$56_317L</ID>
+    <ID>MaxLineLength:OnlineRecognizer.kt$"sherpa-onnx-qnn-SM8850-binary-x-asr-streaming-zipformer-transducer-zh-en-punct-2026-06-05-chunk-size-480ms"</ID>
+    <ID>MaxLineLength:OnlineRecognizer.kt$"sherpa-onnx-qnn-x-asr-streaming-zipformer-transducer-zh-en-punct-2026-06-05-chunk-size-480ms-android-aarch64"</ID>
+    <ID>MaxLineLength:SherpaDictation.kt$SherpaDictation$try { audioRecord?.stop() } catch (_: Throwable) { AppLog.d("Voice", "AudioRecord.stop() on dead recorder") }</ID>
+    <ID>NestedBlockDepth:SherpaDictation.kt$SherpaDictation$fun downloadModel(quality: Quality, onProgress: (downloaded: Long, total: Long) -&gt; Unit): Boolean</ID>
+    <ID>ReturnCount:OnlineRecognizer.kt$fun getModelConfig(type: Int): OnlineModelConfig?</ID>
+    <ID>ReturnCount:SherpaDictation.kt$SherpaDictation$fun downloadModel(quality: Quality, onProgress: (downloaded: Long, total: Long) -&gt; Unit): Boolean</ID>
+    <ID>ReturnCount:SherpaDictation.kt$SherpaDictation$fun start(quality: Quality, onText: (String) -&gt; Unit, onError: (String) -&gt; Unit)</ID>
+    <ID>TooGenericExceptionCaught:SherpaDictation.kt$SherpaDictation$t: Throwable</ID>
+    <ID>TooGenericExceptionThrown:SherpaDictation.kt$SherpaDictation$throw RuntimeException("AudioRecord.read error $read")</ID>
+    <ID>TooManyFunctions:OnlineRecognizer.kt$OnlineRecognizer</ID>
+    <ID>TooManyFunctions:OnlineStream.kt$OnlineStream</ID>
+  </CurrentIssues>
+</SmellBaseline>
