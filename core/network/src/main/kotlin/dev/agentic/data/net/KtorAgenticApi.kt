@@ -720,8 +720,10 @@ class KtorAgenticApi(
             AppLog.d("API", "GET routing -> OK (tradeoff=${r.tradeoff})")
             r
         } catch (e: Exception) {
+            // Propagate (matches every other method here) so the global auth/error handling sees a
+            // 401 etc. The VM wraps this call in runCatchingOutcome and keeps the default on failure.
             AppLog.w("API", "GET routing -> FAILED: ${e.message}")
-            RoutingConfig()
+            throw e
         }
     }
 

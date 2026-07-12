@@ -57,13 +57,17 @@ class ProvidersViewModel(private val repo: ProvidersRepository) : ViewModel() {
     }
 
     /** Persist the global tradeoff. Optimistic: the UI value updates immediately (on drag release);
-     *  the network write is best-effort (the slider already reflects the chosen value). */
+     *  on a network failure it rolls back to the previous value and surfaces the error. */
     fun saveTradeoff(value: Float) {
-        _uiState.update { it.copy(tradeoff = value) }
+        val previous = _uiState.value.tradeoff
+        _uiState.update { it.copy(tradeoff = value, error = null) }
         viewModelScope.launch {
             when (val r = runCatchingOutcome { repo.setRouting(value) }) {
                 is Outcome.Success -> AppLog.d("VM", "tradeoff saved value=$value")
-                is Outcome.Failure -> AppLog.w("VM", "tradeoff save failed err=${r.error}")
+                is Outcome.Failure -> {
+                    AppLog.w("VM", "tradeoff save failed err=${r.error}")
+                    _uiState.update { it.copy(tradeoff = previous, error = r.error.toString()) }
+                }
             }
         }
     }
