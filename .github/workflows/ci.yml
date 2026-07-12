@@ -29,7 +29,9 @@ jobs:
           java-version: "17"
       - uses: gradle/actions/setup-gradle@v4
       - name: Unit tests
-        run: ./gradlew --no-daemon testDebugUnitTest
+        # testDebugUnitTest covers the Android modules; the pure-JVM inner layers
+        # (:core:model, :core:domain — agentic.jvm.library) expose plain `test`.
+        run: ./gradlew --no-daemon testDebugUnitTest :core:model:test :core:domain:test
       # Static analysis: fails only on findings NOT in app/detekt-baseline.xml (existing backlog
       # is baselined; shrink it over time).
       - name: detekt
