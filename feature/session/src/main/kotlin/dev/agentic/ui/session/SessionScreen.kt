@@ -144,7 +144,12 @@ onFork: () -> Unit,
     val realVm: SessionViewModel = vm ?: viewModel(
         factory = viewModelFactory {
             initializer {
-                SessionViewModel(container.sessionsRepo, container.workflowsRepo, container.filesRepo, container.api, createSavedStateHandle())
+                SessionViewModel(
+                    container.sessionsRepo,
+                    container.workflowsRepo,
+                    container.filesRepo,
+                    createSavedStateHandle(),
+                )
             }
         },
     )

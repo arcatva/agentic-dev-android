@@ -69,7 +69,7 @@ class SessionViewModelPermTest {
     private fun workflowsRepo() = WorkflowsRepository(api, repoScope)
 
     private fun vm(handle: SavedStateHandle = SavedStateHandle(mapOf("id" to "s1"))) =
-        SessionViewModel(sessionsRepo(), workflowsRepo(), FilesRepository(api), api, handle, dispatcher)
+        SessionViewModel(sessionsRepo(), workflowsRepo(), FilesRepository(api), handle, dispatcher)
 
     // A terminal session (claudeSessionId set) whose log contains an agentic_perm event.
     // The JSON format matches the reducer in Transcript.kt: type=agentic_perm, id, tool, input={}.

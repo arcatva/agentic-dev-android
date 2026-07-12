@@ -63,7 +63,7 @@ fun SkillStoreScreen(
     val container = appContainer()
     val resolvedVm: GlobalSettingsViewModel = vm ?: viewModel(
         factory = viewModelFactory {
-            initializer { GlobalSettingsViewModel(container.api) }
+            initializer { GlobalSettingsViewModel(container.globalSettingsRepo) }
         },
     )
     val s by resolvedVm.uiState.collectAsStateWithLifecycle()

@@ -92,7 +92,12 @@ fun DiagnosticsScreen(
     val vm: DiagnosticsViewModel = viewModel(
         factory = viewModelFactory {
             initializer {
-                DiagnosticsViewModel(container.logStore, container.logcatCollector, container.api, container.sessionsRepo)
+                DiagnosticsViewModel(
+                    container.logStore,
+                    container.logcatCollector,
+                    container.filesRepo,
+                    container.sessionsRepo,
+                )
             }
         },
     )

@@ -2,7 +2,7 @@ package dev.agentic.ui.globalsettings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import dev.agentic.data.net.AgenticApi
+import dev.agentic.data.repo.GlobalSettingsRepository
 import dev.agentic.data.net.CatalogSkill
 import dev.agentic.data.net.ComponentInfo
 import dev.agentic.data.net.McpServerDef
@@ -45,7 +45,7 @@ data class GlobalSettingsUiState(
  * grouped by kind; toggles apply optimistically and revert on failure.
  */
 class GlobalSettingsViewModel(
-    private val api: AgenticApi,
+    private val repo: GlobalSettingsRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(GlobalSettingsUiState())
@@ -69,7 +69,7 @@ class GlobalSettingsViewModel(
         loadJob = viewModelScope.launch {
             _uiState.update { it.copy(loading = it.components.isEmpty(), error = null) }
             try {
-                val list = api.getGlobalSettings()
+                val list = repo.globalSettings()
                 _uiState.update { it.copy(loading = false, components = list) }
             } catch (e: Exception) {
                 _uiState.update { it.copy(loading = false, error = "Failed to load settings: ${e.serverError()}") }
@@ -106,7 +106,7 @@ class GlobalSettingsViewModel(
             // request, so the full-list responses apply in call order.
             toggleMutex.withLock {
                 try {
-                    val refreshed = api.toggleGlobalComponent(component.kind, component.id, newEnabled)
+                    val refreshed = repo.toggleComponent(component.kind, component.id, newEnabled)
                     _uiState.update { s ->
                         s.copy(toggling = s.toggling - toggleKey, components = refreshed)
                     }
@@ -154,8 +154,8 @@ class GlobalSettingsViewModel(
         viewModelScope.launch {
             try {
                 val (resp, sources) = coroutineScope {
-                    val respDeferred = async { api.getSkillCatalog(refresh = force) }
-                    val sourcesDeferred = async { api.getSkillSources() }
+                    val respDeferred = async { repo.skillCatalog(refresh = force) }
+                    val sourcesDeferred = async { repo.skillSources() }
                     respDeferred.await() to sourcesDeferred.await()
                 }
                 _uiState.update {
@@ -167,7 +167,8 @@ class GlobalSettingsViewModel(
                     )
                 }
             } catch (e: Exception) {
-                _uiState.update { it.copy(catalogLoading = false, catalogError = "Couldn't load the store: ${e.serverError()}") }
+                _uiState.update { it.copy(catalogLoading = false,
+                    catalogError = "Couldn't load the store: ${e.serverError()}") }
             }
         }
     }
@@ -177,7 +178,7 @@ class GlobalSettingsViewModel(
         if (!acquireBusy()) return
         viewModelScope.launch {
             try {
-                val sources = api.addSkillSource(source)
+                val sources = repo.addSkillSource(source)
                 _uiState.update { it.copy(sources = sources, busy = false, error = null) }
                 loadCatalog(force = true)
             } catch (e: Exception) {
@@ -191,7 +192,7 @@ class GlobalSettingsViewModel(
         if (!acquireBusy()) return
         viewModelScope.launch {
             try {
-                val sources = api.deleteSkillSource(source)
+                val sources = repo.deleteSkillSource(source)
                 _uiState.update { it.copy(sources = sources, busy = false, error = null) }
                 loadCatalog(force = true)
             } catch (e: Exception) {
@@ -205,12 +206,12 @@ class GlobalSettingsViewModel(
         if (!acquireBusy()) return false
         viewModelScope.launch {
             try {
-                val refreshed = api.installSkill(source, update)
+                val refreshed = repo.installSkill(source, update)
                 _uiState.update { it.copy(components = refreshed, busy = false, error = null) }
                 // Re-pull the catalog so per-entry updateAvailable reflects the fresh install
                 // (cheap server-cache hit; without it an Update button lingers post-update).
                 try {
-                    val resp = api.getSkillCatalog(refresh = false)
+                    val resp = repo.skillCatalog(refresh = false)
                     _uiState.update { it.copy(catalog = resp.skills, catalogErrors = resp.errors) }
                 } catch (_: Exception) {
                     // Stale Update button until next manual refresh — not worth surfacing.
@@ -227,7 +228,7 @@ class GlobalSettingsViewModel(
         if (!acquireBusy()) return
         viewModelScope.launch {
             try {
-                val refreshed = api.deleteSkill(name)
+                val refreshed = repo.deleteSkill(name)
                 _uiState.update { it.copy(components = refreshed, busy = false, error = null) }
             } catch (e: Exception) {
                 _uiState.update { it.copy(busy = false, error = "Failed to delete skill: ${e.serverError()}") }
@@ -240,7 +241,7 @@ class GlobalSettingsViewModel(
         if (!acquireBusy()) return false
         viewModelScope.launch {
             try {
-                val refreshed = api.installPlugin(id)
+                val refreshed = repo.installPlugin(id)
                 _uiState.update { it.copy(components = refreshed, busy = false, error = null) }
             } catch (e: Exception) {
                 _uiState.update { it.copy(busy = false, error = "Failed to install plugin: ${e.serverError()}") }
@@ -254,7 +255,7 @@ class GlobalSettingsViewModel(
         if (!acquireBusy()) return
         viewModelScope.launch {
             try {
-                val refreshed = api.uninstallPlugin(id)
+                val refreshed = repo.uninstallPlugin(id)
                 _uiState.update { it.copy(busy = false, components = refreshed, error = null) }
             } catch (e: Exception) {
                 _uiState.update { it.copy(busy = false, error = "Failed to uninstall plugin: ${e.serverError()}") }
@@ -275,7 +276,7 @@ class GlobalSettingsViewModel(
         val def = buildMcpServerDef(draft)
         viewModelScope.launch {
             try {
-                val refreshed = api.addMcpServer(def)
+                val refreshed = repo.addMcpServer(def)
                 _uiState.update { it.copy(components = refreshed, busy = false, error = null) }
             } catch (e: Exception) {
                 _uiState.update { it.copy(busy = false, error = "Failed to add MCP server: ${e.serverError()}") }
@@ -289,7 +290,7 @@ class GlobalSettingsViewModel(
         if (!acquireBusy()) return
         viewModelScope.launch {
             try {
-                val refreshed = api.deleteMcpServer(name)
+                val refreshed = repo.deleteMcpServer(name)
                 _uiState.update { it.copy(components = refreshed, busy = false, error = null) }
             } catch (e: Exception) {
                 _uiState.update { it.copy(busy = false, error = "Failed to delete MCP server: ${e.serverError()}") }

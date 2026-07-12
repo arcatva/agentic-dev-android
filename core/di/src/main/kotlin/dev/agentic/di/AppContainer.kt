@@ -15,6 +15,8 @@ import dev.agentic.data.net.NetworkMonitor
 import dev.agentic.data.net.RealNetworkInfoProvider
 import dev.agentic.data.repo.AuthRepository
 import dev.agentic.data.repo.FilesRepository
+import dev.agentic.data.repo.GlobalSettingsRepository
+import dev.agentic.data.repo.ProvidersRepository
 import dev.agentic.data.repo.SessionsRepository
 import dev.agentic.data.repo.WorkflowsRepository
 import kotlinx.coroutines.CoroutineScope
@@ -51,6 +53,8 @@ class AppContainer(val app: Application, val logStore: LogStore = LogStore(app))
     )
     val workflowsRepo: WorkflowsRepository = WorkflowsRepository(api, appScope)
     val filesRepo: FilesRepository = FilesRepository(api)
+    val providersRepo: ProvidersRepository = ProvidersRepository(api)
+    val globalSettingsRepo: GlobalSettingsRepository = GlobalSettingsRepository(api)
     val lanScanner: LanScanner = DefaultLanScanner(RealNetworkInfoProvider(), HealthzServerProbe())
     val sessionUiStore: SessionUiStore = SessionUiStore(app)
     /**

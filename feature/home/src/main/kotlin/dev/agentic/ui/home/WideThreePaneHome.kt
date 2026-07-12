@@ -250,8 +250,7 @@ fun WideThreePaneHome(
                                         container.sessionsRepo,
                                         container.workflowsRepo,
                                         container.filesRepo,
-                                        container.api,
-                                        currentSid,
+                                                                                currentSid,
                                     )
                                 }
                             },

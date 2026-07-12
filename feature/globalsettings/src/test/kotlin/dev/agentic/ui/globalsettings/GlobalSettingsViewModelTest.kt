@@ -40,7 +40,7 @@ class GlobalSettingsViewModelTest {
         kotlinx.coroutines.Dispatchers.resetMain()
     }
 
-    private fun vm() = GlobalSettingsViewModel(api)
+    private fun vm() = GlobalSettingsViewModel(dev.agentic.data.repo.GlobalSettingsRepository(api))
 
     // ── helpers ───────────────────────────────────────────────────────────────
 

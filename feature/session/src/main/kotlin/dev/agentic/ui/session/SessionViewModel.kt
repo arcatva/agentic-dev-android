@@ -12,7 +12,6 @@ import dev.agentic.data.net.Outcome
 import dev.agentic.data.net.Session
 import dev.agentic.data.net.WorkflowRun
 import dev.agentic.data.net.userMessage
-import dev.agentic.data.net.AgenticApi
 import dev.agentic.data.repo.FilesRepository
 import dev.agentic.data.repo.SessionsRepository
 import dev.agentic.data.repo.TranscriptState
@@ -140,7 +139,6 @@ class SessionViewModel(
     private val sessionsRepo: SessionsRepository,
     private val workflowsRepo: WorkflowsRepository,
     private val filesRepo: FilesRepository,
-    private val api: AgenticApi,
     private val id: String,
     private val initialPrompt: String? = null,
     // Dispatcher for the O(n) buildUiState combine (moved off Main via flowOn below). Injectable so unit
@@ -156,11 +154,10 @@ class SessionViewModel(
         sessionsRepo: SessionsRepository,
         workflowsRepo: WorkflowsRepository,
         filesRepo: FilesRepository,
-        api: AgenticApi,
         handle: SavedStateHandle,
         computeDispatcher: CoroutineDispatcher = Dispatchers.Default,
     ) : this(
-        sessionsRepo, workflowsRepo, filesRepo, api,
+        sessionsRepo, workflowsRepo, filesRepo,
         requireNotNull(handle.get<String>("id")) { "SessionViewModel requires an 'id' arg" },
         handle.get<String>("initialPrompt"),
         computeDispatcher,
@@ -578,7 +575,7 @@ class SessionViewModel(
             // withTimeoutOrNull bounds it; the timeout still fires inside NonCancellable (it cancels its own child job).
             withContext(NonCancellable) {
                 try {
-                    withTimeoutOrNull(5_000L) { api.ackSession(id, eventId) }
+                    withTimeoutOrNull(5_000L) { sessionsRepo.ack(id, eventId) }
                 } catch (_: Exception) { /* best-effort: reopening the session re-acks (self-heals) */ }
             }
         }

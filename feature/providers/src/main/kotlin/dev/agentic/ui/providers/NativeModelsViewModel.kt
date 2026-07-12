@@ -3,7 +3,7 @@ package dev.agentic.ui.providers
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.agentic.data.log.AppLog
-import dev.agentic.data.net.AgenticApi
+import dev.agentic.data.repo.ProvidersRepository
 import dev.agentic.data.net.NativeFamily
 import dev.agentic.data.net.NativeOverrideReq
 import dev.agentic.data.net.Outcome
@@ -26,7 +26,7 @@ data class NativeModelsUiState(
  * (GET/POST/DELETE /api/native-models). Separate from ProvidersViewModel: native models are
  * discovered, not BYOK, and these overrides do not affect the session main-model picker.
  */
-class NativeModelsViewModel(private val api: AgenticApi) : ViewModel() {
+class NativeModelsViewModel(private val repo: ProvidersRepository) : ViewModel() {
 
     private val _uiState = MutableStateFlow(NativeModelsUiState())
     val uiState: StateFlow<NativeModelsUiState> = _uiState.asStateFlow()
@@ -36,7 +36,7 @@ class NativeModelsViewModel(private val api: AgenticApi) : ViewModel() {
     fun refresh() {
         _uiState.update { it.copy(loading = true, error = null) }
         viewModelScope.launch {
-            when (val r = runCatchingOutcome { api.nativeModels() }) {
+            when (val r = runCatchingOutcome { repo.nativeModels() }) {
                 is Outcome.Success -> _uiState.update { it.copy(families = r.value, loading = false) }
                 is Outcome.Failure -> {
                     AppLog.w("VM", "native models load failed err=${r.error}")
@@ -51,7 +51,7 @@ class NativeModelsViewModel(private val api: AgenticApi) : ViewModel() {
         if (_uiState.value.busy) return
         _uiState.update { it.copy(busy = true, error = null) }
         viewModelScope.launch {
-            when (val r = runCatchingOutcome { api.putNativeOverride(family, req) }) {
+            when (val r = runCatchingOutcome { repo.putNativeOverride(family, req) }) {
                 is Outcome.Success -> {
                     _uiState.update { it.copy(busy = false) }
                     refresh()
@@ -72,7 +72,7 @@ class NativeModelsViewModel(private val api: AgenticApi) : ViewModel() {
         if (_uiState.value.busy) return
         _uiState.update { it.copy(busy = true, error = null) }
         viewModelScope.launch {
-            when (val r = runCatchingOutcome { api.deleteNativeOverride(family) }) {
+            when (val r = runCatchingOutcome { repo.deleteNativeOverride(family) }) {
                 is Outcome.Success -> {
                     _uiState.update { it.copy(busy = false) }
                     refresh()
