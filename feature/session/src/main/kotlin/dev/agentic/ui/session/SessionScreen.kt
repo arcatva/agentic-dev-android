@@ -55,7 +55,7 @@ import androidx.compose.material.icons.rounded.MicOff
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Schedule
-import androidx.compose.material.icons.rounded.StopCircle
+import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -620,11 +620,11 @@ private fun InputBar(
                     FilledIconButton(
                         onClick = onStop,
                         colors = IconButtonDefaults.filledIconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer,
-                            contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                            containerColor = MaterialTheme.colorScheme.error,
+                            contentColor = MaterialTheme.colorScheme.onError,
                         ),
                         modifier = Modifier.padding(start = 4.dp),
-                    ) { Icon(Icons.Rounded.StopCircle, "stop") }
+                    ) { Icon(Icons.Rounded.Stop, "stop") }
                 }
                 if (composable) {
                     FilledIconButton(
