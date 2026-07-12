@@ -78,22 +78,30 @@ object ChatGptOAuth {
     /** Accept loopback connections until the OAuth redirect arrives; returns the authorization code. */
     private fun awaitCode(server: ServerSocket, expectedState: String): String {
         while (true) {
-            server.accept().use { socket ->
-                val reader = socket.getInputStream().bufferedReader()
-                // Request line: "GET /auth/callback?code=...&state=... HTTP/1.1"
-                val requestLine = reader.readLine() ?: return@use
-                val path = requestLine.split(" ").getOrNull(1).orEmpty()
-                val params = parseQuery(path.substringAfter('?', ""))
-                val isCallback = params.containsKey("code") || params.containsKey("error")
-                respond(socket, isCallback)
-                if (!isCallback) return@use // ignore favicon / probe requests, keep listening
+            val code = server.accept().use<java.net.Socket, String?> { socket ->
+                // ServerSocket.soTimeout only bounds accept(); bound the READ too so a client that
+                // connects but never sends a request line can't block forever holding the port.
+                socket.soTimeout = 10_000
+                try {
+                    val reader = socket.getInputStream().bufferedReader()
+                    // Request line: "GET /auth/callback?code=...&state=... HTTP/1.1"
+                    val requestLine = reader.readLine() ?: return@use null
+                    val path = requestLine.split(" ").getOrNull(1).orEmpty()
+                    val params = parseQuery(path.substringAfter('?', ""))
+                    val isCallback = params.containsKey("code") || params.containsKey("error")
+                    respond(socket, isCallback)
+                    if (!isCallback) return@use null // ignore favicon / probe requests, keep listening
 
-                params["error"]?.let { throw IllegalStateException("ChatGPT sign-in was denied ($it)") }
-                if (params["state"] != expectedState) {
-                    throw IllegalStateException("state mismatch — sign-in aborted for safety")
+                    params["error"]?.let { throw IllegalStateException("ChatGPT sign-in was denied ($it)") }
+                    if (params["state"] != expectedState) {
+                        throw IllegalStateException("state mismatch — sign-in aborted for safety")
+                    }
+                    params["code"] ?: throw IllegalStateException("no authorization code in redirect")
+                } catch (e: java.net.SocketTimeoutException) {
+                    null // idle/slow client — drop it and keep listening
                 }
-                return params["code"] ?: throw IllegalStateException("no authorization code in redirect")
             }
+            if (code != null) return code
         }
     }
 
@@ -206,6 +214,18 @@ fun ChatGptSection(onChanged: () -> Unit) {
         val muted = MaterialTheme.colorScheme.onSurfaceVariant
         when {
             ui.loading -> Text("Loading…", color = muted, style = MaterialTheme.typography.bodyMedium)
+            // needsRelogin BEFORE connected: a stored-but-expired subscription must surface the
+            // re-login prompt, not read as normally signed in (don't lean on the backend invariant).
+            s.needsRelogin -> {
+                Text(
+                    "ChatGPT session expired — sign in again to keep GPT available.",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Button(onClick = { vm.signIn(context, onChanged) }, enabled = !ui.busy) {
+                    Text("Sign in with ChatGPT")
+                }
+            }
             s.connected -> {
                 Text(
                     if (s.email.isNotBlank()) "Signed in as ${s.email}" else "Signed in",
@@ -225,16 +245,6 @@ fun ChatGptSection(onChanged: () -> Unit) {
                     TextButton(onClick = { vm.disconnect(onChanged) }, enabled = !ui.busy) {
                         Text("Disconnect", color = MaterialTheme.colorScheme.error)
                     }
-                }
-            }
-            s.needsRelogin -> {
-                Text(
-                    "ChatGPT session expired — sign in again to keep GPT available.",
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-                Button(onClick = { vm.signIn(context, onChanged) }, enabled = !ui.busy) {
-                    Text("Sign in with ChatGPT")
                 }
             }
             else -> {
