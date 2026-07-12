@@ -11,6 +11,8 @@ dependencies {
     // domain types (Node, ...) — consumers must see them without redeclaring the modules.
     api(project(":core:model"))
     api(project(":core:network"))
+    // Correct clean-architecture edge: data consumes domain vocabulary (Status.TERMINAL, ...).
+    api(project(":core:domain"))
     implementation(project(":core:common"))
 
     implementation(libs.kotlinx.coroutines.core)
