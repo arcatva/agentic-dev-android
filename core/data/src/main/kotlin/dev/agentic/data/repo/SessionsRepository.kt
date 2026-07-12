@@ -242,8 +242,6 @@ class SessionsRepository(
 
     // ── Catalog passthroughs (NewRequestViewModel) ──
     suspend fun repos(): RepoList = api.repos()
-    suspend fun skills(): List<SkillInfo> = api.skills()
-    suspend fun plugins(): List<PluginInfo> = api.plugins()
     suspend fun templates(): List<Template> = runCatching { api.getTemplates() }.getOrDefault(emptyList())
     /** Mark events up to [eventId] read (server-side unread cursor). */
     suspend fun ack(id: String, eventId: Long) = api.ackSession(id, eventId)
@@ -277,7 +275,6 @@ class SessionsRepository(
         AppLog.d("Repo", "sessionStartModelCatalog load failed: ${e.message}")
         emptyList()
     }
-    suspend fun putTemplates(t: List<Template>) { runCatchingOutcome { api.putTemplates(t) } }
     /** Stage a New-request attachment before the session exists. */
     suspend fun uploadStaging(bytes: ByteArray, name: String): Outcome<StagedUpload> =
         runCatchingOutcome { api.uploadStaging(bytes, name) }

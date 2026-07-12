@@ -13,3 +13,4 @@ google-services.json
 app/google-services.json
 # agentic-dev session delivery dir — build artifacts shown to the user, not source
 /outbox/
+.superpowers/
