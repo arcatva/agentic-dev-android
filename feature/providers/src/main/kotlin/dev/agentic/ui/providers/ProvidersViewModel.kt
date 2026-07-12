@@ -100,7 +100,10 @@ class ProvidersViewModel(private val repo: ProvidersRepository) : ViewModel() {
                 when (val s = runCatchingOutcome { repo.chatgptStatus() }) {
                     is Outcome.Success -> {
                         _uiState.update { it.copy(chatgpt = s.value) }
-                        if (s.value.loggedIn) {
+                        // Completion = a usable login. During a RE-auth the server keeps reporting
+                        // loggedIn=true (old token present) with needsReauth=true until the new
+                        // callback lands, so require !needsReauth or we'd stop polling too early.
+                        if (s.value.loggedIn && !s.value.needsReauth) {
                             AppLog.d("VM", "chatgpt login complete")
                             _uiState.update { it.copy(chatgptBusy = false) }
                             dev.agentic.ui.ModelCatalog.invalidate()

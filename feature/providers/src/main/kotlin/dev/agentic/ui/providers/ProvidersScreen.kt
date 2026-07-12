@@ -408,6 +408,14 @@ private fun ChatGptSection(ui: ProvidersUiState, vm: ProvidersViewModel) {
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    // The OAuth redirect is a fixed loopback on the SERVER host (localhost:1455), so
+                    // the sign-in must be finished in a browser that can reach the server — same
+                    // machine, or a forwarded port. On a remote phone the device browser can't.
+                    Text(
+                        "Finish sign-in in a browser on the server host (or a forwarded localhost:1455).",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                     Button(
                         enabled = !ui.chatgptBusy,
                         onClick = { vm.startChatGptLogin { url -> openInBrowser(context, url) } },
