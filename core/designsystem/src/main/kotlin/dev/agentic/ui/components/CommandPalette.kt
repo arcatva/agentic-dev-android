@@ -39,6 +39,7 @@ data class CommandQuery(val start: Int, val query: String)
  * caret is still inside the command token (no space typed yet). Returns null otherwise — so ordinary
  * prose, mid-text slashes, and paths never trigger the palette.
  */
+@Suppress("ReturnCount") // input-guard early returns + the result — idiomatic guard clauses
 fun activeCommandQuery(text: String, caret: Int): CommandQuery? {
     if (caret < 0 || caret > text.length) return null
     val lead = text.indexOfFirst { !it.isWhitespace() }
