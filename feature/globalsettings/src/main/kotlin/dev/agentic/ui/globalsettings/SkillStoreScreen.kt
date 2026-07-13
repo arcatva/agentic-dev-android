@@ -12,8 +12,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.DeleteOutline
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Source
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -119,12 +124,15 @@ fun SkillStoreScreen(
                 },
                 title = { Text("Skill store") },
                 actions = {
-                    // Text actions only — manage sources / bypass the cache.
-                    TextButton(onClick = { sourcesOpen = true }) {
-                        Text("Sources${s.sources?.let { " (${it.size})" } ?: ""}")
+                    // Icon actions — manage sources / bypass the cache.
+                    IconButton(onClick = { sourcesOpen = true }) {
+                        val count = s.sources?.size ?: 0
+                        BadgedBox(badge = { if (count > 0) Badge { Text("$count") } }) {
+                            Icon(Icons.Rounded.Source, contentDescription = "Sources")
+                        }
                     }
-                    TextButton(onClick = { resolvedVm.loadCatalog(force = true) }, enabled = !s.catalogLoading) {
-                        Text("Refresh")
+                    IconButton(onClick = { resolvedVm.loadCatalog(force = true) }, enabled = !s.catalogLoading) {
+                        Icon(Icons.Rounded.Refresh, contentDescription = "Refresh")
                     }
                 },
             )
@@ -336,8 +344,8 @@ private fun SourcesSheet(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    TextButton(onClick = { onRemoveSource(src) }, enabled = !busy) {
-                        Text("Remove")
+                    IconButton(onClick = { onRemoveSource(src) }, enabled = !busy) {
+                        Icon(Icons.Rounded.DeleteOutline, contentDescription = "Remove $src")
                     }
                 }
             }
