@@ -34,6 +34,7 @@ import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material.icons.rounded.RestartAlt
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
@@ -276,7 +277,7 @@ fun ModelsSections() {
     SectionCard(
         title = "Sub-agent models",
         trailing = {
-            TextButton(onClick = {
+            IconButton(onClick = {
                 if (formVisible) {
                     formVisible = false
                 } else {
@@ -284,8 +285,10 @@ fun ModelsSections() {
                     formVisible = true
                 }
             }) {
-                Icon(Icons.Rounded.Add, contentDescription = "Add a model", modifier = Modifier.padding(end = 4.dp))
-                Text("Add")
+                Icon(
+                    if (formVisible) Icons.Rounded.Close else Icons.Rounded.Add,
+                    contentDescription = if (formVisible) "Close model form" else "Add a model",
+                )
             }
         },
     ) {
@@ -1053,8 +1056,12 @@ private fun NativeOverrideDialog(
                     Switch(checked = enabled, onCheckedChange = { enabled = it }, enabled = !busy)
                 }
                 if (family.customized) {
-                    TextButton(onClick = onReset, enabled = !busy) {
-                        Text("Reset to default", color = MaterialTheme.colorScheme.error)
+                    IconButton(onClick = onReset, enabled = !busy) {
+                        Icon(
+                            Icons.Rounded.RestartAlt,
+                            contentDescription = "Reset to default",
+                            tint = MaterialTheme.colorScheme.error,
+                        )
                     }
                 }
             }
