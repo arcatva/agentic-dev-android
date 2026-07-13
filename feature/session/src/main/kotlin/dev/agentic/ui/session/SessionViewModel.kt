@@ -393,10 +393,15 @@ class SessionViewModel(
     fun attachFiles(uris: List<Uri>, resolver: ContentResolver) {
         if (uris.isEmpty()) return
         AppLog.d("VM", "attachFiles id=${id.take(8)} count=${uris.size}")
-        val newOnes = uris.map { uri ->
+        // Skip URIs already attached (and duplicates within this pick): two attachments sharing an
+        // id collide on the input LazyRow's `key = { it.id }` and crash the layout pass, and
+        // re-uploading a file already attached is pointless. `existing.add` returns false once seen.
+        val existing = local.value.attachments.mapTo(mutableSetOf()) { it.id }
+        val newOnes = uris.filter { existing.add(it.toString()) }.map { uri ->
             val (name, size) = queryDisplayNameAndSize(resolver, uri)
             PendingAttachment.of(uri.toString(), name, size)
         }
+        if (newOnes.isEmpty()) return
         local.update { it.copy(attachments = it.attachments + newOnes) }
         for (att in newOnes) launchUpload(att, resolver)
     }
