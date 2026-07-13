@@ -39,6 +39,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -77,6 +78,11 @@ import dev.agentic.ui.components.SliderField
 import dev.agentic.ui.components.cardFieldColors
 import dev.agentic.ui.components.rememberSyncedTextFieldState
 import dev.agentic.ui.components.VoiceDictationField
+import dev.agentic.ui.components.CommandItem
+import dev.agentic.ui.components.CommandPalette
+import dev.agentic.ui.components.activeCommandQuery
+import dev.agentic.ui.components.applyCommand
+import dev.agentic.ui.components.filterCommands
 import dev.agentic.ui.components.clearFocusOnTap
 
 // Slider convention: leading "" notch = "Default" (no override); VM stores null, so the screen
@@ -213,6 +219,19 @@ fun NewRequestScreen(
 
             // ── Card 2 · Request: prompt + session CLAUDE.md ─────────────────────────
             SectionCard("Request") {
+                // `/` command palette — caret is the end of the string field while typing.
+                val cmdQuery = activeCommandQuery(s.prompt, s.prompt.length)
+                if (cmdQuery != null) {
+                    CommandPalette(
+                        candidates = filterCommands(
+                            s.commands.map { CommandItem(it.name, it.description, it.argumentHint) },
+                            cmdQuery.query,
+                        ),
+                        onPick = { picked ->
+                            realVm.setPrompt(applyCommand(s.prompt, cmdQuery, picked.name).first)
+                        },
+                    )
+                }
                 VoiceDictationField(
                     value = s.prompt,
                     onValueChange = realVm::setPrompt,
@@ -221,6 +240,16 @@ fun NewRequestScreen(
                     shape = MaterialTheme.shapes.small,
                     colors = cardFieldColors(),
                 )
+                // `/lfg` default toggle — shown only when lfg is available (compound-engineering installed).
+                if (s.commands.any { it.name == "lfg" }) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Switch(checked = s.lfgEnabled, onCheckedChange = realVm::setLfgEnabled)
+                        Text(
+                            "  Run via /lfg pipeline",
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                }
                 // ── Attachments ──────────────────────────────────────────────────────
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     TextButton(onClick = { attachLauncher.launch(arrayOf("*/*")) }) {

@@ -451,6 +451,7 @@ onOpenParent: (String) -> Unit = {},
             // ContentResolver from the SAME context that produced the URIs — read grant is in scope for the upload stream.
             val onAttachFiles: (List<Uri>) -> Unit = { uris -> realVm.attachFiles(uris, ctx.contentResolver) }
             val mentionCandidates by realVm.mentionCandidates.collectAsStateWithLifecycle()
+            val commandCandidates by realVm.commandCandidates.collectAsStateWithLifecycle()
             InputBar(
                 input = s.input,
                 onInput = realVm::onInput,
@@ -468,6 +469,8 @@ onOpenParent: (String) -> Unit = {},
                 onRemovePending = realVm::removePending,
                 mentionCandidates = mentionCandidates,
                 onMentionActive = realVm::refreshMentionCandidates,
+                commandCandidates = commandCandidates,
+                onCommandsNeeded = realVm::refreshCommands,
             )
         }
     } // key(realVm.sessionId)
@@ -494,6 +497,8 @@ private fun InputBar(
     onRemovePending: (String) -> Unit = {},
     mentionCandidates: List<Session> = emptyList(),
     onMentionActive: () -> Unit = {},
+    commandCandidates: List<dev.agentic.ui.components.CommandItem> = emptyList(),
+    onCommandsNeeded: () -> Unit = {},
 ) {
     // Dictation lives in a shared controller; arm64 → sherpa-onnx offline, else platform SpeechRecognizer.
     val dict = rememberDictationController(currentText = { input }, onText = onInput)
@@ -517,7 +522,34 @@ private fun InputBar(
     // Refresh once per activation, not per keystroke; panel renders instantly from the VM's last list.
     LaunchedEffect(mentionActive) { if (mentionActive) onMentionActive() }
 
+    // `/`-command palette — active only when the message STARTS with a command being typed.
+    val commandActive = !dict.listening && inputState.selection.collapsed &&
+        dev.agentic.ui.components.activeCommandQuery(inputState.text.toString(), inputState.selection.end) != null
+    val commandMatches =
+        if (!commandActive) emptyList()
+        else dev.agentic.ui.components.activeCommandQuery(inputState.text.toString(), inputState.selection.end)
+            ?.let { dev.agentic.ui.components.filterCommands(commandCandidates, it.query) }
+            .orEmpty()
+    LaunchedEffect(commandActive) { if (commandActive) onCommandsNeeded() }
+
     Column(Modifier.fillMaxWidth()) {
+    if (commandMatches.isNotEmpty()) {
+        dev.agentic.ui.components.CommandPalette(
+            candidates = commandMatches,
+            onPick = { picked ->
+                val caret = inputState.selection.end
+                dev.agentic.ui.components.activeCommandQuery(inputState.text.toString(), caret)?.let { q ->
+                    val (newText, newCaret) = dev.agentic.ui.components.applyCommand(
+                        inputState.text.toString(), q, picked.name,
+                    )
+                    inputState.edit {
+                        replace(0, length, newText)
+                        selection = TextRange(newCaret)
+                    }
+                }
+            },
+        )
+    }
     if (mentionMatches.isNotEmpty()) {
         MentionCandidatesPanel(
             candidates = mentionMatches,

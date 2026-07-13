@@ -91,6 +91,14 @@ data class SessionEventsResponse(
 @Serializable
 data class SkillInfo(val name: String, val description: String = "")
 
+/** An available slash command (from GET /api/commands, the SDK's live list). [name] has no leading `/`. */
+@Serializable
+data class SlashCommand(
+    val name: String,
+    val description: String = "",
+    @SerialName("argumentHint") val argumentHint: String = "",
+)
+
 /** [name] is the full `<plugin>@<marketplace>` id (the exact key claude's `enabledPlugins` map expects, echoed verbatim in [NewSessionReq.hiddenPlugins]). */
 @Serializable
 data class PluginInfo(val name: String)

@@ -253,6 +253,17 @@ class KtorAgenticApi(
         }
     }
 
+    override suspend fun commands(): List<SlashCommand> {
+        return try {
+            val r: List<SlashCommand> = client.get("$baseUrl/api/commands") { auth() }.body()
+            AppLog.d("API", "GET commands -> OK (${r.size})")
+            r
+        } catch (e: Exception) {
+            AppLog.w("API", "GET commands -> FAILED: ${e.message}")
+            emptyList() // palette is optional UX — never surface as an error
+        }
+    }
+
     override suspend fun plugins(): List<PluginInfo> {
         return try {
             val r: List<PluginInfo> = client.get("$baseUrl/api/plugins") { auth() }.body()

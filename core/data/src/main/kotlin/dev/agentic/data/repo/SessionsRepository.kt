@@ -242,6 +242,7 @@ class SessionsRepository(
 
     // ── Catalog passthroughs (NewRequestViewModel) ──
     suspend fun repos(): RepoList = api.repos()
+    suspend fun commands(): List<dev.agentic.data.net.SlashCommand> = api.commands()
     suspend fun templates(): List<Template> = runCatching { api.getTemplates() }.getOrDefault(emptyList())
     /** Mark events up to [eventId] read (server-side unread cursor). */
     suspend fun ack(id: String, eventId: Long) = api.ackSession(id, eventId)

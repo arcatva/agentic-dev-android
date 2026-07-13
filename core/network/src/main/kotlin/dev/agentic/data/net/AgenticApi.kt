@@ -22,6 +22,8 @@ interface AgenticApi {
     suspend fun workflowAgent(id: String, runId: String, agentId: String): String
     suspend fun repos(): RepoList
     suspend fun skills(): List<SkillInfo>
+    /** Available slash commands (GET /api/commands, the SDK's live list). Default no-op for test fakes. */
+    suspend fun commands(): List<SlashCommand> = emptyList()
     /** Installed Claude Code plugins (`<plugin>@<marketplace>` ids) from GET /api/plugins. Default no-op for test fakes. */
     suspend fun plugins(): List<PluginInfo> = emptyList()
     suspend fun create(req: NewSessionReq): String

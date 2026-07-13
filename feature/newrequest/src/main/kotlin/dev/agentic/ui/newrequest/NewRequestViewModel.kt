@@ -123,6 +123,12 @@ data class NewRequestUiState(
     // staging area; on submit the staged ones are listed in [NewSessionReq.stagedUploads] and
     // their paths embedded in the prompt's `[attached: ...]` marker.
     val attachments: List<PendingAttachment> = emptyList(),
+    // Available slash commands (composer `/` palette) + the `/lfg` default toggle. The toggle
+    // defaults ON when `lfg` is available (compound-engineering installed); on submit an enabled
+    // toggle prefixes the prompt with `/lfg ` unless it is already a slash command.
+    val commands: List<dev.agentic.data.net.SlashCommand> = emptyList(),
+    val lfgEnabled: Boolean = false,
+    val lfgTouched: Boolean = false,
     val submitting: Boolean = false,
     val createdId: String? = null,
     val error: String? = null,
@@ -144,6 +150,16 @@ class NewRequestViewModel(
                     it.copy(availableRepos = repoList.local + repoList.remote)
                 }
             } catch (e: Exception) { AppLog.d("VM", "catalog repos load failed: ${e.message}") }
+        }
+        viewModelScope.launch {
+            try {
+                val cmds = sessionsRepo.commands()
+                val hasLfg = cmds.any { it.name == "lfg" }
+                _uiState.update {
+                    // default the toggle ON when lfg is available — unless the user already set it.
+                    it.copy(commands = cmds, lfgEnabled = if (it.lfgTouched) it.lfgEnabled else hasLfg)
+                }
+            } catch (e: Exception) { AppLog.d("VM", "catalog commands load failed: ${e.message}") }
         }
         viewModelScope.launch {
             try {
@@ -197,6 +213,11 @@ class NewRequestViewModel(
     }
 
     fun setPrompt(prompt: String) { _uiState.update { it.copy(prompt = prompt) } }
+
+    /** User toggled the `/lfg` switch — remember it so the auto-default never overrides the choice. */
+    fun setLfgEnabled(enabled: Boolean) {
+        _uiState.update { it.copy(lfgEnabled = enabled, lfgTouched = true) }
+    }
     fun setClaudeMd(claudeMd: String) { _uiState.update { it.copy(claudeMd = claudeMd) } }
     fun setModel(model: String?) { _uiState.update { it.copy(model = model) } }
     fun setEffort(effort: String?) { _uiState.update { it.copy(effort = effort) } }
@@ -361,7 +382,11 @@ class NewRequestViewModel(
                 hiddenMcpServers   = emptyList(),
                 forcedOnMcpServers = emptyList(),
                 extraMcpServers  = emptyList(),
-                prompt = composePromptWithMarker(s.prompt, finalAtts),
+                // `/lfg` toggle: prefix so the platform expands the real lfg pipeline. Skip if the
+                // prompt is already a slash command (user chose one explicitly).
+                prompt = composePromptWithMarker(s.prompt, finalAtts).let { body ->
+                    if (s.lfgEnabled && !dev.agentic.ui.components.isSlashCommand(body)) "/lfg $body" else body
+                },
                 model = s.model,
                 // Ultracode always runs at xhigh — enforce the invariant in case a template set
                 // mode=ultracode with a different effort.
