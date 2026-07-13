@@ -32,7 +32,7 @@ navigationCompose = "2.8.9"
 
 # ── 网络 ───────────────────────────────────────────────────
 # Ktor 锁在 2.x（3.x 为破坏性大版本，不在本次范围）
-ktor = "2.3.13"
+ktor = "3.5.1"
 kotlinxSerializationJson = "1.7.3"  # 1.8.x pairs with Kotlin 2.1 — hold with the Kotlin 2.0.x pin
 
 # ── Firebase ───────────────────────────────────────────────
