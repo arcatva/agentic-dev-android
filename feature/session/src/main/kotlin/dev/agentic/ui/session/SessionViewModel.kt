@@ -363,6 +363,24 @@ class SessionViewModel(
         }
     }
 
+    /** `/`-command palette candidates (the SDK's live list). Fetched once, kept for instant open. */
+    private val _commandCandidates =
+        MutableStateFlow<List<dev.agentic.ui.components.CommandItem>>(emptyList())
+    val commandCandidates: StateFlow<List<dev.agentic.ui.components.CommandItem>> =
+        _commandCandidates.asStateFlow()
+    private var commandsFetch: Job? = null
+
+    /** Best-effort, single-flight, cached — the server already caches, so once per screen is plenty. */
+    fun refreshCommands() {
+        if (commandsFetch?.isActive == true || _commandCandidates.value.isNotEmpty()) return
+        commandsFetch = viewModelScope.launch {
+            runCatching { sessionsRepo.commands() }.onSuccess { cmds ->
+                _commandCandidates.value =
+                    cmds.map { dev.agentic.ui.components.CommandItem(it.name, it.description, it.argumentHint) }
+            }
+        }
+    }
+
     fun onInput(s: String) {
         sessionsRepo.setDraft(id, s)   // persist (memory + disk) so leaving/backgrounding + returning restores it
         local.update { it.copy(input = s) }
