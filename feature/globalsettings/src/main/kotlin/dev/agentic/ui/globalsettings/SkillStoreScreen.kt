@@ -42,6 +42,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -127,8 +128,19 @@ fun SkillStoreScreen(
                     // Icon actions — manage sources / bypass the cache.
                     IconButton(onClick = { sourcesOpen = true }) {
                         val count = s.sources?.size ?: 0
-                        BadgedBox(badge = { if (count > 0) Badge { Text("$count") } }) {
-                            Icon(Icons.Rounded.Source, contentDescription = "Sources")
+                        // Fold the count into the icon's contentDescription and clear the badge's
+                        // semantics so TalkBack announces "Sources (N)" as one label, not two nodes.
+                        BadgedBox(
+                            badge = {
+                                if (count > 0) {
+                                    Badge(modifier = Modifier.clearAndSetSemantics {}) { Text("$count") }
+                                }
+                            },
+                        ) {
+                            Icon(
+                                Icons.Rounded.Source,
+                                contentDescription = if (count > 0) "Sources ($count)" else "Sources",
+                            )
                         }
                     }
                     IconButton(onClick = { resolvedVm.loadCatalog(force = true) }, enabled = !s.catalogLoading) {
