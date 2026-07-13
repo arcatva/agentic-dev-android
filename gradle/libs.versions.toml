@@ -2,7 +2,7 @@
 # ── 构建工具链 ──────────────────────────────────────────────
 # AGP 8.7.x 是 material3 1.4.0-alpha18 / Expressive API 施加的上限
 # （1.5.0-alpha 线需 Compose 1.12 → compileSdk 37 → 更新工具链）
-agp = "8.7.3"
+agp = "9.2.1"
 # Kotlin 2.0.x 在 kotlin-android / compose-compiler / serialization 三插件间保持一致
 kotlin = "2.0.21"
 # detekt 1.23.x supports Kotlin 2.0 (ships its own embedded compiler); used for static analysis (A2)
