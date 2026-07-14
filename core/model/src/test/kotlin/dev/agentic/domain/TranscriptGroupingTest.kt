@@ -109,6 +109,86 @@ class TranscriptGroupingTest {
         assertEquals("file older than every visible turn is hidden", 0, out.count { it is AttachmentNode })
     }
 
+    @Test fun truncated_window_ignores_a_coincidental_later_mention_of_an_old_file() {
+        // Real-world "sinks to the bottom": the tail window of a very long session. An outbox file was
+        // delivered long ago (older than every visible turn) so its inline agentic_file marker is ABOVE
+        // the window. The resident wrap-up report happens to CITE that file's name (e.g. it reports on the
+        // spec it implemented). The poll copy must NOT latch onto that coincidental mention and sink to
+        // the bottom — the file belongs to unloaded history above and is hidden (paging back reveals the
+        // inline card at its true spot), exactly like a file that no visible message names at all.
+        val display = listOf<Node>(
+            PromptNode("继续下一批", at = 3_000),
+            TextNode("最终报告：已实现 specs/2026-07-11-enterprise-refactor-design.md 的全部条目"),
+        )
+        val file = AttachmentNode("outbox/2026-07-11-enterprise-refactor-design.md", at = 1_000)
+        val out = interleaveShared(display, listOf(file), truncatedStart = true, markerBacked = true)
+        assertEquals("a coincidental late mention must not resurrect an old off-window card", 0, out.count { it is AttachmentNode })
+        assertEquals("display otherwise untouched", display, out)
+    }
+
+    @Test fun legacy_session_without_markers_keeps_a_resident_delivery_with_backdated_mtime() {
+        // Codex edge: a marker-LESS (legacy) backend where the file's genuine delivery message IS resident,
+        // but its poll `at` (filesystem mtime) is backdated below the window start (e.g. copied with `cp -p`,
+        // or `touch`-ed). Without markerBacked, no resident marker could have deduped a real delivery, so a
+        // visible naming message must be trusted — the card anchors after it and is NOT hidden by the mtime
+        // gate. (On a marker-backed backend this can't arise: the delivery's marker would be resident and
+        // would have deduped the poll copy before the gate ran.)
+        val display = listOf<Node>(
+            PromptNode("build me the report", at = 5_000),
+            TextNode("delivered: outbox/report.md"),
+        )
+        val file = AttachmentNode("outbox/report.md", at = 1_000)   // backdated mtime, older than the window
+        val out = interleaveShared(display, listOf(file), truncatedStart = true, markerBacked = false)
+        assertEquals("legacy resident delivery is not hidden by a backdated mtime", 1, out.count { it is AttachmentNode })
+        assertEquals("anchored after its (resident) delivery message", 2, out.indexOfFirst { it is AttachmentNode })
+    }
+
+    @Test fun truncated_window_hides_only_the_old_file_when_pending_mixes_ages() {
+        // The per-file gate is independent: in one poll batch an OLD off-window file (cited later by a
+        // wrap-up) is hidden while a genuinely in-window NEW file (named by its delivery message) anchors.
+        val display = listOf<Node>(
+            PromptNode("继续下一批", at = 3_000),
+            TextNode("delivered: outbox/new.md"),
+            TextNode("收尾：见 outbox/old.md 的结论"),   // coincidental cite of the OLD file
+        )
+        val shared = listOf(
+            AttachmentNode("outbox/old.md", at = 1_000),   // older than the window → hidden
+            AttachmentNode("outbox/new.md", at = 3_500),   // in-window + named by its delivery line → anchored
+        )
+        val out = interleaveShared(display, shared, truncatedStart = true, markerBacked = true)
+        assertEquals("old off-window file hidden", 0, out.count { (it as? AttachmentNode)?.path == "outbox/old.md" })
+        val newIdx = out.indexOfFirst { (it as? AttachmentNode)?.path == "outbox/new.md" }
+        val deliverIdx = out.indexOfFirst { it is TextNode && (it as TextNode).text.contains("delivered: outbox/new.md") }
+        assertEquals("new in-window file anchored right after its delivery message", deliverIdx + 1, newIdx)
+    }
+
+    @Test fun truncated_window_keeps_a_file_delivered_exactly_at_the_window_start() {
+        // Boundary: a file whose delivery time EQUALS the window's earliest timestamp sits on the window
+        // edge, not above it — the gate is strict `<`, so it is kept and anchored, never hidden.
+        val display = listOf<Node>(
+            PromptNode("req", at = 1_000),
+            TextNode("delivered: outbox/edge.md"),
+        )
+        val file = AttachmentNode("outbox/edge.md", at = 1_000)
+        val out = interleaveShared(display, listOf(file), truncatedStart = true, markerBacked = true)
+        assertEquals("file at the exact window-start is kept, not hidden", 1, out.count { it is AttachmentNode })
+        assertEquals("anchored after its delivery message", 2, out.indexOfFirst { it is AttachmentNode })
+    }
+
+    @Test fun truncated_window_gate_uses_inline_marker_time_when_no_prompt_is_resident() {
+        // windowStart comes from ANY timestamped resident node, not just prompts: here the only timestamp
+        // is a resident inline agentic_file marker. An older poll file cited by a later message must still
+        // be hidden — the turns-only fallback (turns.isEmpty) can't see this; the time gate can.
+        val display = listOf<Node>(
+            AttachmentNode("outbox/earlier.md", fromUser = false, at = 5_000),  // resident inline marker
+            TextNode("回顾：见 outbox/old.md"),                                   // coincidental cite of the OLD file
+        )
+        val file = AttachmentNode("outbox/old.md", at = 1_000)
+        val out = interleaveShared(display, listOf(file), truncatedStart = true, markerBacked = true)
+        assertEquals("only the resident inline marker remains; the old cited file is hidden", 1, out.count { it is AttachmentNode })
+        assertEquals("the one remaining card is the resident marker", "outbox/earlier.md", (out.first { it is AttachmentNode } as AttachmentNode).path)
+    }
+
     @Test fun truncated_window_still_anchors_a_file_named_by_a_visible_message() {
         // truncatedStart must NOT hide a file whose anchor IS visible: a message in the window names
         // it → the card sits right after that message, exactly as in a full transcript.

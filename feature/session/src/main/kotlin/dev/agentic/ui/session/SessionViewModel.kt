@@ -228,6 +228,14 @@ class SessionViewModel(
     /** Stable transcript reference reused when content is unchanged so poll ticks don't hand [Transcript] a fresh list instance every ~2s (periodic hitch). */
     private var stableNodes: List<Node> = emptyList()
 
+    /** Sticky: does this session's backend emit inline `agentic_file` delivery markers? Flips true the
+     *  moment any window shows one (an [AttachmentNode] carrying a server `at > 0`) and never resets, so
+     *  paging away to a marker-less window keeps the knowledge. Gates [interleaveShared]'s mtime-hide:
+     *  only a marker-backed session can safely hide an off-window poll copy despite a later coincidental
+     *  name mention (its genuine deliveries are always deduped by resident markers). buildUiState runs
+     *  serially on [computeDispatcher], so a plain monotonic false→true var needs no synchronization. */
+    private var everSawFileMarker = false
+
     /** Builds UI state in one place: merges shared files, applies optimistic overlays, derives all input-state flags. Only side effect is [clearMatchedPending]. */
     private fun buildUiState(
         t: TranscriptState,
@@ -235,8 +243,9 @@ class SessionViewModel(
         shared: List<AttachmentNode>,
         l: Local,
     ): SessionUiState {
-        // 1. Merge outbox files at the turn that produced them. hasMore (start-truncated window) hides anchorless files instead of gluing them to the streamed bottom — paging back reveals them at their true position.
-        var nodes: List<Node> = interleaveShared(t.nodes, shared, truncatedStart = t.hasMore)
+        // 1. Merge outbox files at the turn that produced them. hasMore (start-truncated window) hides anchorless files instead of gluing them to the streamed bottom — paging back reveals them at their true position. markerBacked (sticky) lets a start-truncated window hide an old off-window card even when a later message coincidentally cites its name — safe only because a marker-backed backend already deduped every genuine on-screen delivery.
+        if (!everSawFileMarker && t.nodes.any { (it as? AttachmentNode)?.let { a -> a.at > 0 } == true }) everSawFileMarker = true
+        var nodes: List<Node> = interleaveShared(t.nodes, shared, truncatedStart = t.hasMore, markerBacked = everSawFileMarker)
         // 2. Optimistic INITIAL prompt until a real PromptNode lands.
         if (l.optimisticPrompt != null && nodes.none { it is PromptNode }) {
             nodes = listOf(PromptNode(l.optimisticPrompt)) + nodes
