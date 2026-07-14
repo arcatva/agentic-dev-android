@@ -725,6 +725,40 @@ class KtorAgenticApi(
         }
     }
 
+    // ── ChatGPT subscription OAuth ──
+    override suspend fun chatgptStatus(): ChatGptStatus {
+        return try {
+            val r: ChatGptStatus = client.get("$baseUrl/api/providers/oauth/chatgpt/status") { auth() }.body()
+            AppLog.d("API", "GET chatgpt oauth status -> OK (logged_in=${r.loggedIn})")
+            r
+        } catch (e: Exception) {
+            AppLog.w("API", "GET chatgpt oauth status -> FAILED: ${e.message}")
+            throw e
+        }
+    }
+
+    override suspend fun chatgptStartLogin(): String {
+        return try {
+            val url = client.post("$baseUrl/api/providers/oauth/chatgpt/start") { auth() }
+                .body<OAuthStartResp>().authorizeUrl
+            AppLog.d("API", "POST chatgpt oauth start -> OK")
+            url
+        } catch (e: Exception) {
+            AppLog.w("API", "POST chatgpt oauth start -> FAILED: ${e.message}")
+            throw e
+        }
+    }
+
+    override suspend fun chatgptLogout() {
+        try {
+            client.post("$baseUrl/api/providers/oauth/chatgpt/logout") { auth() }
+            AppLog.d("API", "POST chatgpt oauth logout -> OK")
+        } catch (e: Exception) {
+            AppLog.w("API", "POST chatgpt oauth logout -> FAILED: ${e.message}")
+            throw e
+        }
+    }
+
     override suspend fun getRouting(): RoutingConfig {
         return try {
             val r: RoutingConfig = client.get("$baseUrl/api/routing") { auth() }.body()

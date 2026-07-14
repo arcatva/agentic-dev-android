@@ -72,6 +72,10 @@ interface AgenticApi {
     suspend fun nativeModels(): List<NativeFamily> = emptyList()
     suspend fun putNativeOverride(family: String, req: NativeOverrideReq) {}
     suspend fun deleteNativeOverride(family: String) {}
+    /** ChatGPT-subscription OAuth: login state / start (returns the authorize URL to open) / logout. */
+    suspend fun chatgptStatus(): ChatGptStatus = ChatGptStatus()
+    suspend fun chatgptStartLogin(): String = ""
+    suspend fun chatgptLogout() {}
     /** Global cost⇄quality routing knob (0=cheapest..1=strongest). Default no-op for test fakes. */
     suspend fun getRouting(): RoutingConfig = RoutingConfig()
     suspend fun setRouting(tradeoff: Float) {}

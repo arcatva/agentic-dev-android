@@ -436,6 +436,27 @@ data class Provider(
 @Serializable
 data class ProviderList(val providers: List<Provider> = emptyList())
 
+// ── ChatGPT subscription OAuth ──
+
+/** Login state for the ChatGPT (OpenAI subscription) OAuth provider — GET /api/providers/oauth/chatgpt/status. */
+@Serializable
+data class ChatGptStatus(
+    val account: String = "chatgpt",
+    @SerialName("logged_in") val loggedIn: Boolean = false,
+    val email: String = "",
+    @SerialName("account_id") val accountId: String = "",
+    /** Unix epoch seconds the current access token expires (0 when logged out). */
+    @SerialName("expires_at") val expiresAt: Long = 0,
+    /** The refresh token was rejected — the user must sign in again. */
+    @SerialName("needs_reauth") val needsReauth: Boolean = false,
+    /** GPT models only route when the LiteLLM proxy that runs them is installed on the server. */
+    @SerialName("litellm_available") val litellmAvailable: Boolean = false,
+)
+
+/** POST /api/providers/oauth/chatgpt/start → the authorize URL to open in a browser. */
+@Serializable
+data class OAuthStartResp(@SerialName("authorize_url") val authorizeUrl: String = "")
+
 // ── Native Claude per-family routing overrides ──
 
 /** One native Claude model as discovered by the Anthropic Models API. */

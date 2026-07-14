@@ -80,10 +80,13 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import android.content.Intent
+import android.net.Uri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
@@ -261,6 +264,9 @@ fun ModelsSections() {
         )
     }
 
+    // ── ChatGPT subscription (OAuth) — add GPT models to the router with your ChatGPT login ──
+    ChatGptSection(ui, vm)
+
     val router = ui.providers.firstOrNull { it.router }
     val currentRouter = router?.name
     val onEdit: (Provider) -> Unit = { form.loadFrom(it); formVisible = true }
@@ -354,6 +360,96 @@ fun ModelsSections() {
 
     // Claude Code official (native) models — per-family routing override editor.
     NativeModelsSection()
+}
+
+/** Sign in with a ChatGPT subscription (OAuth) so GPT models join the delegate router. The server
+ *  hosts the OAuth callback (fixed loopback redirect); here we just open the authorize URL in a
+ *  browser and reflect the polled login status. */
+@Composable
+private fun ChatGptSection(ui: ProvidersUiState, vm: ProvidersViewModel) {
+    val context = LocalContext.current
+    val cg = ui.chatgpt
+    SectionCard("ChatGPT subscription") {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            when {
+                cg != null && cg.loggedIn -> {
+                    val who = cg.email.ifBlank { "your ChatGPT account" }
+                    Text(
+                        if (cg.needsReauth) "Signed in as $who — session expired." else "Signed in as $who.",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    if (cg.needsReauth) {
+                        Text(
+                            "The login expired and couldn't refresh. Sign in again to keep GPT models routing.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                    if (!cg.litellmAvailable) {
+                        Text(
+                            "GPT models route through the LiteLLM proxy, which isn't installed on the " +
+                                "server — install it there for these models to run.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (cg.needsReauth) {
+                            Button(
+                                enabled = !ui.chatgptBusy,
+                                onClick = { vm.startChatGptLogin { url -> openInBrowser(context, url) } },
+                            ) { Text("Sign in again") }
+                        }
+                        TextButton(enabled = !ui.chatgptBusy, onClick = { vm.logoutChatGpt() }) {
+                            Text("Sign out")
+                        }
+                    }
+                }
+                else -> {
+                    Text(
+                        "Use your ChatGPT subscription to add GPT models to the delegate router — no API key needed.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    // The OAuth redirect is a fixed loopback on the SERVER host (localhost:1455), so
+                    // the sign-in must be finished in a browser that can reach the server — same
+                    // machine, or a forwarded port. On a remote phone the device browser can't.
+                    Text(
+                        "Finish sign-in in a browser on the server host (or a forwarded localhost:1455).",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Button(
+                        enabled = !ui.chatgptBusy,
+                        onClick = { vm.startChatGptLogin { url -> openInBrowser(context, url) } },
+                    ) { Text("Sign in with ChatGPT") }
+                }
+            }
+            if (ui.chatgptBusy) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    LoadingIndicator()
+                    Text(
+                        "Waiting for browser sign-in…",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** Open [url] in the system browser to complete the OAuth login. Best-effort — a device with no
+ *  browser silently no-ops rather than crashing. */
+private fun openInBrowser(context: android.content.Context, url: String) {
+    runCatching {
+        context.startActivity(
+            Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+        )
+    }
 }
 
 // ── Router color helpers ──────────────────────────────────────────────────
