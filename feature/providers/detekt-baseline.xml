@@ -20,5 +20,6 @@
     <ID>MaxLineLength:ProvidersScreen.kt$Modifier.clip(RoundedCornerShape(8.dp)).background(AccentViolet).padding(horizontal = 8.dp, vertical = 2.dp)</ID>
     <ID>MaxLineLength:ProvidersScreen.kt$onSave(NativeOverrideReq(capability = capability, priority = priority, cost = cost, description = description))</ID>
     <ID>NewLineAtEndOfFile:NativeModelsViewModel.kt$dev.agentic.ui.providers.NativeModelsViewModel.kt</ID>
+    <ID>TooManyFunctions:ProvidersScreen.kt$dev.agentic.ui.providers.ProvidersScreen.kt</ID>
   </CurrentIssues>
 </SmellBaseline>

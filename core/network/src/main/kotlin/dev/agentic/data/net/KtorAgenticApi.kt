@@ -690,6 +690,38 @@ class KtorAgenticApi(
         }
     }
 
+    // ── ChatGPT subscription (OAuth) ──
+    override suspend fun startSubscriptionLogin(): SubscriptionLogin {
+        return try {
+            val r: SubscriptionLogin =
+                client.post("$baseUrl/api/providers/openai-subscription/login") { auth() }.body()
+            AppLog.d("API", "POST subscription/login -> OK")
+            r
+        } catch (e: Exception) {
+            AppLog.w("API", "POST subscription/login -> FAILED: ${e.message}")
+            throw e
+        }
+    }
+
+    override suspend fun subscriptionStatus(): SubscriptionStatus {
+        return try {
+            client.get("$baseUrl/api/providers/openai-subscription/status") { auth() }.body()
+        } catch (e: Exception) {
+            AppLog.w("API", "GET subscription/status -> FAILED: ${e.message}")
+            throw e
+        }
+    }
+
+    override suspend fun subscriptionLogout() {
+        try {
+            client.post("$baseUrl/api/providers/openai-subscription/logout") { auth() }
+            AppLog.d("API", "POST subscription/logout -> OK")
+        } catch (e: Exception) {
+            AppLog.w("API", "POST subscription/logout -> FAILED: ${e.message}")
+            throw e
+        }
+    }
+
     // ── Native Claude per-family routing overrides ──
     override suspend fun nativeModels(): List<NativeFamily> {
         return try {

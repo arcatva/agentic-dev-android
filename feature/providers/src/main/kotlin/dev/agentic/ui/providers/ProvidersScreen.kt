@@ -67,6 +67,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
@@ -92,6 +93,7 @@ import dev.agentic.data.net.NativeFamily
 import dev.agentic.data.net.NativeOverrideReq
 import dev.agentic.data.net.NewProviderReq
 import dev.agentic.data.net.Provider
+import dev.agentic.data.net.SubscriptionStatus
 import dev.agentic.di.appContainer
 import dev.agentic.ui.AccentBlue
 import dev.agentic.ui.AccentBlueContainer
@@ -241,6 +243,16 @@ fun ModelsSections() {
     if (err != null) {
         Text(err, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
     }
+
+    // ── ChatGPT subscription (OAuth) — connect a ChatGPT plan so GPT joins the delegate pool ──
+    val uriHandler = LocalUriHandler.current
+    SubscriptionCard(
+        status = ui.subscription,
+        connecting = ui.connecting,
+        busy = ui.busy,
+        onConnect = { vm.connectSubscription { url -> uriHandler.openUri(url) } },
+        onDisconnect = { vm.disconnectSubscription() },
+    )
 
     // ── Global routing preference — the single cost⇄quality knob feeding the delegate router ──
     SectionCard("Routing") {
@@ -549,6 +561,67 @@ private fun ProviderCard(
 }
 
 // ── Shared metric row (sentence case, MD3 consistent) ──────────────────────
+
+// ── ChatGPT subscription (OAuth) card ───
+@Composable
+private fun SubscriptionCard(
+    status: SubscriptionStatus,
+    connecting: Boolean,
+    busy: Boolean,
+    onConnect: () -> Unit,
+    onDisconnect: () -> Unit,
+) {
+    SectionCard("ChatGPT subscription") {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            if (status.connected) {
+                Text(
+                    if (status.accountId.isNotEmpty()) {
+                        "Connected · account ${status.accountId}"
+                    } else {
+                        "Connected"
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Text(
+                    "GPT is in the delegate model pool. The access token refreshes automatically.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                TextButton(onClick = onDisconnect, enabled = !busy) { Text("Disconnect") }
+            } else {
+                if (status.needsReauth) {
+                    Text(
+                        "Session expired — reconnect to keep using GPT.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                } else {
+                    Text(
+                        "Connect a ChatGPT plan (OAuth) to add GPT models to the delegate pool. " +
+                            "Complete the login in a browser on the machine running agentic-dev.",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Button(onClick = onConnect, enabled = !connecting) {
+                        Text(if (status.needsReauth) "Reconnect" else "Connect")
+                    }
+                    if (connecting) {
+                        LoadingIndicator()
+                        Text(
+                            "Waiting for browser login…",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
 
 @Composable
 private fun MetricRow(

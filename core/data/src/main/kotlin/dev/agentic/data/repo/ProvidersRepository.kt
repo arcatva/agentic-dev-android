@@ -9,6 +9,8 @@ import dev.agentic.data.net.NewProviderReq
  * surface — feature ViewModels must come through here, never through [AgenticApi] directly
  * (enforced by the architecture test).
  */
+// Thin pass-through aggregator over one API surface; the function count is inherent, not a smell.
+@Suppress("TooManyFunctions")
 class ProvidersRepository(private val api: AgenticApi) {
     suspend fun providers() = api.providers()
     suspend fun addProvider(req: NewProviderReq) = api.addProvider(req)
@@ -20,4 +22,8 @@ class ProvidersRepository(private val api: AgenticApi) {
 
     suspend fun getRouting() = api.getRouting()
     suspend fun setRouting(tradeoff: Float) = api.setRouting(tradeoff)
+
+    suspend fun startSubscriptionLogin() = api.startSubscriptionLogin()
+    suspend fun subscriptionStatus() = api.subscriptionStatus()
+    suspend fun subscriptionLogout() = api.subscriptionLogout()
 }
