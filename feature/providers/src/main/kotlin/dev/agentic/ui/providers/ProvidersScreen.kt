@@ -261,6 +261,9 @@ fun ModelsSections() {
         )
     }
 
+    // ── ChatGPT subscription — attach a ChatGPT plan (OAuth) so GPT joins the model pool ──
+    ChatGptSection(onChanged = { vm.refresh() })
+
     val router = ui.providers.firstOrNull { it.router }
     val currentRouter = router?.name
     val onEdit: (Provider) -> Unit = { form.loadFrom(it); formVisible = true }

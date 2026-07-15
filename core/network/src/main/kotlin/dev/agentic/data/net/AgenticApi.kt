@@ -69,6 +69,12 @@ interface AgenticApi {
     suspend fun providers(): List<Provider> = emptyList()
     suspend fun addProvider(req: NewProviderReq) {}
     suspend fun deleteProvider(name: String) {}
+    /** ChatGPT subscription OAuth: start a login (returns authorize URL + state), complete it with
+     *  the captured code, read status, or sign out. Default no-ops for test fakes. */
+    suspend fun chatgptLoginStart(): ChatGptAuthStart = ChatGptAuthStart()
+    suspend fun chatgptLoginComplete(code: String, state: String) {}
+    suspend fun chatgptStatus(): ChatGptStatus = ChatGptStatus()
+    suspend fun chatgptDisconnect() {}
     suspend fun nativeModels(): List<NativeFamily> = emptyList()
     suspend fun putNativeOverride(family: String, req: NativeOverrideReq) {}
     suspend fun deleteNativeOverride(family: String) {}
