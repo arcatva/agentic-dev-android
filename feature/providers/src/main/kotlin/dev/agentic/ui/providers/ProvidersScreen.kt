@@ -80,10 +80,13 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import android.content.Intent
+import android.net.Uri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
@@ -200,6 +203,60 @@ private class ProviderFormState {
  * Self-contained: owns its ViewModel, the delete-confirm dialog, and the add/edit form state.
  * Emits its cards as siblings into the caller's Column (which provides the 12dp rhythm).
  */
+/**
+ * ChatGPT subscription card: log in with a personal ChatGPT plan (OAuth, not an API key) to add GPT
+ * to the delegate model pool, and show the current connection status.
+ */
+@Composable
+private fun ChatGptConnectCard(
+    ui: ProvidersUiState,
+    onConnect: () -> Unit,
+    onDisconnect: () -> Unit,
+) {
+    SectionCard("ChatGPT subscription") {
+        val status = ui.oauthStatus
+        val connected = status?.connected == true
+        val needsRelogin = status?.needsRelogin == true
+        val account = status?.accountId.orEmpty()
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            val line = when {
+                connected -> if (account.isNotBlank()) "Connected · $account" else "Connected"
+                needsRelogin -> "Session expired — reconnect to keep GPT available."
+                else -> "Log in with your ChatGPT plan to add GPT to the model pool."
+            }
+            Text(
+                line,
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (needsRelogin) MaterialTheme.colorScheme.error
+                else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (connected) {
+                Text(
+                    "The access token renews automatically.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (connected) {
+                    TextButton(onClick = onDisconnect, enabled = !ui.busy) { Text("Disconnect") }
+                    Button(onClick = onConnect, enabled = !ui.connecting) { Text("Reconnect") }
+                } else {
+                    Button(onClick = onConnect, enabled = !ui.connecting) {
+                        Text(
+                            when {
+                                ui.connecting -> "Connecting…"
+                                needsRelogin -> "Reconnect"
+                                else -> "Connect ChatGPT"
+                            },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
 @Composable
 fun ModelsSections() {
     val container = appContainer()
@@ -260,6 +317,23 @@ fun ModelsSections() {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
+
+    // ── ChatGPT subscription — OAuth login entry + connection status ──
+    val context = LocalContext.current
+    ChatGptConnectCard(
+        ui = ui,
+        onConnect = {
+            vm.connectChatgpt { url ->
+                runCatching {
+                    context.startActivity(
+                        Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                    )
+                }
+            }
+        },
+        onDisconnect = { vm.disconnectChatgpt() },
+    )
 
     val router = ui.providers.firstOrNull { it.router }
     val currentRouter = router?.name

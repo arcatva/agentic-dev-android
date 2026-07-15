@@ -690,6 +690,51 @@ class KtorAgenticApi(
         }
     }
 
+    // ── ChatGPT subscription OAuth ──
+    override suspend fun oauthChatgptStart(): OauthStartResp {
+        return try {
+            val r: OauthStartResp = client.post("$baseUrl/api/oauth/chatgpt/start") { auth() }.body()
+            AppLog.d("API", "POST oauth/chatgpt/start -> OK")
+            r
+        } catch (e: Exception) {
+            AppLog.w("API", "POST oauth/chatgpt/start -> FAILED: ${e.message}")
+            throw e
+        }
+    }
+
+    override suspend fun oauthChatgptComplete(state: String, code: String) {
+        try {
+            client.post("$baseUrl/api/oauth/chatgpt/complete") {
+                auth(); contentType(ContentType.Application.Json); setBody(OauthCompleteReq(state, code))
+            }
+            AppLog.d("API", "POST oauth/chatgpt/complete -> OK")
+        } catch (e: Exception) {
+            AppLog.w("API", "POST oauth/chatgpt/complete -> FAILED: ${e.message}")
+            throw e
+        }
+    }
+
+    override suspend fun oauthChatgptStatus(): OauthStatus {
+        return try {
+            val r: OauthStatus = client.get("$baseUrl/api/oauth/chatgpt") { auth() }.body()
+            AppLog.d("API", "GET oauth/chatgpt -> OK (connected=${r.connected})")
+            r
+        } catch (e: Exception) {
+            AppLog.w("API", "GET oauth/chatgpt -> FAILED: ${e.message}")
+            throw e
+        }
+    }
+
+    override suspend fun oauthChatgptLogout() {
+        try {
+            client.delete("$baseUrl/api/oauth/chatgpt") { auth() }
+            AppLog.d("API", "DELETE oauth/chatgpt -> OK")
+        } catch (e: Exception) {
+            AppLog.w("API", "DELETE oauth/chatgpt -> FAILED: ${e.message}")
+            throw e
+        }
+    }
+
     // ── Native Claude per-family routing overrides ──
     override suspend fun nativeModels(): List<NativeFamily> {
         return try {

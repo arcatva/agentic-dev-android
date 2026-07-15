@@ -14,6 +14,12 @@ class ProvidersRepository(private val api: AgenticApi) {
     suspend fun addProvider(req: NewProviderReq) = api.addProvider(req)
     suspend fun deleteProvider(name: String) = api.deleteProvider(name)
 
+    // ChatGPT subscription OAuth (connect a personal ChatGPT plan as a GPT provider).
+    suspend fun oauthChatgptStart() = api.oauthChatgptStart()
+    suspend fun oauthChatgptComplete(state: String, code: String) = api.oauthChatgptComplete(state, code)
+    suspend fun oauthChatgptStatus() = api.oauthChatgptStatus()
+    suspend fun oauthChatgptLogout() = api.oauthChatgptLogout()
+
     suspend fun nativeModels() = api.nativeModels()
     suspend fun putNativeOverride(family: String, req: NativeOverrideReq) = api.putNativeOverride(family, req)
     suspend fun deleteNativeOverride(family: String) = api.deleteNativeOverride(family)
