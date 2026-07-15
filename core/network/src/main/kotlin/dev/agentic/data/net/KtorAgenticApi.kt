@@ -690,6 +690,42 @@ class KtorAgenticApi(
         }
     }
 
+    // ── ChatGPT subscription OAuth ──
+    override suspend fun chatgptLoginStart(): ChatgptLoginStart {
+        return try {
+            val r: ChatgptLoginStart = client.post("$baseUrl/api/providers/chatgpt/login/start") { auth() }.body()
+            AppLog.d("API", "POST chatgpt/login/start -> OK")
+            r
+        } catch (e: Exception) {
+            AppLog.w("API", "POST chatgpt/login/start -> FAILED: ${e.message}")
+            throw e
+        }
+    }
+
+    override suspend fun chatgptLoginComplete(code: String, state: String): ChatgptStatus {
+        return try {
+            client.post("$baseUrl/api/providers/chatgpt/login/complete") {
+                auth(); contentType(ContentType.Application.Json)
+                setBody(ChatgptCompleteReq(code, state))
+            }
+            AppLog.d("API", "POST chatgpt/login/complete -> OK")
+            // complete returns {ok, account_id, expires_at}; read the authoritative status next.
+            chatgptStatus()
+        } catch (e: Exception) {
+            AppLog.w("API", "POST chatgpt/login/complete -> FAILED: ${e.message}")
+            throw e
+        }
+    }
+
+    override suspend fun chatgptStatus(): ChatgptStatus {
+        return try {
+            client.get("$baseUrl/api/providers/chatgpt/status") { auth() }.body()
+        } catch (e: Exception) {
+            AppLog.w("API", "GET chatgpt/status -> FAILED: ${e.message}")
+            throw e
+        }
+    }
+
     // ── Native Claude per-family routing overrides ──
     override suspend fun nativeModels(): List<NativeFamily> {
         return try {

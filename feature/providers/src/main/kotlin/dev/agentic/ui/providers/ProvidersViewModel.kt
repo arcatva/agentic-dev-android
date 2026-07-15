@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.agentic.data.log.AppLog
 import dev.agentic.data.repo.ProvidersRepository
+import dev.agentic.data.net.ChatgptLoginStart
+import dev.agentic.data.net.ChatgptStatus
 import dev.agentic.data.net.NewProviderReq
 import dev.agentic.data.net.Outcome
 import dev.agentic.data.net.Provider
@@ -22,6 +24,10 @@ data class ProvidersUiState(
     val loading: Boolean = true,
     val busy: Boolean = false,
     val error: String? = null,
+    /** ChatGPT subscription connection status (null until first loaded). */
+    val chatgpt: ChatgptStatus? = null,
+    /** A ChatGPT login round-trip is in flight (browser + loopback). */
+    val chatgptBusy: Boolean = false,
 )
 
 /**
@@ -54,8 +60,56 @@ class ProvidersViewModel(private val repo: ProvidersRepository) : ViewModel() {
                 is Outcome.Success -> _uiState.update { it.copy(tradeoff = rc.value.tradeoff) }
                 is Outcome.Failure -> AppLog.w("VM", "routing load failed err=${rc.error}")
             }
+            // ChatGPT connection status (best-effort; older servers 404 → treat as disconnected).
+            when (val cg = runCatchingOutcome { repo.chatgptStatus() }) {
+                is Outcome.Success -> _uiState.update { it.copy(chatgpt = cg.value) }
+                is Outcome.Failure -> {
+                    AppLog.w("VM", "chatgpt status load failed err=${cg.error}")
+                    _uiState.update { it.copy(chatgpt = ChatgptStatus()) }
+                }
+            }
         }
     }
+
+    /** Step 1 of the ChatGPT login: ask the server for the browser URL + PKCE state. Returns null
+     *  (and surfaces an error) on failure so the caller aborts the flow. Marks the flow busy. */
+    suspend fun startChatgptLogin(): ChatgptLoginStart? {
+        if (_uiState.value.chatgptBusy) return null
+        _uiState.update { it.copy(chatgptBusy = true, error = null) }
+        return when (val r = runCatchingOutcome { repo.chatgptLoginStart() }) {
+            is Outcome.Success -> r.value
+            is Outcome.Failure -> {
+                AppLog.w("VM", "chatgpt login start failed err=${r.error}")
+                _uiState.update { it.copy(chatgptBusy = false, error = r.error.toString()) }
+                null
+            }
+        }
+    }
+
+    /** Step 2: hand the server the authorization code; on success the GPT model appears in the
+     *  catalog, so invalidate it and refresh. Always clears the busy flag. */
+    suspend fun finishChatgptLogin(code: String, state: String) {
+        when (val r = runCatchingOutcome { repo.chatgptLoginComplete(code, state) }) {
+            is Outcome.Success -> {
+                AppLog.d("VM", "chatgpt login complete")
+                _uiState.update { it.copy(chatgptBusy = false, chatgpt = r.value) }
+                dev.agentic.ui.ModelCatalog.invalidate()
+                refresh()
+            }
+            is Outcome.Failure -> {
+                AppLog.w("VM", "chatgpt login complete failed err=${r.error}")
+                _uiState.update { it.copy(chatgptBusy = false, error = r.error.toString()) }
+            }
+        }
+    }
+
+    /** The browser/loopback leg failed (port busy, timeout, state mismatch, user cancel). */
+    fun failChatgptLogin(message: String?) {
+        _uiState.update { it.copy(chatgptBusy = false, error = message ?: "ChatGPT login failed") }
+    }
+
+    /** Disconnect (logout): removes the provider AND clears the server-side token store. */
+    fun disconnectChatgpt() = remove("chatgpt")
 
     /** In-flight tradeoff POST, cancelled when a newer release supersedes it (below). */
     private var tradeoffSaveJob: Job? = null

@@ -431,10 +431,34 @@ data class Provider(
     /** Whether this model participates in routing at all. Off → excluded from the candidate pool. */
     val enabled: Boolean = true,
     @SerialName("has_key") val hasKey: Boolean = false,
+    /** True for the ChatGPT-subscription provider (connected via OAuth, no API key). */
+    @SerialName("chatgpt_oauth") val chatgptOauth: Boolean = false,
 )
 
 @Serializable
 data class ProviderList(val providers: List<Provider> = emptyList())
+
+// ── ChatGPT subscription OAuth ──
+
+/** Response of POST /api/providers/chatgpt/login/start — the browser opens [authorizeUrl]; [state] is echoed back on completion. */
+@Serializable
+data class ChatgptLoginStart(
+    @SerialName("authorize_url") val authorizeUrl: String,
+    val state: String,
+)
+
+/** POST body for /api/providers/chatgpt/login/complete. */
+@Serializable
+data class ChatgptCompleteReq(val code: String, val state: String)
+
+/** GET /api/providers/chatgpt/status — connection state for the UI. */
+@Serializable
+data class ChatgptStatus(
+    val connected: Boolean = false,
+    @SerialName("account_id") val accountId: String? = null,
+    @SerialName("expires_at") val expiresAt: Long = 0,
+    @SerialName("needs_relogin") val needsRelogin: Boolean = false,
+)
 
 // ── Native Claude per-family routing overrides ──
 
