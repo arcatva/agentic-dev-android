@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import dev.agentic.data.log.AppLog
 import dev.agentic.data.repo.ProvidersRepository
 import dev.agentic.data.net.NewProviderReq
+import dev.agentic.data.net.OAuthCompleteReq
 import dev.agentic.data.net.Outcome
 import dev.agentic.data.net.Provider
 import dev.agentic.data.net.runCatchingOutcome
@@ -120,5 +121,68 @@ class ProvidersViewModel(private val repo: ProvidersRepository) : ViewModel() {
                 }
             }
         }
+    }
+
+    /** Begin the ChatGPT OAuth login; [onUrl] receives the browser authorize URL to open. */
+    fun startOauth(onUrl: (String) -> Unit) {
+        _uiState.update { it.copy(error = null) }
+        viewModelScope.launch {
+            when (val r = runCatchingOutcome { repo.oauthStart() }) {
+                is Outcome.Success -> {
+                    AppLog.d("VM", "oauth start ok")
+                    onUrl(r.value.authorizeUrl)
+                }
+                is Outcome.Failure -> {
+                    AppLog.w("VM", "oauth start failed err=${r.error}")
+                    _uiState.update { it.copy(error = r.error.toString()) }
+                }
+            }
+        }
+    }
+
+    /** Finish OAuth by relaying the code+state parsed out of the pasted redirect URL, then refresh so
+     *  the GPT model appears. [onResult] gets null on success or an error message. */
+    fun completeOauth(redirectUrl: String, model: String?, onResult: (String?) -> Unit) {
+        val (code, state) = parseCallback(redirectUrl)
+        if (code.isNullOrBlank() || state.isNullOrBlank()) {
+            onResult("Couldn't find code & state in that URL")
+            return
+        }
+        if (_uiState.value.busy) return
+        _uiState.update { it.copy(busy = true, error = null) }
+        viewModelScope.launch {
+            val req = OAuthCompleteReq(code, state, model?.ifBlank { null })
+            when (val r = runCatchingOutcome { repo.oauthComplete(req) }) {
+                is Outcome.Success -> {
+                    AppLog.d("VM", "oauth complete ok model=${r.value.model}")
+                    _uiState.update { it.copy(busy = false) }
+                    dev.agentic.ui.ModelCatalog.invalidate()
+                    refresh()
+                    onResult(null)
+                }
+                is Outcome.Failure -> {
+                    AppLog.w("VM", "oauth complete failed err=${r.error}")
+                    val msg = r.error.toString()
+                    _uiState.update { it.copy(busy = false, error = msg) }
+                    onResult(msg)
+                }
+            }
+        }
+    }
+
+    /** Extract `code` and `state` from a pasted redirect URL (query params). */
+    private fun parseCallback(url: String): Pair<String?, String?> {
+        val query = url.substringAfter('?', "").substringBefore('#')
+        var code: String? = null
+        var state: String? = null
+        for (pair in query.split('&')) {
+            val eq = pair.indexOf('=')
+            if (eq < 0) continue
+            when (pair.substring(0, eq)) {
+                "code" -> code = pair.substring(eq + 1)
+                "state" -> state = pair.substring(eq + 1)
+            }
+        }
+        return code to state
     }
 }

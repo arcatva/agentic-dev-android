@@ -2,6 +2,8 @@
 
 package dev.agentic.ui.providers
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -55,6 +57,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextFieldColors
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material3.ToggleButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -260,6 +263,9 @@ fun ModelsSections() {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
+
+    // ── ChatGPT subscription (OAuth) — connect a GPT model into the delegate pool ──
+    ChatGptOauthCard(vm, ui)
 
     val router = ui.providers.firstOrNull { it.router }
     val currentRouter = router?.name
@@ -1084,4 +1090,75 @@ private fun NativeOverrideDialog(
         },
         dismissButton = { TextButton(onClick = onDismiss, enabled = !busy) { Text("Cancel") } },
     )
+}
+
+/**
+ * Connect a ChatGPT subscription via OAuth (not an API key). Tapping Connect opens the sign-in page in
+ * a browser; the redirect lands on `localhost:1455`, so the user pastes that redirect URL back here and
+ * the code+state are relayed to the backend, which registers the GPT model and refreshes the list.
+ */
+@Composable
+private fun ChatGptOauthCard(vm: ProvidersViewModel, ui: ProvidersUiState) {
+    val context = LocalContext.current
+    val gpt = ui.providers.firstOrNull { it.oauth }
+    var model by remember { mutableStateOf("gpt-5") }
+    var redirect by remember { mutableStateOf("") }
+
+    SectionCard("ChatGPT subscription") {
+        when {
+            gpt?.needsReauth == true -> Text(
+                "Session expired — reconnect to keep using GPT.",
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+            )
+            gpt != null -> Text(
+                buildString {
+                    append("Connected")
+                    gpt.accountId?.let { append(" · account ").append(it) }
+                    append(" · model ").append(gpt.model)
+                },
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall,
+            )
+            else -> Text(
+                "Sign in with your ChatGPT account to add GPT to the delegate pool (no API key needed).",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+
+        AppTextField(
+            value = model,
+            onValueChange = { model = it },
+            label = "GPT model",
+            supportingText = "Default gpt-5",
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        Button(
+            onClick = {
+                vm.startOauth { url ->
+                    runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
+                }
+            },
+            enabled = !ui.busy,
+            modifier = Modifier.fillMaxWidth(),
+        ) { Text(if (gpt != null) "Reconnect ChatGPT" else "Connect ChatGPT") }
+
+        AppTextField(
+            value = redirect,
+            onValueChange = { redirect = it },
+            label = "Paste redirect URL",
+            supportingText = "After signing in, copy the localhost:1455 URL you were sent to and paste it here.",
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        Button(
+            onClick = {
+                vm.completeOauth(redirect, model) { err -> if (err == null) redirect = "" }
+            },
+            enabled = redirect.isNotBlank() && !ui.busy,
+            modifier = Modifier.fillMaxWidth(),
+        ) { Text("Finish sign-in") }
+    }
 }

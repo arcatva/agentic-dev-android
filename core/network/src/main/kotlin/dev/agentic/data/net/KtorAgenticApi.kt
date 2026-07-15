@@ -690,6 +690,30 @@ class KtorAgenticApi(
         }
     }
 
+    override suspend fun oauthStart(): OAuthStartResp {
+        return try {
+            val r: OAuthStartResp = client.post("$baseUrl/api/oauth/openai/start") { auth() }.body()
+            AppLog.d("API", "POST oauth/start -> OK")
+            r
+        } catch (e: Exception) {
+            AppLog.w("API", "POST oauth/start -> FAILED: ${e.message}")
+            throw e
+        }
+    }
+
+    override suspend fun oauthComplete(req: OAuthCompleteReq): OAuthCompleteResp {
+        return try {
+            val r: OAuthCompleteResp = client.post("$baseUrl/api/oauth/openai/complete") {
+                auth(); contentType(ContentType.Application.Json); setBody(req)
+            }.body()
+            AppLog.d("API", "POST oauth/complete -> OK")
+            r
+        } catch (e: Exception) {
+            AppLog.w("API", "POST oauth/complete -> FAILED: ${e.message}")
+            throw e
+        }
+    }
+
     // ── Native Claude per-family routing overrides ──
     override suspend fun nativeModels(): List<NativeFamily> {
         return try {

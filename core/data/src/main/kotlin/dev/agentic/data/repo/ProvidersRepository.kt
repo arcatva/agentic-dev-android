@@ -3,6 +3,7 @@ package dev.agentic.data.repo
 import dev.agentic.data.net.AgenticApi
 import dev.agentic.data.net.NativeOverrideReq
 import dev.agentic.data.net.NewProviderReq
+import dev.agentic.data.net.OAuthCompleteReq
 
 /**
  * BYOK provider + native-model-override management. Sole owner of the corresponding API
@@ -13,6 +14,9 @@ class ProvidersRepository(private val api: AgenticApi) {
     suspend fun providers() = api.providers()
     suspend fun addProvider(req: NewProviderReq) = api.addProvider(req)
     suspend fun deleteProvider(name: String) = api.deleteProvider(name)
+
+    suspend fun oauthStart() = api.oauthStart()
+    suspend fun oauthComplete(req: OAuthCompleteReq) = api.oauthComplete(req)
 
     suspend fun nativeModels() = api.nativeModels()
     suspend fun putNativeOverride(family: String, req: NativeOverrideReq) = api.putNativeOverride(family, req)
